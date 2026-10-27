@@ -1,0 +1,11 @@
+.godot/
+desktop-lab/.godot/
+.superpowers/
+__pycache__/
+*.pyc
+*.log
+unreal/**/Binaries/
+unreal/**/DerivedDataCache/
+unreal/**/Intermediate/
+unreal/**/Saved/
+artifacts/
