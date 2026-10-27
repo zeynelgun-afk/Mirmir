@@ -1,0 +1,172 @@
+{
+  "schema_version": 1,
+  "recorded_at_utc": "2026-10-27T20:13:50.166308+00:00",
+  "engine_version": "5.8.4-58902052",
+  "purpose": "Current owned appearance/toy asset integrity snapshot, after generated fur and eye-mask updates. Historical material hashes in materials.json remain historical evidence.",
+  "current_assets": [
+    {
+      "file": "unreal/Mirmir/Content/Mirmir/Appearance/M_CatCoat.uasset",
+      "sha256": "8a06a96dc0c144347b6c07716029bae04461e32c13f8281ccf2cc6b6c7f7c358",
+      "bytes": 21303
+    },
+    {
+      "file": "unreal/Mirmir/Content/Mirmir/Appearance/M_CatEyes.uasset",
+      "sha256": "b82193a99727fb8d635410e355ee5aafd49c256ea5230ec2d03b947ecb39b222",
+      "bytes": 18956
+    },
+    {
+      "file": "unreal/Mirmir/Content/Mirmir/Appearance/M_CatFur.uasset",
+      "sha256": "b4ea623dc35afb2fa91dd55bf8e07bdaf070780e45ae4ca99ae576de77676de6",
+      "bytes": 27048
+    },
+    {
+      "file": "unreal/Mirmir/Content/Mirmir/Appearance/T_FineFurDetail.uasset",
+      "sha256": "2707ce38f8fccceb3700dd652ed370b4861f1776b900772b11953a270345b52c",
+      "bytes": 2691454
+    },
+    {
+      "file": "unreal/Mirmir/Content/Mirmir/Toys/M_ToyBall.uasset",
+      "sha256": "7e2097ca88d7335f4c510eb671c4ed09a5412e985f199ca35438159008b0551b",
+      "bytes": 8436
+    }
+  ],
+  "scripts": [
+    {
+      "file": "unreal/Mirmir/scripts/create-appearance.py",
+      "sha256": "68ebad1f6d73c2e82a34e51917279efe77e451f35e82467fafbbab6764c017ed",
+      "bytes": 14823
+    },
+    {
+      "file": "unreal/Mirmir/scripts/create-fur-material.py",
+      "sha256": "684c1443f96b80f37b70433140a8f902e08859498efdea68af18519992545b1a",
+      "bytes": 4498
+    },
+    {
+      "file": "unreal/Mirmir/scripts/create-fine-fur.py",
+      "sha256": "16ce509c7fe96bab70627b6ed0706a37eb3428f8f00414ac958adde8c71942d4",
+      "bytes": 5955
+    },
+    {
+      "file": "unreal/Mirmir/scripts/create-eye-material.py",
+      "sha256": "f35660b546ab5c6af5683b91c7fd7092fc59b0a65e6b22cf3e6354ae6e519cd5",
+      "bytes": 2675
+    },
+    {
+      "file": "unreal/Mirmir/scripts/create-toy-material.py",
+      "sha256": "f12e961d6868d6284d8e6c9a04bc681d55e5988107392d6227bad0934c64e879",
+      "bytes": 3853
+    },
+    {
+      "file": "scripts/retarget-cat-motion.py",
+      "sha256": "89d2e646231427e5d9808612e0a26fb70dc6b1bee080215525d511487be9ef91",
+      "bytes": 24224
+    },
+    {
+      "file": "scripts/retarget-cat-contact-ik.py",
+      "sha256": "b268a313cadfb655531e4795c0a73fbdc825cafa7a733dd3c32fbd64646ceb3a",
+      "bytes": 12813
+    },
+    {
+      "file": "scripts/close-walk-loop.py",
+      "sha256": "ad3e467f835be88261af4ee371fa49ec2ac8ceaee7507bc67834a7dfd0bc2237",
+      "bytes": 13075
+    },
+    {
+      "file": "scripts/verify_assets.py",
+      "sha256": "121f6c35939989605a87359d99b696ebea8af0c7cf2890d3c50778b052295835",
+      "bytes": 9723
+    }
+  ],
+  "original_imported_assets": [
+    {
+      "file": "unreal/Mirmir/Content/Mirmir/Shared/Cat/cat-walk-loop/Materials/pet_s_4cat_Black_mat.uasset",
+      "sha256": "3db675c3295f123abd38df969329f23dea91a7df95ef2eaa31b513f161d5f92e",
+      "bytes": 65323
+    },
+    {
+      "file": "unreal/Mirmir/Content/Mirmir/Shared/Cat/cat-walk-loop/Materials/pet_s_4cat_Blackeye_mat.uasset",
+      "sha256": "1ecdb095dcf8c75796aea91edf0cb39401e89cd7e160a1c7c2b3a6b138f15292",
+      "bytes": 65547
+    },
+    {
+      "file": "unreal/Mirmir/Content/Mirmir/Shared/Cat/cat-walk-loop/SkeletalMeshes/Object_10.uasset",
+      "sha256": "f8bcc016ef0fe4d7b2539271a965e6663670ace0e0448add6a0037fc2c578390",
+      "bytes": 332409
+    },
+    {
+      "file": "unreal/Mirmir/Content/Mirmir/Shared/Cat/cat-walk-loop/SkeletalMeshes/Object_10_PhysicsAsset.uasset",
+      "sha256": "849b5db3e39691272796d6f4e65829e6ce56b496e080acb2d5bb4c017f1a453c",
+      "bytes": 22405
+    },
+    {
+      "file": "unreal/Mirmir/Content/Mirmir/Shared/Cat/cat-walk-loop/SkeletalMeshes/Object_13.uasset",
+      "sha256": "92f8cb1d470ceafcf07dbd0445383d0d8a7bb207bf922ed0ddb07c49413a615d",
+      "bytes": 116128
+    },
+    {
+      "file": "unreal/Mirmir/Content/Mirmir/Shared/Cat/cat-walk-loop/SkeletalMeshes/Object_13_PhysicsAsset.uasset",
+      "sha256": "2347f35663dff1f4e5c6c27f4173c6004fca814a462df4d35db4da164f5fa14d",
+      "bytes": 3210
+    },
+    {
+      "file": "unreal/Mirmir/Content/Mirmir/Shared/Cat/cat-walk-loop/SkeletalMeshes/Object_16.uasset",
+      "sha256": "b448020d46eef8a2d1a69bf7c46c61515ce7b6f4a5100d186df57c473dbe2614",
+      "bytes": 125758
+    },
+    {
+      "file": "unreal/Mirmir/Content/Mirmir/Shared/Cat/cat-walk-loop/SkeletalMeshes/Object_16_PhysicsAsset.uasset",
+      "sha256": "8475d4d8a0e980ea019d7422bdf43383a713c26cbd8a081f172c8d9f494a54e1",
+      "bytes": 7060
+    },
+    {
+      "file": "unreal/Mirmir/Content/Mirmir/Shared/Cat/cat-walk-loop/SkeletalMeshes/Object_7.uasset",
+      "sha256": "9aaf5f11ff101763b845dd4009ce451dedf09c3e987ddcfa477a727d58e3303e",
+      "bytes": 693766
+    },
+    {
+      "file": "unreal/Mirmir/Content/Mirmir/Shared/Cat/cat-walk-loop/SkeletalMeshes/Object_7_PhysicsAsset.uasset",
+      "sha256": "54b882fb286dd99d4e7941728830a6ebc190e0602a0f304512751fb82ef87b81",
+      "bytes": 82797
+    },
+    {
+      "file": "unreal/Mirmir/Content/Mirmir/Shared/Cat/cat-walk-loop/SkeletalMeshes/Object_7_Skeleton.uasset",
+      "sha256": "8ea3ba4c4777a6c6ccd2e9909b523d94b501f4b87d3b72d5280e9981206f95fe",
+      "bytes": 14985
+    },
+    {
+      "file": "unreal/Mirmir/Content/Mirmir/Shared/Cat/cat-walk-loop/SkeletalMeshes/cat-walk-loop_Anim.uasset",
+      "sha256": "188d8d7b7fe6067466c986dec525667110028e5aeb9a575c3d7a089a86ab9fd9",
+      "bytes": 377257
+    },
+    {
+      "file": "unreal/Mirmir/Content/Mirmir/Shared/Cat/cat-walk-loop/Textures/cat-walk-loop_texture_0.uasset",
+      "sha256": "057314c3c0f6256fcfa2d008b51ec70a1724e35428612fab3305cb9b10b32718",
+      "bytes": 486902
+    },
+    {
+      "file": "unreal/Mirmir/Content/Mirmir/Shared/Cat/cat-walk-loop/Textures/cat-walk-loop_texture_1.uasset",
+      "sha256": "6f2c0c80e7e0ecee110b0ba21531d16f6a979c822675e7d8ce6d9140286f2d6d",
+      "bytes": 95840
+    }
+  ],
+  "original_import_baseline": "assets/provenance/appearance/materials.json:original_imported_asset_sha256",
+  "generated_bitmap": {
+    "file": "assets/generated/fur-detail-v1.png",
+    "sha256": "43e54a8ed44e9cefd045e971759f6e604dd70ed65e115e96c7d03479816a3455",
+    "bytes": 3234509
+  },
+  "generated_bitmap_prompt_and_origin": "assets/generated/fur-detail-v1.json",
+  "material_editor_evidence": [
+    "assets/provenance/appearance/eye-material-update.json",
+    ".local/appearance/fine-fur.json",
+    ".local/toy-material.json"
+  ],
+  "toy_geometry": "/Engine/BasicShapes/Sphere.Sphere (provided with installed Unreal Engine; not a downloaded external model)",
+  "primary_four_asset_manifest_changed": false,
+  "limits": [
+    "Integrity verification is separate from rendered appearance, animation/contact quality and Chaos runtime verification.",
+    "The original cat geometry/texture remains CC BY-NC4 personal noncommercial use; additional DreamNoms motion retains its CC BY4 attribution.",
+    "Generated fur bitmap source pixels are immutable at the recorded43e54a8e SHA; the Unreal texture build derives filtered mip data."
+  ],
+  "refresh_reason": "Final live-update packaging snapshot after the last owned eye-material correction; original imported assets and generated bitmap baselines retained."
+}

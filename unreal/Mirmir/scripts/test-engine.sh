@@ -12,4 +12,4 @@ printf 'Unreal automation log: %s\n' "$test_log"
 exec "$MIRMIR_UE_ROOT/Engine/Binaries/Linux/UnrealEditor-Cmd" \
   "$project_dir/Mirmir.uproject" -unattended -nop4 -nosplash -NullRHI \
   "-abslog=$test_log" \
-  -ExecCmds='Automation RunTests Mirmir.Behavior;SoftQuit'
+  -ExecCmds='Automation RunTests Mirmir;SoftQuit'

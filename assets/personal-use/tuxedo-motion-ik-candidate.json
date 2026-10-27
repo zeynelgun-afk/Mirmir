@@ -1,0 +1,244 @@
+{
+  "schema_version": 1,
+  "status": "candidate_not_accepted_for_product",
+  "base_candidate": "assets/personal-use/cat-tuxedo-motion-candidate.glb",
+  "base_candidate_sha256": "3f65719d5a3f3fcf4c5043d976891047c742633c2cc8ed1f515819cd852ace9a",
+  "base_provenance": "assets/personal-use/tuxedo-motion-candidate.json",
+  "output": "assets/personal-use/cat-tuxedo-motion-ik-candidate.glb",
+  "output_sha256": "e6cc4b5737e3ccc16f2e7b97d6952c452d7aafd4ac4be17b125cfdda9a4c2ed4",
+  "output_bytes": 1442168,
+  "method": "One analytic two-bone hip-knee-ankle solve per leg, FK knee pole, donor distal-joint low-height/low-speed contact weights. Desired toe equals target neutral toe plus aligned donor animated-minus-neutral toe displacement, scaled by the FK retarget hip-height ratio. Preserve FK wrist world orientation at full contact. Clamp unreachable distances; do not stretch bones or add per-frame root/floor offsets.",
+  "contact_proxy_parameters": {
+    "donor_height_above_per_clip_toe_minimum_full_weight": 0.02,
+    "donor_height_zero_weight": 0.05,
+    "donor_world_speed_full_weight": 0.2,
+    "donor_world_speed_zero_weight": 0.5,
+    "velocity_sample_half_window_s": 0.004166666666666667,
+    "weight_curve": "smoothstep; low-height weight multiplied by low-speed weight"
+  },
+  "clips": {
+    "TuxedoIK_SitDown": {
+      "source_clip": "SitDown",
+      "fk_clip": "Tuxedo_SitDown",
+      "duration_s": 1.0,
+      "sample_count": 31,
+      "review_gate": "unaccepted_contact_correction_candidate_requires_real_Unreal_review",
+      "minimum_geometry_clearance_from_reference_floor_cm": -0.927035991734131,
+      "previous_fk_minimum_geometry_clearance_cm": -1.3375043271847489,
+      "segment_length_change_cm_max": 4.289608399504613e-06,
+      "legs": {
+        "front_left": {
+          "active_contact_sample_count": 23,
+          "full_contact_sample_count": 23,
+          "full_contact_target_error_cm_max": 7.97607682066915e-06,
+          "unreachable_distance_cm_max": 0.0,
+          "minimum_fk_knee_pole_cm": 3.5065525641261575,
+          "full_contact_wrist_orientation_error_deg_max": 2.4148365394514667e-06,
+          "toe_proxy_floor_clearance_cm_range": [
+            1.3642108885313153,
+            5.813339761163648
+          ]
+        },
+        "front_right": {
+          "active_contact_sample_count": 23,
+          "full_contact_sample_count": 23,
+          "full_contact_target_error_cm_max": 6.091417478806257e-06,
+          "unreachable_distance_cm_max": 0.0,
+          "minimum_fk_knee_pole_cm": 3.3883905163522563,
+          "full_contact_wrist_orientation_error_deg_max": 2.4148365394514667e-06,
+          "toe_proxy_floor_clearance_cm_range": [
+            1.3186226312338483,
+            5.1909261082855265
+          ]
+        },
+        "hind_left": {
+          "active_contact_sample_count": 23,
+          "full_contact_sample_count": 23,
+          "full_contact_target_error_cm_max": 3.844680537213739e-06,
+          "unreachable_distance_cm_max": 0.0,
+          "minimum_fk_knee_pole_cm": 4.273563520945883,
+          "full_contact_wrist_orientation_error_deg_max": 2.699869328381916e-06,
+          "toe_proxy_floor_clearance_cm_range": [
+            0.4797769004269982,
+            4.870802391489393
+          ]
+        },
+        "hind_right": {
+          "active_contact_sample_count": 8,
+          "full_contact_sample_count": 8,
+          "full_contact_target_error_cm_max": 4.572209570517548e-06,
+          "unreachable_distance_cm_max": 0.0,
+          "minimum_fk_knee_pole_cm": 4.61065339210508,
+          "full_contact_wrist_orientation_error_deg_max": 2.4148365394514667e-06,
+          "toe_proxy_floor_clearance_cm_range": [
+            0.8720169192921706,
+            9.11396647516095
+          ]
+        }
+      },
+      "serialized_world_joint_position_max_error_cm": 1.2628652572316219e-05
+    },
+    "TuxedoIK_IdleSit": {
+      "source_clip": "IdleSit",
+      "fk_clip": "Tuxedo_IdleSit",
+      "duration_s": 1.0,
+      "sample_count": 31,
+      "review_gate": "unaccepted_contact_correction_candidate_requires_real_Unreal_review",
+      "minimum_geometry_clearance_from_reference_floor_cm": -0.920357227449532,
+      "previous_fk_minimum_geometry_clearance_cm": -2.1503246995123684,
+      "segment_length_change_cm_max": 7.713429661152728e-06,
+      "legs": {
+        "front_left": {
+          "active_contact_sample_count": 31,
+          "full_contact_sample_count": 31,
+          "full_contact_target_error_cm_max": 0.2609532154513733,
+          "unreachable_distance_cm_max": 0.26096131668503786,
+          "minimum_fk_knee_pole_cm": 3.8484934948789062,
+          "full_contact_wrist_orientation_error_deg_max": 2.4148365394514667e-06,
+          "toe_proxy_floor_clearance_cm_range": [
+            1.3748942912012656,
+            1.631918008098056
+          ]
+        },
+        "front_right": {
+          "active_contact_sample_count": 31,
+          "full_contact_sample_count": 31,
+          "full_contact_target_error_cm_max": 0.41242392462896943,
+          "unreachable_distance_cm_max": 0.4124308660190547,
+          "minimum_fk_knee_pole_cm": 3.574425422647123,
+          "full_contact_wrist_orientation_error_deg_max": 2.4148365394514667e-06,
+          "toe_proxy_floor_clearance_cm_range": [
+            1.3761694876616093,
+            1.7829256768824446
+          ]
+        },
+        "hind_left": {
+          "active_contact_sample_count": 31,
+          "full_contact_sample_count": 31,
+          "full_contact_target_error_cm_max": 6.016327709068081e-06,
+          "unreachable_distance_cm_max": 0.0,
+          "minimum_fk_knee_pole_cm": 8.941056957860878,
+          "full_contact_wrist_orientation_error_deg_max": 2.699869328381916e-06,
+          "toe_proxy_floor_clearance_cm_range": [
+            0.4864097043114028,
+            0.4893648865756018
+          ]
+        },
+        "hind_right": {
+          "active_contact_sample_count": 31,
+          "full_contact_sample_count": 31,
+          "full_contact_target_error_cm_max": 5.080612894911597e-06,
+          "unreachable_distance_cm_max": 0.0,
+          "minimum_fk_knee_pole_cm": 9.408984807076902,
+          "full_contact_wrist_orientation_error_deg_max": 2.9575586669421963e-06,
+          "toe_proxy_floor_clearance_cm_range": [
+            0.8753029082688417,
+            0.8782014701226795
+          ]
+        }
+      },
+      "serialized_world_joint_position_max_error_cm": 9.446590636242892e-06
+    },
+    "TuxedoIK_StandUp": {
+      "source_clip": "StandUp",
+      "fk_clip": "Tuxedo_StandUp",
+      "duration_s": 1.0416699647903442,
+      "sample_count": 33,
+      "review_gate": "unaccepted_contact_correction_candidate_requires_real_Unreal_review",
+      "minimum_geometry_clearance_from_reference_floor_cm": -0.9270384926913879,
+      "previous_fk_minimum_geometry_clearance_cm": -1.3375595692892506,
+      "segment_length_change_cm_max": 4.372725920692708e-06,
+      "legs": {
+        "front_left": {
+          "active_contact_sample_count": 25,
+          "full_contact_sample_count": 25,
+          "full_contact_target_error_cm_max": 8.013142349976856e-06,
+          "unreachable_distance_cm_max": 0.0,
+          "minimum_fk_knee_pole_cm": 3.5065524092283074,
+          "full_contact_wrist_orientation_error_deg_max": 2.4148365394514667e-06,
+          "toe_proxy_floor_clearance_cm_range": [
+            1.3642062815088905,
+            5.813337176269383
+          ]
+        },
+        "front_right": {
+          "active_contact_sample_count": 25,
+          "full_contact_sample_count": 25,
+          "full_contact_target_error_cm_max": 6.091417478806257e-06,
+          "unreachable_distance_cm_max": 0.0,
+          "minimum_fk_knee_pole_cm": 3.3883903732329825,
+          "full_contact_wrist_orientation_error_deg_max": 3.4150945850063763e-06,
+          "toe_proxy_floor_clearance_cm_range": [
+            1.3188110027644593,
+            5.190839450269247
+          ]
+        },
+        "hind_left": {
+          "active_contact_sample_count": 23,
+          "full_contact_sample_count": 23,
+          "full_contact_target_error_cm_max": 4.66994382245898e-06,
+          "unreachable_distance_cm_max": 0.0,
+          "minimum_fk_knee_pole_cm": 4.273563446598686,
+          "full_contact_wrist_orientation_error_deg_max": 2.699869328381916e-06,
+          "toe_proxy_floor_clearance_cm_range": [
+            0.4797741829553242,
+            4.870808061921222
+          ]
+        },
+        "hind_right": {
+          "active_contact_sample_count": 8,
+          "full_contact_sample_count": 8,
+          "full_contact_target_error_cm_max": 5.349431412390027e-06,
+          "unreachable_distance_cm_max": 0.0,
+          "minimum_fk_knee_pole_cm": 4.610649600295051,
+          "full_contact_wrist_orientation_error_deg_max": 2.091309789151873e-06,
+          "toe_proxy_floor_clearance_cm_range": [
+            0.8720139438072472,
+            9.1139550956632
+          ]
+        }
+      },
+      "serialized_world_joint_position_max_error_cm": 1.4544734074688924e-05
+    }
+  },
+  "transition_paw_proxy_endpoint_gaps_cm": {
+    "TuxedoIK_SitDown -> TuxedoIK_IdleSit": {
+      "front_left": 3.02146431733135,
+      "front_right": 0.0,
+      "hind_left": 0.0,
+      "hind_right": 0.0
+    },
+    "TuxedoIK_IdleSit -> TuxedoIK_StandUp": {
+      "front_left": 3.0214652830481583,
+      "front_right": 5.853567323449942e-07,
+      "hind_left": 1.7406897549865287e-06,
+      "hind_right": 0.0
+    },
+    "TuxedoIK_StandUp -> Tuxedo_Idle": {
+      "front_left": 0.00046185896392285586,
+      "front_right": 0.00011998432437883001,
+      "hind_left": 1.7950869158362566,
+      "hind_right": 1.9106363141281375
+    }
+  },
+  "original_walk_and_idle_clips_preserved": true,
+  "geometry_skin_nodes_materials_preserved": true,
+  "stable_base_file_untouched": true,
+  "license": {
+    "target": "CC-BY-NC-4.0, LostBoyz2078",
+    "motion": "CC-BY-4.0, DreamNoms",
+    "combined_scope": "Personal noncommercial candidate derivative. Credit both authors; no endorsement implied.",
+    "motion_source": "https://sketchfab.com/3d-models/tuxedo-cat-animated-20-783fcb78b55b4394a212c2b6392e1113",
+    "target_source": "https://sketchfab.com/3d-models/cat-walk-915680200c064815bba75e008ba9efb5",
+    "donor_provenance": "assets/provenance/tuxedo-motion/source.json"
+  },
+  "limits": [
+    "No actual Unreal import/playback or visual acceptance for this IK variant.",
+    "Contact classification uses animated distal bone joints, not real paw pads or collision contact. Per-clip minima and thresholds can misclassify contacts.",
+    "The donor front-left toe has about 3.53 source-world units/s velocity at the SitDown end and StandUp start despite matching the static IdleSit endpoint. The source-only contact gate releases IK there, leaving a 3.02 cm target endpoint discontinuity; no correction is made to hide this. Product acceptance remains rejected.",
+    "Two-bone solving changes transferred leg motion; it does not provide an additional authored animation. Foreign spine, body deformation, joint limits and self-intersection are not solved.",
+    "Unreachable targets are clamped with residual error. Partial contact weights can retain larger residuals and wrist orientation deviation.",
+    "Target neutral reference remains derived from its walk cycle, with residual hind asymmetry. No full sleep/eat/groom animation is added."
+  ],
+  "reproduce": "python scripts/retarget-cat-contact-ik.py"
+}

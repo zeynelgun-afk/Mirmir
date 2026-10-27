@@ -1,0 +1,802 @@
+{
+  "schema_version": 1,
+  "release": "0.4.0",
+  "engine": "Unreal Engine 5.8.4",
+  "status_date_local": "2026-10-28",
+  "build_configuration": "Shipping",
+  "build_cook_stage_archive_succeeded": true,
+  "engine_automation": {
+    "succeeded": 3,
+    "failed": 0
+  },
+  "core_tests": "ASan/UBSan behavior and locomotion checks passed",
+  "habitat_runtime_probe": {
+    "pid": 720001,
+    "samples": 1093,
+    "captures": 90,
+    "exit": 0,
+    "duration_s": 47.117469911994704,
+    "interaction_messages": [
+      "",
+      "Mırmır yatağına gidiyor.",
+      "Mırmır yatağında dinleniyor.",
+      "Mama hazır; Mırmır kabına gidiyor.",
+      "Mırmır mamasını yiyor.",
+      "Oyun başladı; Mırmır topuyla oynuyor.",
+      "Mırmır sevildi."
+    ],
+    "activities": [
+      "Idle",
+      "Sleep",
+      "Eat",
+      "Wander",
+      "Play"
+    ],
+    "props_ready": true
+  },
+  "motion_proxy_comparison": {
+    "kind": "same binary, identical seed/initial save, actual Editor/RHI IK on/off source-contact-proxy A/B",
+    "runs": {
+      "on": {
+        "samples": 539,
+        "raw_captures": 133,
+        "normal_quit_exit": 0,
+        "duration_s": 17.971661914001743,
+        "binary": "UnrealEditor (Linux, UE5.8.4)"
+      },
+      "off": {
+        "samples": 530,
+        "raw_captures": 130,
+        "normal_quit_exit": 0,
+        "duration_s": 17.972123060004378,
+        "binary": "UnrealEditor (Linux, UE5.8.4)"
+      }
+    },
+    "method": {
+      "contact_windows_normalized_start": [
+        0.7,
+        0.17,
+        0.54,
+        0.0
+      ],
+      "contact_window_lengths": [
+        0.51,
+        0.53,
+        0.48,
+        0.52
+      ],
+      "edge_width": 0.055,
+      "fullstance_weight_min": 0.95,
+      "interval_dt": "Wrapped authored clip-time delta divided by mean actual playback rate; avoid RHI wall-clock jitter.",
+      "match": "One-to-one nearest accumulated body-path distance <=.65cm, actor XY<=2cm, yaw<=2deg, source phase<=.025cycles, curvature<=.002/cm, speed<=.5cm/s; source-derived contact gate identical for on/off.",
+      "warmup_excluded_path_cm": 70
+    },
+    "matches": {
+      "on_intervals": 473,
+      "off_intervals": 464,
+      "matched_intervals": 298,
+      "phase_error_cycles": {
+        "n": 298,
+        "median": 0.007142452416681461,
+        "p90": 0.011082386432850599,
+        "max": 0.011593177741867633,
+        "min": 0.00030048191099640853
+      },
+      "yaw_error_deg": {
+        "n": 298,
+        "median": 0.4270205621475611,
+        "p90": 0.8371579293464521,
+        "max": 0.8511506502346435,
+        "min": 0.1574883495572692
+      },
+      "actor_xy_error_cm": {
+        "n": 298,
+        "median": 0.5673669514304043,
+        "p90": 1.893745987961076,
+        "max": 1.9974913068175275,
+        "min": 0.25612042105466254
+      }
+    },
+    "legs": {
+      "front_left": {
+        "fullstance": {
+          "on": {
+            "proxy_xy_speed_cm_s": {
+              "n": 120,
+              "median": 8.526461978049395e-13,
+              "p90": 3.4244079594479055,
+              "max": 12.921957140243421,
+              "min": 0.0
+            },
+            "proxy_3d_speed_cm_s": {
+              "n": 120,
+              "median": 8.581059917985862e-13,
+              "p90": 3.4249371794878525,
+              "max": 12.924861536962604,
+              "min": 1.3322601854914408e-14
+            },
+            "proxy_height_cm": {
+              "n": 120,
+              "median": 1.3189898324140301,
+              "p90": 1.3765843372462032,
+              "max": 1.3765843372462132,
+              "min": 1.262397720629158
+            }
+          },
+          "off": {
+            "proxy_xy_speed_cm_s": {
+              "n": 120,
+              "median": 5.80197811418571,
+              "p90": 10.842752892606077,
+              "max": 16.897541535760062,
+              "min": 0.29977046455569323
+            },
+            "proxy_3d_speed_cm_s": {
+              "n": 120,
+              "median": 5.912334577715528,
+              "p90": 10.895435845244162,
+              "max": 16.918998405054236,
+              "min": 0.4313336969002929
+            },
+            "proxy_height_cm": {
+              "n": 120,
+              "median": 1.2356724262569982,
+              "p90": 1.3685738146084627,
+              "max": 1.4317947416703367,
+              "min": 1.1697728267218657
+            }
+          },
+          "paired_xy_speed_on_minus_off_cm_s": {
+            "n": 120,
+            "median": -4.532074483547175,
+            "p90": -0.24104208040449676,
+            "max": 0.3534891604749222,
+            "min": -16.08334872927473
+          }
+        },
+        "release": {
+          "on": {
+            "proxy_xy_speed_cm_s": {
+              "n": 17,
+              "median": 14.623353578998021,
+              "p90": 20.726978294372365,
+              "max": 22.281560314948713,
+              "min": 7.685671660791667e-13
+            },
+            "proxy_3d_speed_cm_s": {
+              "n": 17,
+              "median": 14.637312764429629,
+              "p90": 21.083314938931487,
+              "max": 23.703379965401695,
+              "min": 8.572420203364095e-13
+            },
+            "proxy_height_cm": {
+              "n": 17,
+              "median": 1.3736274444470664,
+              "p90": 1.5287889966210992,
+              "max": 1.6095075191457653,
+              "min": 1.2631408270115378
+            }
+          },
+          "off": {
+            "proxy_xy_speed_cm_s": {
+              "n": 17,
+              "median": 12.819190511687987,
+              "p90": 16.80655543420493,
+              "max": 16.9155749278828,
+              "min": 0.417781338900183
+            },
+            "proxy_3d_speed_cm_s": {
+              "n": 17,
+              "median": 12.951888063508747,
+              "p90": 17.431607874287042,
+              "max": 18.02600749354178,
+              "min": 0.796548877865403
+            },
+            "proxy_height_cm": {
+              "n": 17,
+              "median": 1.2021116742642346,
+              "p90": 1.3159812086552996,
+              "max": 1.3895377239488447,
+              "min": 1.128363231881135
+            }
+          },
+          "paired_xy_speed_on_minus_off_cm_s": {
+            "n": 17,
+            "median": 0.7153202512910255,
+            "p90": 4.289542394302009,
+            "max": 5.617601337426986,
+            "min": -9.15142536244219
+          }
+        },
+        "reported_on_correction_cm": {
+          "n": 539,
+          "median": 0.7883065342903137,
+          "p90": 3.6365396022796626,
+          "max": 4,
+          "min": 0
+        },
+        "reported_on_fullstance_residual_cm": {
+          "n": 120,
+          "median": 1.8178289489263603e-15,
+          "p90": 0.5672449588775637,
+          "max": 2.7808823585510254,
+          "min": 2.28878334394581e-16
+        }
+      },
+      "front_right": {
+        "fullstance": {
+          "on": {
+            "proxy_xy_speed_cm_s": {
+              "n": 120,
+              "median": 9.532862979832656e-13,
+              "p90": 4.875559228223817,
+              "max": 8.035369272598308,
+              "min": 0.0
+            },
+            "proxy_3d_speed_cm_s": {
+              "n": 120,
+              "median": 9.67747549805115e-13,
+              "p90": 4.880628414965166,
+              "max": 8.03581347412698,
+              "min": 3.996787383402294e-14
+            },
+            "proxy_height_cm": {
+              "n": 120,
+              "median": 1.196400009318347,
+              "p90": 1.2192044147944925,
+              "max": 1.2496051100213084,
+              "min": 1.179084472261576
+            }
+          },
+          "off": {
+            "proxy_xy_speed_cm_s": {
+              "n": 120,
+              "median": 6.812446273449172,
+              "p90": 9.860618960548422,
+              "max": 13.09524555125222,
+              "min": 1.9155380034556928
+            },
+            "proxy_3d_speed_cm_s": {
+              "n": 120,
+              "median": 6.813878241779985,
+              "p90": 10.045051462361583,
+              "max": 13.249122682276038,
+              "min": 2.0358911266262436
+            },
+            "proxy_height_cm": {
+              "n": 120,
+              "median": 1.2831389376196867,
+              "p90": 1.366563845546083,
+              "max": 1.4076232755418507,
+              "min": 1.219888902069783
+            }
+          },
+          "paired_xy_speed_on_minus_off_cm_s": {
+            "n": 120,
+            "median": -6.673635837667646,
+            "p90": -0.15536292465178356,
+            "max": 0.5068086835483578,
+            "min": -12.330714045697864
+          }
+        },
+        "release": {
+          "on": {
+            "proxy_xy_speed_cm_s": {
+              "n": 16,
+              "median": 16.31099062677503,
+              "p90": 19.06947238099109,
+              "max": 19.797957929038027,
+              "min": 1.3234139793469408
+            },
+            "proxy_3d_speed_cm_s": {
+              "n": 16,
+              "median": 16.35593739742751,
+              "p90": 19.155799329141637,
+              "max": 19.81721517917537,
+              "min": 1.3266275432306414
+            },
+            "proxy_height_cm": {
+              "n": 16,
+              "median": 1.1745804298787812,
+              "p90": 1.2291560417998997,
+              "max": 1.2558892174008087,
+              "min": 1.0955362924758707
+            }
+          },
+          "off": {
+            "proxy_xy_speed_cm_s": {
+              "n": 16,
+              "median": 8.295151870543092,
+              "p90": 12.269230760724883,
+              "max": 12.871158288638865,
+              "min": 1.2789289261687065
+            },
+            "proxy_3d_speed_cm_s": {
+              "n": 16,
+              "median": 9.585746348618603,
+              "p90": 12.285632024315552,
+              "max": 13.026940365786588,
+              "min": 1.2797858332809406
+            },
+            "proxy_height_cm": {
+              "n": 16,
+              "median": 1.2440237672681316,
+              "p90": 1.3743992238709584,
+              "max": 1.399172768016834,
+              "min": 1.1925569142262578
+            }
+          },
+          "paired_xy_speed_on_minus_off_cm_s": {
+            "n": 16,
+            "median": 7.087286414433598,
+            "p90": 12.479565470036011,
+            "max": 14.977735079622208,
+            "min": -0.46988376957738165
+          }
+        },
+        "reported_on_correction_cm": {
+          "n": 539,
+          "median": 1.566326379776001,
+          "p90": 4.0,
+          "max": 4,
+          "min": 0
+        },
+        "reported_on_fullstance_residual_cm": {
+          "n": 120,
+          "median": 2.0305502622009635e-15,
+          "p90": 0.9057023048400881,
+          "max": 2.0379798412323,
+          "min": 2.7755575615628914e-17
+        }
+      },
+      "hind_left": {
+        "fullstance": {
+          "on": {
+            "proxy_xy_speed_cm_s": {
+              "n": 107,
+              "median": 6.02910546961272e-13,
+              "p90": 12.284705081483198,
+              "max": 22.851413862531157,
+              "min": 0.0
+            },
+            "proxy_3d_speed_cm_s": {
+              "n": 107,
+              "median": 6.204672856127962e-13,
+              "p90": 12.30300331277564,
+              "max": 22.866331898153522,
+              "min": 3.996776969497111e-14
+            },
+            "proxy_height_cm": {
+              "n": 107,
+              "median": 1.195853774234489,
+              "p90": 1.2369684927119866,
+              "max": 1.3104843162730773,
+              "min": 1.0679857330056088
+            }
+          },
+          "off": {
+            "proxy_xy_speed_cm_s": {
+              "n": 107,
+              "median": 8.144706957330344,
+              "p90": 13.999541684842569,
+              "max": 22.19734180573289,
+              "min": 3.866217940535861
+            },
+            "proxy_3d_speed_cm_s": {
+              "n": 107,
+              "median": 8.157675722033227,
+              "p90": 14.104789913528576,
+              "max": 22.2014978898317,
+              "min": 4.056402249389022
+            },
+            "proxy_height_cm": {
+              "n": 107,
+              "median": 1.0486111622916248,
+              "p90": 1.2023095562327104,
+              "max": 1.2791684817024416,
+              "min": 0.9120186908729657
+            }
+          },
+          "paired_xy_speed_on_minus_off_cm_s": {
+            "n": 107,
+            "median": -6.510207990738107,
+            "p90": -1.5795970083224486,
+            "max": 0.6540720567982667,
+            "min": -15.498774812487085
+          }
+        },
+        "release": {
+          "on": {
+            "proxy_xy_speed_cm_s": {
+              "n": 18,
+              "median": 29.75130190641854,
+              "p90": 36.960422108749825,
+              "max": 44.52728202430863,
+              "min": 10.785002997295704
+            },
+            "proxy_3d_speed_cm_s": {
+              "n": 18,
+              "median": 29.765612672832226,
+              "p90": 36.96103469206364,
+              "max": 44.6958676404038,
+              "min": 10.806631692097577
+            },
+            "proxy_height_cm": {
+              "n": 18,
+              "median": 1.1132177813978665,
+              "p90": 1.2063832529109049,
+              "max": 1.2263811643867526,
+              "min": 1.0355124226567862
+            }
+          },
+          "off": {
+            "proxy_xy_speed_cm_s": {
+              "n": 18,
+              "median": 18.41170722041344,
+              "p90": 25.45170959464181,
+              "max": 28.781293723435066,
+              "min": 12.492672385441049
+            },
+            "proxy_3d_speed_cm_s": {
+              "n": 18,
+              "median": 18.43337269652782,
+              "p90": 25.779500224206657,
+              "max": 28.877122852284305,
+              "min": 12.495362304756666
+            },
+            "proxy_height_cm": {
+              "n": 18,
+              "median": 0.9594689393152755,
+              "p90": 1.0628973754989526,
+              "max": 1.1705261316965927,
+              "min": 0.9126611409779712
+            }
+          },
+          "paired_xy_speed_on_minus_off_cm_s": {
+            "n": 18,
+            "median": 9.968971509553116,
+            "p90": 16.028554102363476,
+            "max": 16.87192100623268,
+            "min": -3.014220387042318
+          }
+        },
+        "reported_on_correction_cm": {
+          "n": 539,
+          "median": 0.7711099982261658,
+          "p90": 3.470952367782593,
+          "max": 4,
+          "min": 0
+        },
+        "reported_on_fullstance_residual_cm": {
+          "n": 107,
+          "median": 6.269627761293188e-16,
+          "p90": 0.5117254257202166,
+          "max": 3.750781536102295,
+          "min": 1.1102230246251565e-16
+        }
+      },
+      "hind_right": {
+        "fullstance": {
+          "on": {
+            "proxy_xy_speed_cm_s": {
+              "n": 112,
+              "median": 4.263243948601959e-13,
+              "p90": 9.532895242449826e-13,
+              "max": 1.1314818150384671,
+              "min": 0.0
+            },
+            "proxy_3d_speed_cm_s": {
+              "n": 112,
+              "median": 4.992426218278174e-13,
+              "p90": 1.0347766850708307e-12,
+              "max": 1.1328079805499311,
+              "min": 1.998395427358041e-14
+            },
+            "proxy_height_cm": {
+              "n": 112,
+              "median": 1.2691223866890038,
+              "p90": 1.2792030348837995,
+              "max": 1.2792030348838161,
+              "min": 1.2654133425979155
+            }
+          },
+          "off": {
+            "proxy_xy_speed_cm_s": {
+              "n": 112,
+              "median": 5.416750883248139,
+              "p90": 7.789359811543403,
+              "max": 11.467381898298845,
+              "min": 1.0765190390617028
+            },
+            "proxy_3d_speed_cm_s": {
+              "n": 112,
+              "median": 5.422110705415246,
+              "p90": 7.791462070454125,
+              "max": 11.525629963027905,
+              "min": 2.3458189684243367
+            },
+            "proxy_height_cm": {
+              "n": 112,
+              "median": 1.362178958195142,
+              "p90": 1.401176320550153,
+              "max": 1.4221326949958524,
+              "min": 1.2258409715257583
+            }
+          },
+          "paired_xy_speed_on_minus_off_cm_s": {
+            "n": 112,
+            "median": -5.4167508832479,
+            "p90": -2.475814359300118,
+            "max": -0.9020440097855693,
+            "min": -11.467381898298243
+          }
+        },
+        "release": {
+          "on": {
+            "proxy_xy_speed_cm_s": {
+              "n": 21,
+              "median": 27.87190287869834,
+              "p90": 46.18455673360981,
+              "max": 50.7761093868787,
+              "min": 3.0145570984443e-13
+            },
+            "proxy_3d_speed_cm_s": {
+              "n": 21,
+              "median": 27.875406422774226,
+              "p90": 46.21376064061428,
+              "max": 50.853236486449596,
+              "min": 4.5301860783336927e-13
+            },
+            "proxy_height_cm": {
+              "n": 21,
+              "median": 1.2663753411552856,
+              "p90": 1.3004718619152942,
+              "max": 1.3059104115380356,
+              "min": 1.103597855349502
+            }
+          },
+          "off": {
+            "proxy_xy_speed_cm_s": {
+              "n": 21,
+              "median": 15.10009866141444,
+              "p90": 36.79838004837999,
+              "max": 41.04736931040145,
+              "min": 8.162840841567412
+            },
+            "proxy_3d_speed_cm_s": {
+              "n": 21,
+              "median": 15.1685841845486,
+              "p90": 36.85482692155187,
+              "max": 41.3185871833826,
+              "min": 8.795743165453258
+            },
+            "proxy_height_cm": {
+              "n": 21,
+              "median": 1.3261772803191727,
+              "p90": 1.4355818054806153,
+              "max": 1.4776967939592696,
+              "min": 1.2279512504377341
+            }
+          },
+          "paired_xy_speed_on_minus_off_cm_s": {
+            "n": 21,
+            "median": 5.932886311957894,
+            "p90": 17.740420421817856,
+            "max": 19.686272689758948,
+            "min": -9.97375934349903
+          }
+        },
+        "reported_on_correction_cm": {
+          "n": 539,
+          "median": 0.5310682058334351,
+          "p90": 2.667944002151489,
+          "max": 4,
+          "min": 0
+        },
+        "reported_on_fullstance_residual_cm": {
+          "n": 112,
+          "median": 5.209067601854531e-16,
+          "p90": 1.231925586695426e-15,
+          "max": 0.0009773041820153594,
+          "min": 6.245004513516506e-17
+        }
+      }
+    },
+    "limits": [
+      "Source distal bone proxies are not physical paw pads or collision contacts.",
+      "This is two controlled18s runs; no naturalness or universal percentage improvement claim.",
+      "Release velocity includes the real authored swing; on/off difference is relevant, absolute swing speed alone is not a pop verdict.",
+      "Some sample contexts cannot be matched; report excludes them rather than pretending identical capture times."
+    ]
+  },
+  "images": {
+    "unreal-habitat.png": {
+      "path": "docs/images/unreal-habitat.png",
+      "sha256": "13251874e2998b2096bb8ec08a0ae3fdae3c7389e58779121970d60bca25896c",
+      "unaltered_engine_rgba": true
+    },
+    "unreal-rest-pose.png": {
+      "path": "docs/images/unreal-rest-pose.png",
+      "sha256": "05aaf40b7b8cab4521d2ef4ee6e4b3c2de4cfc28d582353e8293766069442bab",
+      "unaltered_engine_rgba": true
+    },
+    "unreal-eating-pose.png": {
+      "path": "docs/images/unreal-eating-pose.png",
+      "sha256": "7849d512ceef8bd6ffa025a57992baca8001af0d4b318509f0e34adcc9c87e71",
+      "unaltered_engine_rgba": true
+    }
+  },
+  "live_cutover": {
+    "schema_version": 1,
+    "project_version": "0.4.0",
+    "engine_kind": "shipping",
+    "ready": true,
+    "test_mode": false,
+    "appearance": "van",
+    "crc_matched": true,
+    "props_crc_matched": true,
+    "props_ready": true,
+    "props_qt_visible": true,
+    "stance_valid_legs": 4,
+    "bond_preserved": true,
+    "appearance_preserved": true,
+    "muted_preserved": true,
+    "session_locked": true,
+    "actual_desktop_map_verified": false,
+    "verified_at_utc": "2026-10-27T21:06:57.975714+00:00"
+  },
+  "limits": [
+    "Locked user session: current real desktop mapping/visibility not verified; no session or KWin settings changed.",
+    "Resting is a procedural loaf/crouch with relaxed tail and breathing, without a supplied authored sleep clip or eyelid animation.",
+    "Cat motion is constrained kinematic animation with bounded IK, not force-driven muscle/paw-pad physics.",
+    "IK release still adds some drift/velocity; source snapshots are not a universal performance comparison.",
+    "Windows installer sources exist; no Windows game/installer EXE has been built or run on this Linux host.",
+    "Appearance profiles share the same underlying model and CC BY-NC condition."
+  ],
+  "source_sha256": {
+    "unreal/Mirmir/Source/Mirmir/Public/MirmirCat.h": "5f8daf372e72f66814322fb8a6018b8ff8fe8a2f87f172362ec4b4ce72c42ee6",
+    "unreal/Mirmir/Source/Mirmir/Private/MirmirCat.cpp": "d05b815f938a596128154c9bf7f5965c713aeb106313c2500c53976e049f9278",
+    "unreal/Mirmir/Source/Mirmir/Private/MirmirAnimInstance.cpp": "4240b40b9a84b2b92c9634cb44bd65092e45021e7d38d89700cd32216664a9d3",
+    "unreal/Mirmir/Source/Mirmir/Public/CatBehavior.h": "61cff58d4747f80b272d44d2dc925131fe19b4ac544945c91ecae61191bf8d7d",
+    "unreal/Mirmir/Source/Mirmir/Public/CatLocomotion.h": "4d233afe1322b15516d259f3a44f2ade6de60508dcbdc9e1b8f4e13ff7697580"
+  },
+  "packaging": {
+    "formats": [
+      "deb",
+      "rpm",
+      "pkg.tar.zst",
+      "AppImage",
+      "tar.zst",
+      "flatpak"
+    ],
+    "linux_build_manifest": {
+      "schema_version": 1,
+      "version": "0.4.0",
+      "host": "Linux-7.3.0-5-cachyos-x86_64-with-glibc2.44",
+      "stage_relative": "../Mirmir",
+      "files": [
+        {
+          "file": "Mirmir-0.4.0-linux-x86_64.tar.zst",
+          "bytes": 365339450,
+          "sha256": "114f42af8db2d649cb4563c65765c23ab84ac8f0f4196c80d433d1fcb358eef5"
+        },
+        {
+          "file": "Mirmir-0.4.0-x86_64.AppImage",
+          "bytes": 391924216,
+          "sha256": "20715e05e6bdb2425579cf882503aa8b639666f446f228d22fefd6de6933d421"
+        },
+        {
+          "file": "mirmir-0.4.0-1-x86_64.pkg.tar.zst",
+          "bytes": 365319696,
+          "sha256": "6cb3f1901ee04c8fdb439285cb12fcf0c89b6adad813d560c152accfebdd5720"
+        },
+        {
+          "file": "mirmir-0.4.0-1.x86_64.rpm",
+          "bytes": 398169926,
+          "sha256": "6b52197995250f6a41601a87080180f9a216648bb7fd044d2ada1937779e0391"
+        },
+        {
+          "file": "mirmir_0.4.0-1_amd64.deb",
+          "bytes": 385439840,
+          "sha256": "5c53a8b393e5ef9fd556c28d74ec082fc7c2e4753cce2cb705fccbd425d3ee64"
+        }
+      ],
+      "shipping_binary_sha256": "afd3ebda384f285d32ef351aa4968c543bb763cf20e7f62cf23de2f6089eaafd",
+      "docker_image": "sha256:07cabeef604be8897ee00e8ecc926bd432699d3306a5bb9e0a1bd0222094a466",
+      "runtime_lock_sha256": "f9c4377d39761b693c060de9b5881ab3eff5d261eab15c63aa0165540e876aa4",
+      "package_metadata_verified": true,
+      "staged_runtime_launch_verified": true,
+      "other_distro_install_verified": false,
+      "engine_sdk_included": false,
+      "windows_installer_built": false,
+      "extraction_and_relocation_verified": true,
+      "verification_file": "verification.json",
+      "headless_debian_family_package_install_verified": [
+        "Ubuntu22.04 container"
+      ],
+      "container_verification_file": "container-verification.json"
+    },
+    "ubuntu_container_install": {
+      "schema_version": 1,
+      "version": "0.4.0",
+      "test_environment": "ephemeral official ubuntu:22.04 Docker container",
+      "container_image_id": "sha256:e0f80c829509ef4df9e76bd8944eb7b8ec25cbb379b112a7f9448b2c77a77c9b",
+      "artifact": "mirmir_0.4.0-1_amd64.deb",
+      "artifact_sha256": "5c53a8b393e5ef9fd556c28d74ec082fc7c2e4753cce2cb705fccbd425d3ee64",
+      "apt_install_verified": true,
+      "private_qt_xcb_link_verified": true,
+      "native_offscreen_selftest_verified": true,
+      "gpu_render_in_container_tested": false,
+      "real_desktop_in_container_tested": false,
+      "host_os_packages_modified": false,
+      "test_log_sha256": "891e71c2c4ed3998309d626d21b85d1c8a2bc6ca7fec6ce04e784c4d6bd8fea2",
+      "limits": [
+        "Container shares host kernel; it is not a full separate OS/desktop test.",
+        "Fedora/openSUSE/Arch package-manager installations remain untested.",
+        "Windows installer was not compiled on this Linux host."
+      ]
+    },
+    "flatpak_sandbox": {
+      "app_id": "io.github.zeynelgun_afk.Mirmir",
+      "test_passed": true,
+      "actual_pointer_input_tested": false,
+      "speaker_output_tested": false,
+      "actual_desktop_overlay_verified": false,
+      "runtime_and_ipc_passed": true,
+      "desktop_session_locked": true,
+      "unverified": [
+        "Actual desktop mapping/visibility: user's session is locked; no unlock or compositor changes attempted."
+      ],
+      "raw_frame_sha256": "ba2b683832f1bd4369108119f3f187b4a02c84e0a016faced0cf61de60d8cc69",
+      "alpha_range": [
+        0,
+        255
+      ],
+      "frame_size": [
+        512,
+        512
+      ],
+      "engine_kind": "shipping",
+      "frame_storage": "runtime_tmpfs",
+      "habitat": {
+        "crc_matched": true,
+        "alpha_range": [
+          0,
+          255
+        ],
+        "size": [
+          512,
+          512
+        ],
+        "native_ready": true,
+        "native_visible_intent": true,
+        "frame_seq": 1,
+        "raw_sha256": "de3bce18706302440cee3559e9ff2019d63d7b26c64768b32dc39eb113f1c012"
+      },
+      "x11_owned_window": {
+        "mapped": false,
+        "depth": 32,
+        "bounding_shape_rectangles": 179
+      },
+      "pet_ipc_bond_increased": true,
+      "feed_after_pet_acknowledged": true,
+      "play_after_feed_acknowledged": true,
+      "play_survived_petting": true,
+      "post_pet_play_samples": 20,
+      "rest_ipc_observed": true,
+      "normal_stop_exit_code": 0,
+      "test_scope": "sandbox runtime/IPC/normal stop; desktop visibility reported separately"
+    },
+    "flatpak_bundle": {
+      "app_id": "io.github.zeynelgun_afk.Mirmir",
+      "version": "0.4.0",
+      "bytes": 315401136,
+      "actual_sandbox_render_verified": true,
+      "bundle_import_verified": true,
+      "runtime_and_ipc_verified": true,
+      "actual_desktop_overlay_verified": false,
+      "desktop_session_locked": true
+    }
+  }
+}

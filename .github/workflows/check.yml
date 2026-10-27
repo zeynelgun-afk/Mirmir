@@ -1,0 +1,30 @@
+name: Source checks
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  source:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: packaging/requirements-linux.lock
+      - run: python -m pip install --require-hashes -r packaging/requirements-linux.lock
+      - run: python scripts/verify_assets.py
+      - run: python native-shell/mirmir_shell.py --self-test
+        env:
+          QT_QPA_PLATFORM: offscreen
+      - run: unreal/Mirmir/scripts/test-core.sh
+        env:
+          CXX: clang++
+      - run: python -m compileall -q packaging
+      - name: Check installer shell syntax
+        run: |
+          for file in packaging/linux/*.sh; do
+            sh -n "$file"
+          done

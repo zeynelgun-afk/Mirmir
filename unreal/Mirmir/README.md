@@ -10,7 +10,7 @@ kürk ve bütün doğal davranış animasyonları tamamlanmış değildir. Eski
 
 - Resmî Unreal Engine **5.8.4**, `/home/zeynel/Applications/UnrealEngine-5.8.4`
   altında kurulu. Paket içindeki v26 Clang 20.1.8 ile UHT ve Linux C++ editör
-  derlemesi geçti; iki Unreal davranış otomasyon testi başarılı.
+  derlemesi geçti; üç Unreal davranış/kayıt otomasyon testi başarılı.
 - Gerçek iskeletli kedi, **dört mesh parçası**, Unreal'da **0.8 saniyelik yürüyüş
   döngüsü** ve üç gerçek kedi SoundWave'i içe aktarıldı. Blueprint ve
   `/Game/Mirmir/Preview/MirmirPreview` haritası editör API'siyle oluşturuldu.
@@ -78,11 +78,17 @@ tabanı kilidi değildir; sıfır kayma veya doğal yürüyüşün kullanıcı k
 iddia edilmez. Yavaş dönüşlerde eski 0.1 oynatma alt sınırı son kaynakta 0.01'e
 indirildi; önceki ölçüm raporu bu düzeltmeden önceki koşuyu açıkça belirtir.
 
-Ayrı idle, oturma, uyuma, temizlenme veya koşma klipleri yoktur. Hareket durunca
-mevcut yürüyüşün **1/30 saniyedeki pozu tutulur**; bu bir idle veya uyku
-animasyonu değildir. Oyun/dinlenme ihtiyaç durumları vardır, fakat henüz tam
-oyuncak fiziği ve bütün durumlara özel görsel klipler yoktur. Groom, fotogerçekçi
-kürk, pati sabitleme/IK ve bağımsız yüz/kulak animasyonları uygulanmadı.
+Gerçek bekleme ve kuyruk klipleri uyumlu iskelete retarget edilip motor
+karelerinde incelendi; native BlendStack bunları yürüyüşle harmanlar. Oturma
+adayları temas/poz hataları nedeniyle ürüne atanmadı. Uyuma, temizlenme veya
+koşma klibi yoktur. Dinlenme ihtiyacı, görsel uyuma animasyonu değildir.
+
+0.2'de görünüm seçimi, fiziksel Chaos topu, kısa kürk kabukları ve floatHDR
+renk dönüşümü gerçek Shipping çalıştırmasında doğrulandı. Hareket30/sakin8fps
+hedeflenir. Güncel kanıt [release-0.2-verification.json](../../docs/release-0.2-verification.json)
+içindedir; yukarıdaki14.61fps örneği0.1'e aittir. Pati/dönüş iyileştirmesi
+sürüyor; [araştırma kaydı](../../docs/research/locomotion-2026-10-27.md) kaynakları
+ve yaklaşım farklarını açıklar. Groom ve tamamlanmış fotogerçekçilik yoktur.
 
 Mırlama ve miyavlama SoundWave'leri atanmıştır. Ayrı yeme veya oyuncak sesi
 uydurulmaz; `FeedSound` henüz boş olabilir. Alt süreçte
@@ -113,9 +119,10 @@ tekrarlamadan önce mevcut içeriği inceleyin. Bootstrap yürüyüş, idle veya
 klasörüne yapılır; önceki paketler korunur.
 
 Kayıt: `${XDG_DATA_HOME:-$HOME/.local/share}/mirmir/unreal/cat-v1.json`.
-Masaüstü durum/komutları aynı veri kökünde `desktop-status.json` ve `commands/`
-altındadır. Kareler, runtime ve kabuk günlükleri
-`${XDG_STATE_HOME:-$HOME/.local/state}/mirmir/unreal/` içindedir. Unreal editör
+Komutlar veri kökünün `commands/` dizinindedir. Kareler/runtime/durum ve
+kabuk kilidi uygun `XDG_RUNTIME_DIR` özel tmpfs dizininde; bulunamazsa state
+dizinindedir. `frame-location.json` güncel yolu gösterir. Kabuk günlükleri
+`${XDG_STATE_HOME:-$HOME/.local/state}/mirmir/unreal/` içinde kalır. Unreal editör
 önbelleği ve `Saved/` dosyaları ürün kaydından ayrıdır. Bozuk kayıt üzerine
 kendiliğinden yazılmaz; `ResetCat` açık sıfırlama eylemidir. Eski Godot
 kayıtları otomatik olarak taşınmış sayılmaz.

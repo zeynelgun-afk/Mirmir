@@ -1,0 +1,112 @@
+{
+  "schema_version": 1,
+  "asset": "assets/generated/fur-detail-v1.png",
+  "origin": "AI-generated, new image",
+  "mode": "built-in image_gen generation",
+  "tool": "image_gen.imagegen",
+  "input_images": [],
+  "prompt": "Use case: photorealistic-natural\nAsset type: seamless square PBR fur-detail texture tile for a realistic short-haired 3D desktop cat; a neutral detail/height and albedo-modulation bitmap, not an animal portrait.\nPrimary request: a uniformly dense field of very fine, short, off-white domestic-cat fur fibers viewed straight down at macro scale. Fibers lie mostly parallel from top to bottom, with a little natural waviness and slight length variation, closely overlapping without visible clumps. Natural feline fine-fiber structure, soft individual strands, restrained mid-frequency detail.\nComposition: edge-to-edge square material texture, orthographic and flat, seamless repeating edges on both axes, consistent scale and density across the entire tile.\nLighting: completely even diffuse illumination, no directional shading, no highlights, no vignette, no cast shadows or large dark patches; suitable for deriving a subtle height normal and modulating a PBR coat.\nPalette: neutral off-white and pale gray only, low-to-moderate local contrast; no warm yellow staining or colored spots.\nConstraints: only fine fur material fills the entire image; no animal face, body shape, eyes, paws, skin, bald areas, background, room, folds, fabric weave, shaggy tufts, long hair, dramatic lighting, text, numbers, watermark, or logo. Do not depict a photographed pelt with baked broad shadows. Do not add a border.",
+  "generated_source_file": "/home/zeynel/.codex/generated_images/01a17e0f-fb57-7863-92f4-f2502840a1f1/exec-0c752e0d-0ce4-4ade-9cef-fd6d51dfef5c.png",
+  "sha256": "43e54a8ed44e9cefd045e971759f6e604dd70ed65e115e96c7d03479816a3455",
+  "bytes": 3234509,
+  "size_px": [
+    1254,
+    1254
+  ],
+  "color_mode": "RGB",
+  "source_bitmap_modified": false,
+  "intended_use": "Neutral short-cat-fur albedo modulation and height-derived tangent normal detail in owned Unreal materials.",
+  "review": {
+    "visual": "Fine off-white and pale-gray fur fibers; no face, background, text or logo. Mostly parallel fibers with gentle waviness and low broad illumination variation.",
+    "seamless_bitmap_verified": false,
+    "edge_metrics_file": ".local/appearance/fur-image-metrics.json",
+    "opposite_edge_rmse_8bit": {
+      "left_right": 19.298204533328274,
+      "top_bottom": 18.834181338028873
+    },
+    "shader_seam_handling": "Actual Unreal texture uses mirror addressing, trilinear filtering and generated SimpleAverage mips; source pixels remain unchanged.",
+    "actual_unreal_render_accepted": false
+  },
+  "rights_note": "Generated without reference images or downloaded source artwork. This record identifies the AI-generated origin; it does not alter the CC BY-NC terms on the existing cat model or source atlas.",
+  "unreal_material_update": {
+    "schema_version": 1,
+    "actual_editor_python_executed": true,
+    "generated_image": "assets/generated/fur-detail-v1.png",
+    "generated_image_sha256": "43e54a8ed44e9cefd045e971759f6e604dd70ed65e115e96c7d03479816a3455",
+    "texture": "/Game/Mirmir/Appearance/T_FineFurDetail.T_FineFurDetail",
+    "coat": {
+      "path": "/Game/Mirmir/Appearance/M_CatCoat.M_CatCoat",
+      "shader_compile_errors": [],
+      "scalar_parameters": [
+        "OriginalCoatWeight",
+        "FurDetailStrength",
+        "FineFurTiling",
+        "FineFurAlbedoStrength",
+        "FineFurNormalStrength",
+        "FurRoughness",
+        "DielectricSpecular"
+      ],
+      "vector_parameters": [
+        "CoatColor"
+      ],
+      "texture": "/Game/Mirmir/Shared/Cat/cat-walk-loop/Textures/cat-walk-loop_texture_0.cat-walk-loop_texture_0"
+    },
+    "shell_material": "/Game/Mirmir/Appearance/M_CatFur.M_CatFur",
+    "original_eye_material_modified": false,
+    "texture_build_settings": {
+      "srgb": false,
+      "maximum_size_px": 1024,
+      "power_of_two_mode": "StretchToPowerOfTwo",
+      "mips": "SimpleAverage",
+      "filter": "Trilinear",
+      "address_x": "Mirror",
+      "address_y": "Mirror"
+    },
+    "shader_defaults": {
+      "FineFurTiling": 3.0,
+      "uv_aspect_multiplier": [
+        1,
+        2
+      ],
+      "FineFurAlbedoStrength": 0.45,
+      "FineFurNormalStrength": 1.4
+    },
+    "ab_test": "Set FineFurAlbedoStrength and FineFurNormalStrength to 0 for baseline; no native code change required.",
+    "preservation": {
+      "source_bitmap_byte_identical": true,
+      "imported_cat_assets_byte_identical": true,
+      "OriginalCoatWeight_1": "Original source albedo and original normal path retained; generated modulation disabled",
+      "nose_mouth_iris": "Original atlas protection and separate iris material retained"
+    },
+    "runtime_visual_acceptance": false,
+    "limits": [
+      "The generated source image is not an exactly periodic bitmap; mirror addressing removes abrupt wrap seams at the shader sampler.",
+      "Frequency is estimated in the source atlas UVs; the source model has nonuniform UV distortion and there is no per-fiber anatomical growth calibration.",
+      "This adds filtered surface fiber detail and shallow normal variation, not strand Groom, simulation or additional silhouette geometry.",
+      "Actual 512px movement and A/B review must judge shimmer, repeated patterns and realism before acceptance."
+    ]
+  },
+  "owned_unreal_assets": [
+    {
+      "file": "unreal/Mirmir/Content/Mirmir/Appearance/M_CatCoat.uasset",
+      "sha256": "8a06a96dc0c144347b6c07716029bae04461e32c13f8281ccf2cc6b6c7f7c358",
+      "bytes": 21303
+    },
+    {
+      "file": "unreal/Mirmir/Content/Mirmir/Appearance/M_CatEyes.uasset",
+      "sha256": "3dfd383b417d5beb6867362005bf31ffb8fa30e162d854533a9b4120b38cf282",
+      "bytes": 12755
+    },
+    {
+      "file": "unreal/Mirmir/Content/Mirmir/Appearance/M_CatFur.uasset",
+      "sha256": "b4ea623dc35afb2fa91dd55bf8e07bdaf070780e45ae4ca99ae576de77676de6",
+      "bytes": 27048
+    },
+    {
+      "file": "unreal/Mirmir/Content/Mirmir/Appearance/T_FineFurDetail.uasset",
+      "sha256": "2707ce38f8fccceb3700dd652ed370b4861f1776b900772b11953a270345b52c",
+      "bytes": 2691454
+    }
+  ],
+  "editor_executed_at_utc": "2026-10-27T19:58:36.608885+00:00"
+}

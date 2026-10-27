@@ -1,0 +1,493 @@
+{
+  "schema_version": 2,
+  "status": "candidate_not_accepted_for_product",
+  "method": "Use the Markley mean of 24 original walk-phase local rotations and mean translations/scales as the target reference, excluding the duplicated loop endpoint. Align reference-body bases, transfer source world rotation deltas onto target reference world rotations, then derive local target rotations through the target hierarchy. Preserve target local segment translations and scales. Translate target root by source mean-hip displacement scaled by reference hip-to-toe height ratio. One constant reference placement correction preserves the previous reference geometry floor; it does not correct contact errors. No IK/foot locking, no Skeleton reassignment.",
+  "target_source": "assets/personal-use/cat-walk-loop.glb",
+  "target_source_sha256": "1385db01e9bb3346abe3f7f45b2a5644f70b8133447bbd66d52dab6fd16759d3",
+  "donor_source": "assets/provenance/tuxedo-motion/scene.gltf",
+  "donor_gltf_sha256": "04bc11ad664beb9c84284fb8a4e630de5aee9fc654af0e47a9e337a25f7a1e82",
+  "donor_bin_sha256": "8a2459455d86c629410d4bf3ead500cd3df3e7e56aaff024cd0eb015915f4eac",
+  "output": "assets/personal-use/cat-tuxedo-motion-candidate.glb",
+  "output_sha256": "3f65719d5a3f3fcf4c5043d976891047c742633c2cc8ed1f515819cd852ace9a",
+  "output_bytes": 1149328,
+  "target_reference_pose": {
+    "animation": "GltfAnimation 0",
+    "method": "Markley quaternion mean plus arithmetic TRS means over original authored phases",
+    "sample_count": 24,
+    "first_sample_s": 0.0,
+    "last_sample_s": 0.7666666507720947,
+    "duplicate_loop_endpoint_excluded": true,
+    "constant_vertical_floor_alignment_cm": 2.524314772256523,
+    "derived_reference_metrics": {
+      "paw_proxy_positions_cm": {
+        "front_left": [
+          2.4396401152274,
+          0.3022641398102902,
+          32.72899967117083
+        ],
+        "front_right": [
+          -2.017692111191438,
+          0.3030961452939664,
+          32.73229571177328
+        ],
+        "hind_left": [
+          2.5125373592836584,
+          1.3468067095155727,
+          -1.4408875142809303
+        ],
+        "hind_right": [
+          -2.634149360736273,
+          1.7366413510269003,
+          1.142219433126865
+        ]
+      },
+      "left_right_forward_gap_cm": {
+        "front": 0.0028093804111690764,
+        "hind": 2.576054864939986
+      },
+      "left_right_height_gap_cm": {
+        "front": 0.0008320054836761664,
+        "hind": 0.38983464151132763
+      },
+      "head_to_hips_horizontal_forward": [
+        0.00136974710689216,
+        0.0,
+        0.9999990618959915
+      ]
+    },
+    "previous_held_walk_reference_metrics": {
+      "paw_proxy_positions_cm": {
+        "front_left": [
+          2.4761771726012403,
+          0.6706629752651788,
+          29.095629912836788
+        ],
+        "front_right": [
+          -1.8716477746167732,
+          1.4817462454955017,
+          42.81639241580469
+        ],
+        "hind_left": [
+          2.67420176848321,
+          0.7881890842730254,
+          -16.27881337488034
+        ],
+        "hind_right": [
+          -2.2575359794537375,
+          0.7090017372055208,
+          14.761441503336401
+        ]
+      },
+      "left_right_forward_gap_cm": {
+        "front": 13.690065585838619,
+        "hind": 31.00505798213668
+      },
+      "left_right_height_gap_cm": {
+        "front": 0.811083270230323,
+        "hind": 0.07918734706750452
+      },
+      "head_to_hips_horizontal_forward": [
+        0.006983342860999497,
+        0.0,
+        0.999975616163957
+      ]
+    }
+  },
+  "donor_reference_pose": {
+    "animation": "IdleNorm",
+    "time_s": 0
+  },
+  "body_basis_alignment_matrix": [
+    [
+      0.9999668293512975,
+      0.0,
+      -0.008144949178033161
+    ],
+    [
+      0.0,
+      1.0,
+      0.0
+    ],
+    [
+      0.008144949178033161,
+      0.0,
+      0.9999668293512975
+    ]
+  ],
+  "hip_to_toe_translation_scale_target_units_per_donor_world_unit": 8.119062749647947,
+  "target_cm_per_source_world_unit_for_metrics": 1.014094806343,
+  "mapping_target_to_source": {
+    "cat_bip-Pelvis_2": "spine.005_metarig.004",
+    "cat_bip-Spine_3": "spine.006_metarig.004",
+    "cat_bip-Spine1_4": "Root_metarig.004",
+    "cat_bip-Spine2_5": "spine.007_metarig.004",
+    "cat_bip-Spine3_6": "spine.008_metarig.004",
+    "cat_bip-Neck_7": "spine.009_metarig.004",
+    "cat_bip-Neck1_8": "spine.010_metarig.004",
+    "cat_bip-Head_9": "Head_metarig.004",
+    "cat_bip-Tail_55": "TailBase_metarig.004",
+    "cat_bip-Tail1_56": "Tail2_metarig.004",
+    "cat_bip-Tail2_57": "Tail3_metarig.004",
+    "cat_bip-Tail3_58": "TailTip_metarig.004",
+    "cat_bip-L-Clavicle_29": "shoulder.L_metarig.004",
+    "cat_bip-L-UpperArm_30": "front_thigh.L_metarig.004",
+    "cat_bip-L-Forearm_31": "front_shin.L_metarig.004",
+    "cat_bip-L-Hand_32": "front_foot.L_metarig.004",
+    "cat_bip-L-Finger0_33": "front_toe.L_metarig.004",
+    "cat_bip-L-Finger1_35": "front_toe.L_metarig.004",
+    "cat_bip-L-Thigh_45": "thigh.L_metarig.004",
+    "cat_bip-L-Calf_46": "shin.L_metarig.004",
+    "cat_bip-L-Foot_47": "foot.L_metarig.004",
+    "cat_bip-L-Toe0_48": "toe.L_metarig.004",
+    "cat_bip-R-Clavicle_37": "shoulder.R_metarig.004",
+    "cat_bip-R-UpperArm_38": "front_thigh.R_metarig.004",
+    "cat_bip-R-Forearm_39": "front_shin.R_metarig.004",
+    "cat_bip-R-Hand_40": "front_foot.R_metarig.004",
+    "cat_bip-R-Finger0_41": "front_toe.R_metarig.004",
+    "cat_bip-R-Finger1_43": "front_toe.R_metarig.004",
+    "cat_bip-R-Thigh_50": "thigh.R_metarig.004",
+    "cat_bip-R-Calf_51": "shin.R_metarig.004",
+    "cat_bip-R-Foot_52": "foot.R_metarig.004",
+    "cat_bip-R-Toe0_53": "toe.R_metarig.004"
+  },
+  "clips": {
+    "Tuxedo_Idle": {
+      "source_clip": "IdleNorm",
+      "duration_s": 0.875,
+      "sample_count": 28,
+      "resample_rate_hz": 30,
+      "mapped_bones": 32,
+      "channels": 180,
+      "local_segment_translation_max_error_source_units": 0.0,
+      "local_scale_max_error": 0.0,
+      "world_segment_length_max_error_cm": 1.2042369886345924e-06,
+      "quaternion_norm_range": [
+        0.9999999999999998,
+        1.0000000000000002
+      ],
+      "pelvis_root_shift_cm_min": [
+        -4.927171758346719e-07,
+        -0.8442298496176757,
+        -0.2673665681738078
+      ],
+      "pelvis_root_shift_cm_max": [
+        0.05846017707269537,
+        0.08983434282695103,
+        9.03388823174597e-07
+      ],
+      "reference_geometry_floor_source_y": -1.0571757787114926,
+      "minimum_geometry_clearance_from_reference_floor_cm": -0.7774002313386386,
+      "maximum_geometry_floor_lift_cm": -5.900613375061504e-07,
+      "paw_proxy_height_range_from_reference_floor_cm": {
+        "front_left": [
+          0.6962200912637939,
+          1.3743401237685573
+        ],
+        "front_right": [
+          0.5941416621053243,
+          1.3751758499003188
+        ],
+        "hind_left": [
+          2.3265295649022755,
+          2.4661884141201638
+        ],
+        "hind_right": [
+          2.2955020465182843,
+          2.8134635214723773
+        ]
+      },
+      "geometry_bounds_cm_min": [
+        -10.547129784977377,
+        -1.8494766979215798,
+        -16.167241260947552
+      ],
+      "geometry_bounds_cm_max": [
+        10.766353326379743,
+        53.131691536935364,
+        54.37797629201724
+      ],
+      "serialized_world_joint_position_max_error_cm": 2.3013666667960702e-05,
+      "review_gate": "eligible_for_real_Unreal_visual_review_only",
+      "review_reason": "Small floor drift; actual body deformation, ground contact and blending require Unreal review."
+    },
+    "Tuxedo_IdleTail": {
+      "source_clip": "IdleTailSwoosh",
+      "duration_s": 0.833329975605011,
+      "sample_count": 26,
+      "resample_rate_hz": 30,
+      "mapped_bones": 32,
+      "channels": 180,
+      "local_segment_translation_max_error_source_units": 0.0,
+      "local_scale_max_error": 0.0,
+      "world_segment_length_max_error_cm": 1.8805148525001805e-06,
+      "quaternion_norm_range": [
+        0.9999999999999998,
+        1.0000000000000002
+      ],
+      "pelvis_root_shift_cm_min": [
+        0.0,
+        -0.8442298496176757,
+        -0.2673665681738078
+      ],
+      "pelvis_root_shift_cm_max": [
+        0.05846017707269537,
+        0.08983434282695103,
+        0.0
+      ],
+      "reference_geometry_floor_source_y": -1.0571757787114926,
+      "minimum_geometry_clearance_from_reference_floor_cm": -0.7774002313386386,
+      "maximum_geometry_floor_lift_cm": -5.900613375061504e-07,
+      "paw_proxy_height_range_from_reference_floor_cm": {
+        "front_left": [
+          0.6962361437119342,
+          1.3743400445611775
+        ],
+        "front_right": [
+          0.5941416621053243,
+          1.3751720464670916
+        ],
+        "hind_left": [
+          2.326528779176387,
+          2.4661884141201638
+        ],
+        "hind_right": [
+          2.2955020465182843,
+          2.8134635214723773
+        ]
+      },
+      "geometry_bounds_cm_min": [
+        -10.547129292260202,
+        -1.8494766979215798,
+        -24.013421533233828
+      ],
+      "geometry_bounds_cm_max": [
+        10.766353326379743,
+        52.71212520760433,
+        54.37797629201724
+      ],
+      "serialized_world_joint_position_max_error_cm": 2.3013666667960702e-05,
+      "review_gate": "eligible_for_real_Unreal_visual_review_only",
+      "review_reason": "Small floor drift; actual body deformation, ground contact and blending require Unreal review."
+    },
+    "Tuxedo_SitDown": {
+      "source_clip": "SitDown",
+      "duration_s": 1.0,
+      "sample_count": 31,
+      "resample_rate_hz": 30,
+      "mapped_bones": 32,
+      "channels": 180,
+      "local_segment_translation_max_error_source_units": 0.0,
+      "local_scale_max_error": 0.0,
+      "world_segment_length_max_error_cm": 3.539942139409488e-06,
+      "quaternion_norm_range": [
+        0.9999999999999998,
+        1.0000000000000002
+      ],
+      "pelvis_root_shift_cm_min": [
+        -0.4655935300386331,
+        -20.666250387903233,
+        0.7491652017404884
+      ],
+      "pelvis_root_shift_cm_max": [
+        2.880835617564004,
+        1.2648901779030894,
+        7.868946390076821
+      ],
+      "reference_geometry_floor_source_y": -1.0571757787114926,
+      "minimum_geometry_clearance_from_reference_floor_cm": -1.3375043271847489,
+      "maximum_geometry_floor_lift_cm": 1.459590570363566,
+      "paw_proxy_height_range_from_reference_floor_cm": {
+        "front_left": [
+          1.6426476410113893,
+          5.813332389647282
+        ],
+        "front_right": [
+          0.5713745363569432,
+          5.190918764861758
+        ],
+        "hind_left": [
+          0.06919640253002109,
+          4.870803651110125
+        ],
+        "hind_right": [
+          2.0086787261318237,
+          9.113963084159439
+        ]
+      },
+      "geometry_bounds_cm_min": [
+        -11.925424710162341,
+        -2.4095807937676903,
+        -22.700214502462394
+      ],
+      "geometry_bounds_cm_max": [
+        14.26316228418443,
+        44.44441981422432,
+        59.33868648637479
+      ],
+      "serialized_world_joint_position_max_error_cm": 2.686627647987223e-05,
+      "review_gate": "rejected_for_product_static_contact_gate",
+      "review_reason": "Residual asymmetric hind contact and floor penetration remain after the mean-reference correction. No global placement adjustment can correct relative foot error."
+    },
+    "Tuxedo_IdleSit": {
+      "source_clip": "IdleSit",
+      "duration_s": 1.0,
+      "sample_count": 31,
+      "resample_rate_hz": 30,
+      "mapped_bones": 32,
+      "channels": 180,
+      "local_segment_translation_max_error_source_units": 0.0,
+      "local_scale_max_error": 0.0,
+      "world_segment_length_max_error_cm": 3.2167722045971225e-06,
+      "quaternion_norm_range": [
+        0.9999999999999998,
+        1.0000000000000002
+      ],
+      "pelvis_root_shift_cm_min": [
+        0.0857073694325743,
+        -20.961474828093223,
+        7.868946390076821
+      ],
+      "pelvis_root_shift_cm_max": [
+        0.3980853795665828,
+        -20.666250387903233,
+        8.26759162195389
+      ],
+      "reference_geometry_floor_source_y": -1.0571757787114926,
+      "minimum_geometry_clearance_from_reference_floor_cm": -2.1503246995123684,
+      "maximum_geometry_floor_lift_cm": -1.3205951199092103,
+      "paw_proxy_height_range_from_reference_floor_cm": {
+        "front_left": [
+          3.7906016047381765,
+          4.198544335998939
+        ],
+        "front_right": [
+          3.730441403109849,
+          4.158009766978943
+        ],
+        "hind_left": [
+          -0.7435876493513861,
+          0.08611868344880612
+        ],
+        "hind_right": [
+          2.369157438159799,
+          3.251440136204555
+        ]
+      },
+      "geometry_bounds_cm_min": [
+        -11.274927327032932,
+        -3.22240116609531,
+        -20.695745537109612
+      ],
+      "geometry_bounds_cm_max": [
+        12.320406520052357,
+        45.05279607304532,
+        54.85653692539751
+      ],
+      "serialized_world_joint_position_max_error_cm": 2.033754418355372e-05,
+      "review_gate": "rejected_for_product_static_contact_gate",
+      "review_reason": "Residual asymmetric hind contact and floor penetration remain after the mean-reference correction. No global placement adjustment can correct relative foot error."
+    },
+    "Tuxedo_StandUp": {
+      "source_clip": "StandUp",
+      "duration_s": 1.0416699647903442,
+      "sample_count": 33,
+      "resample_rate_hz": 30,
+      "mapped_bones": 32,
+      "channels": 180,
+      "local_segment_translation_max_error_source_units": 0.0,
+      "local_scale_max_error": 0.0,
+      "world_segment_length_max_error_cm": 3.539941980886795e-06,
+      "quaternion_norm_range": [
+        0.9999999999999998,
+        1.0000000000000002
+      ],
+      "pelvis_root_shift_cm_min": [
+        -0.4654888970908542,
+        -20.666250387903233,
+        0.7491649137335091
+      ],
+      "pelvis_root_shift_cm_max": [
+        2.8808355822262266,
+        1.2646334987831718,
+        7.868946390076821
+      ],
+      "reference_geometry_floor_source_y": -1.0571757787114926,
+      "minimum_geometry_clearance_from_reference_floor_cm": -1.3375595692892506,
+      "maximum_geometry_floor_lift_cm": 1.4593459840595828,
+      "paw_proxy_height_range_from_reference_floor_cm": {
+        "front_left": [
+          1.642647534657517,
+          5.813336554231915
+        ],
+        "front_right": [
+          0.5713778617656302,
+          5.190830431373866
+        ],
+        "hind_left": [
+          0.06916383617752313,
+          4.870808086849927
+        ],
+        "hind_right": [
+          2.0086921470319363,
+          9.113952294130561
+        ]
+      },
+      "geometry_bounds_cm_min": [
+        -11.92542452977976,
+        -2.4096360358721918,
+        -22.113597497836626
+      ],
+      "geometry_bounds_cm_max": [
+        14.263162568570397,
+        44.44441981422432,
+        59.33868357722704
+      ],
+      "serialized_world_joint_position_max_error_cm": 2.3544644238183722e-05,
+      "review_gate": "rejected_for_product_static_contact_gate",
+      "review_reason": "Residual asymmetric hind contact and floor penetration remain after the mean-reference correction. No global placement adjustment can correct relative foot error."
+    }
+  },
+  "transition_paw_proxy_endpoint_gaps_cm": {
+    "Tuxedo_SitDown -> Tuxedo_IdleSit": {
+      "front_left": 0.0,
+      "front_right": 0.0,
+      "hind_left": 0.0,
+      "hind_right": 0.0
+    },
+    "Tuxedo_IdleSit -> Tuxedo_StandUp": {
+      "front_left": 1.152038985950838e-06,
+      "front_right": 0.0,
+      "hind_left": 3.621638343306297e-05,
+      "hind_right": 0.0
+    },
+    "Tuxedo_StandUp -> Tuxedo_Idle": {
+      "front_left": 2.1043325156565036,
+      "front_right": 2.2391521800478715,
+      "hind_left": 1.7950864340922863,
+      "hind_right": 1.9106358511912582
+    }
+  },
+  "original_target_binary_prefix_sha256": "a72617eaabb6e9ec81813bcb4b7baf41b00515c4c346805621020dd7f21d9d7d",
+  "preserved_binary_prefix_sha256": "a72617eaabb6e9ec81813bcb4b7baf41b00515c4c346805621020dd7f21d9d7d",
+  "original_walk_animation_json_preserved": true,
+  "target_geometry_skin_material_nodes_preserved": true,
+  "source_files_untouched": true,
+  "license": {
+    "target": "CC-BY-NC-4.0, LostBoyz2078",
+    "motion": "CC-BY-4.0, DreamNoms",
+    "combined_scope": "Personal noncommercial candidate derivative. Credit both authors; no endorsement implied.",
+    "motion_source": "https://sketchfab.com/3d-models/tuxedo-cat-animated-20-783fcb78b55b4394a212c2b6392e1113",
+    "target_source": "https://sketchfab.com/3d-models/cat-walk-915680200c064815bba75e008ba9efb5",
+    "donor_provenance": "assets/provenance/tuxedo-motion/source.json"
+  },
+  "limits": [
+    "Foreign rig proportions and branched source spine make FK retargeting uncertain; body/leg lengths are retained but end effectors are not constrained.",
+    "The derived walk-cycle mean reference still has a 2.58 cm left/right hind forward mismatch; it is not an authored idle or anatomical neutral pose.",
+    "Floor metrics use skinned source geometry and distal bone proxies; no paw-pad solver or collision contacts are claimed.",
+    "SitDown, IdleSit and StandUp remain rejected for product use because asymmetric contact errors persist. They are retained only as isolated review data.",
+    "Current output contains idle, tail variation and sitting transitions only, not sleep/groom/eat clips.",
+    "Original target facial/ear/tongue bones without anatomical donor correspondence stay at target reference local transforms.",
+    "No Unreal import, screenshots, montage playback, state blending or quality acceptance has been performed for this candidate."
+  ],
+  "reproduce": "python scripts/retarget-cat-motion.py"
+}

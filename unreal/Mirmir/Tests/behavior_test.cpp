@@ -14,18 +14,46 @@ int main()
     assert(Cat.Interact(Interaction::Pet));
     assert(Cat.Get().CurrentActivity == Activity::Petted);
     assert(Cat.Get().Bond > InitialBond);
-    assert(!Cat.Interact(Interaction::Feed)); // Debounce rapid repeated input.
+    assert(!Cat.Interact(Interaction::Pet));
+    assert(Cat.Interact(Interaction::Feed)); // An explicit command beats pet debounce.
+    assert(Cat.Get().CurrentActivity == Activity::Eat);
     Cat.Advance(1.0);
     assert(Cat.Interact(Interaction::Feed));
     assert(Cat.Get().Satiety <= 1.0f);
     Cat.Advance(1.0);
     assert(Cat.Interact(Interaction::Play));
     assert(Cat.Get().CurrentActivity == Activity::Play);
+    Cat.Advance(1.0);
+    assert(Cat.Interact(Interaction::Pet));
+    assert(Cat.Get().CurrentActivity == Activity::Play); // Petting preserves the game.
+    assert(Cat.Interact(Interaction::Feed));
+    Cat.Advance(1.0);
+    assert(Cat.Interact(Interaction::Pet));
+    assert(Cat.Get().CurrentActivity == Activity::Eat); // And the meal.
     const float BeforeRest = Cat.Get().Energy;
     Cat.Rest();
     assert(Cat.Get().CurrentActivity == Activity::Sleep);
     Cat.Advance(2.0);
     assert(Cat.Get().Energy > BeforeRest);
+    const float BeforeBedApproach = Cat.Get().Energy;
+    Cat.Advance(1.0, false);
+    assert(Cat.Get().Energy < BeforeBedApproach); // Walking to bed is not sleep.
+    Cat.KeepActivityFor(30.0);
+    assert(Cat.Get().ActivityDuration > Cat.Get().ActivitySeconds + 29.0);
+    Cat.RestartActivity(6.0);
+    assert(Cat.Get().ActivitySeconds == 0.0 && Cat.Get().ActivityDuration == 6.0);
+
+    State Rested;
+    Rested.Energy = 1.0f;
+    Behavior OccasionalNap(Rested);
+    bool NappedWhileRested = false;
+    for (int Second = 0; Second < 600; ++Second)
+    {
+        OccasionalNap.Advance(1.0);
+        NappedWhileRested |= OccasionalNap.Get().CurrentActivity == Activity::Sleep &&
+            OccasionalNap.Get().Energy > 0.25f;
+    }
+    assert(NappedWhileRested); // A healthy desktop cat occasionally visits its bed.
 
     State Tired;
     Tired.Energy = 0.05f;

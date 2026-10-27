@@ -1,0 +1,384 @@
+{
+  "schema_version": 1,
+  "recorded_at_utc": "2026-10-27T19:23:01.921577+00:00",
+  "engine_version": "5.8.4-58902052",
+  "source_model": {
+    "author": "LostBoyz2078 / LostModels2025",
+    "title": "Cat Walk",
+    "url": "https://sketchfab.com/3d-models/cat-walk-915680200c064815bba75e008ba9efb5",
+    "license": "CC-BY-NC-4.0",
+    "license_url": "https://creativecommons.org/licenses/by-nc/4.0/",
+    "scope": "Personal local noncommercial derivative; credit the original model and texture author.",
+    "existing_provenance": "assets/personal-use/sources.json"
+  },
+  "source_atlas": {
+    "original_file": "assets/provenance/cat-walk-personal/original/textures/pet_s_4cat_Black_mat_baseColor.jpeg",
+    "original_sha256": "685f60a09db5648ff1c0866651448121cf78098ae0ca107757314aa125298ff0",
+    "unreal_texture": "/Game/Mirmir/Shared/Cat/cat-walk-loop/Textures/cat-walk-loop_texture_0.cat-walk-loop_texture_0",
+    "source_image_editing_performed": false
+  },
+  "templates": [
+    {
+      "path": "/Game/Mirmir/Appearance/M_CatCoat.M_CatCoat",
+      "shader_compile_errors": [],
+      "scalar_parameters": [
+        "OriginalCoatWeight",
+        "FurDetailStrength",
+        "FineFurTiling",
+        "FineFurAlbedoStrength",
+        "FineFurNormalStrength",
+        "FurRoughness",
+        "DielectricSpecular"
+      ],
+      "vector_parameters": [
+        "CoatColor"
+      ],
+      "texture": "/Game/Mirmir/Shared/Cat/cat-walk-loop/Textures/cat-walk-loop_texture_0.cat-walk-loop_texture_0"
+    },
+    {
+      "path": "/Game/Mirmir/Appearance/M_CatEyes.M_CatEyes",
+      "shader_compile_errors": [],
+      "scalar_parameters": [
+        "DielectricSpecular",
+        "OriginalCoatWeight",
+        "FurDetailStrength",
+        "FurRoughness"
+      ],
+      "vector_parameters": [
+        "EyeLeftColor",
+        "CoatColor",
+        "EyeRightColor"
+      ],
+      "texture": "/Game/Mirmir/Shared/Cat/cat-walk-loop/Textures/cat-walk-loop_texture_0.cat-walk-loop_texture_0"
+    },
+    {
+      "path": "/Game/Mirmir/Appearance/M_CatFur.M_CatFur",
+      "shader_compile_errors": [],
+      "scalar_parameters": [
+        "FurDensity",
+        "OriginalCoatWeight",
+        "FurDetailStrength",
+        "FineFurTiling",
+        "FineFurAlbedoStrength",
+        "FineFurNormalStrength",
+        "FurRoughness",
+        "DielectricSpecular",
+        "FurLengthCm",
+        "ShellIndex"
+      ],
+      "vector_parameters": [
+        "CoatColor"
+      ],
+      "texture": "/Game/Mirmir/Shared/Cat/cat-walk-loop/Textures/cat-walk-loop_texture_0.cat-walk-loop_texture_0",
+      "actual_editor_python_executed": true,
+      "activation": "opt-in only; no runtime component, Blueprint or map modified by this script",
+      "shell_contract": {
+        "FurLengthCm": "world centimetres along VertexNormalWS; default 0.18",
+        "FurDensity": "fraction [0,1], default 0.65; not a strand count",
+        "ShellIndex": "fraction [0,1], e.g. (i+1)/6 for six body-only leader-pose shells"
+      },
+      "technique": "masked procedural tapered UV-cell shell layers, PBR coat color/roughness and world-space normal offset",
+      "limitations": [
+        "This is actual offset layered geometry when the native renderer instantiates shells, not strand-based Groom.",
+        "Subpixel alpha coverage may shimmer or look too smooth; actual 512px motion and performance review is required before enabling.",
+        "No per-strand self-shadowing, combing, simulation or breed-specific fur growth data.",
+        "Use no shadow/collision on shell components; imported geometry and source textures remain unchanged."
+      ],
+      "source_model_license": "CC-BY-NC-4.0, LostBoyz2078; personal noncommercial derivative",
+      "runtime_visual_acceptance": false,
+      "script": "unreal/Mirmir/scripts/create-fur-material.py"
+    }
+  ],
+  "created_asset_files": [
+    {
+      "file": "unreal/Mirmir/Content/Mirmir/Appearance/M_CatCoat.uasset",
+      "sha256": "8a06a96dc0c144347b6c07716029bae04461e32c13f8281ccf2cc6b6c7f7c358",
+      "bytes": 21303
+    },
+    {
+      "file": "unreal/Mirmir/Content/Mirmir/Appearance/M_CatEyes.uasset",
+      "sha256": "b82193a99727fb8d635410e355ee5aafd49c256ea5230ec2d03b947ecb39b222",
+      "bytes": 18956
+    },
+    {
+      "file": "unreal/Mirmir/Content/Mirmir/Appearance/M_CatFur.uasset",
+      "sha256": "b4ea623dc35afb2fa91dd55bf8e07bdaf070780e45ae4ca99ae576de77676de6",
+      "bytes": 27048
+    },
+    {
+      "file": "unreal/Mirmir/Content/Mirmir/Appearance/T_FineFurDetail.uasset",
+      "sha256": "2707ce38f8fccceb3700dd652ed370b4861f1776b900772b11953a270345b52c",
+      "bytes": 2691454
+    }
+  ],
+  "scripts": [
+    {
+      "file": "unreal/Mirmir/scripts/create-appearance.py",
+      "sha256": "68ebad1f6d73c2e82a34e51917279efe77e451f35e82467fafbbab6764c017ed"
+    },
+    {
+      "file": "unreal/Mirmir/scripts/create-fur-material.py",
+      "sha256": "684c1443f96b80f37b70433140a8f902e08859498efdea68af18519992545b1a"
+    },
+    {
+      "file": "unreal/Mirmir/scripts/create-fine-fur.py",
+      "sha256": "16ce509c7fe96bab70627b6ed0706a37eb3428f8f00414ac958adde8c71942d4"
+    },
+    {
+      "file": "unreal/Mirmir/scripts/create-eye-material.py",
+      "sha256": "f35660b546ab5c6af5683b91c7fd7092fc59b0a65e6b22cf3e6354ae6e519cd5"
+    }
+  ],
+  "mesh_binding": {
+    "Object_7": "M_CatCoat",
+    "Object_10": "M_CatEyes",
+    "Object_13": "M_CatEyes",
+    "Object_16": "original Blackeye alpha material preserved"
+  },
+  "eye_side": {
+    "coordinate": "pre-skinned local X interpolated from vertex shader",
+    "positive": "anatomical left",
+    "negative": "anatomical right",
+    "body_length_axis": "Y",
+    "height_axis": "Z",
+    "evidence": ".local/appearance/inspection.json actual imported bounds + L/R bone component coordinates"
+  },
+  "actual_imported_bounds_and_bone_audit": {
+    "meshes": {
+      "Object_7": {
+        "bounds_origin": [
+          19.7723388671875,
+          1834.8613891601562,
+          2425.446771621704
+        ],
+        "bounds_extent": [
+          720.2720947265625,
+          3384.0082397460938,
+          2479.327642440796
+        ],
+        "materials": [
+          "/Game/Mirmir/Shared/Cat/cat-walk-loop/Materials/pet_s_4cat_Black_mat.pet_s_4cat_Black_mat"
+        ]
+      },
+      "Object_10": {
+        "bounds_origin": [
+          11.9981689453125,
+          4803.560302734375,
+          2603.561767578125
+        ],
+        "bounds_extent": [
+          1045.24072265625,
+          550.000244140625,
+          699.903076171875
+        ],
+        "materials": [
+          "/Game/Mirmir/Shared/Cat/cat-walk-loop/Materials/pet_s_4cat_Black_mat.pet_s_4cat_Black_mat"
+        ]
+      },
+      "Object_13": {
+        "bounds_origin": [
+          7.7811126708984375,
+          4931.038818359375,
+          2791.413330078125
+        ],
+        "bounds_extent": [
+          388.10157775878906,
+          30.438232421875,
+          134.337158203125
+        ],
+        "materials": [
+          "/Game/Mirmir/Shared/Cat/cat-walk-loop/Materials/pet_s_4cat_Black_mat.pet_s_4cat_Black_mat"
+        ]
+      },
+      "Object_16": {
+        "bounds_origin": [
+          16.853729248046875,
+          4657.82373046875,
+          3386.3214111328125
+        ],
+        "bounds_extent": [
+          568.7341613769531,
+          152.0361328125,
+          287.9876708984375
+        ],
+        "materials": [
+          "/Game/Mirmir/Shared/Cat/cat-walk-loop/Materials/pet_s_4cat_Blackeye_mat.pet_s_4cat_Blackeye_mat"
+        ]
+      }
+    },
+    "materials": {
+      "pet_s_4cat_Black_mat": {
+        "textures": [],
+        "type": "MaterialInstanceConstant"
+      },
+      "pet_s_4cat_Blackeye_mat": {
+        "textures": [],
+        "type": "MaterialInstanceConstant"
+      }
+    },
+    "bones": {
+      "cat_bip-Head_9": [
+        22.641995512147474,
+        4415.118782484707,
+        2566.6506532581598
+      ],
+      "cat_bip-L-Hand_32": [
+        273.1279290075638,
+        2778.9805943297515,
+        575.1375915056581
+      ],
+      "cat_bip-R-Hand_40": [
+        -178.6586932070232,
+        3604.153494456558,
+        941.7399990142843
+      ],
+      "cat_bip-L-Thigh_45": [
+        358.06944879245884,
+        -48.44986892920292,
+        2665.4366580582955
+      ],
+      "cat_bip-R-Thigh_50": [
+        -358.06942133448365,
+        48.449473970022154,
+        2670.376175644388
+      ]
+    }
+  },
+  "shader_compilation_verified": true,
+  "shader_compile_errors": [],
+  "original_imported_asset_sha256": {
+    "unreal/Mirmir/Content/Mirmir/Shared/Cat/cat-walk-loop/Textures/cat-walk-loop_texture_0.uasset": "057314c3c0f6256fcfa2d008b51ec70a1724e35428612fab3305cb9b10b32718",
+    "unreal/Mirmir/Content/Mirmir/Shared/Cat/cat-walk-loop/Textures/cat-walk-loop_texture_1.uasset": "6f2c0c80e7e0ecee110b0ba21531d16f6a979c822675e7d8ce6d9140286f2d6d",
+    "unreal/Mirmir/Content/Mirmir/Shared/Cat/cat-walk-loop/SkeletalMeshes/Object_7_Skeleton.uasset": "8ea3ba4c4777a6c6ccd2e9909b523d94b501f4b87d3b72d5280e9981206f95fe",
+    "unreal/Mirmir/Content/Mirmir/Shared/Cat/cat-walk-loop/SkeletalMeshes/Object_7.uasset": "9aaf5f11ff101763b845dd4009ce451dedf09c3e987ddcfa477a727d58e3303e",
+    "unreal/Mirmir/Content/Mirmir/Shared/Cat/cat-walk-loop/SkeletalMeshes/Object_7_PhysicsAsset.uasset": "54b882fb286dd99d4e7941728830a6ebc190e0602a0f304512751fb82ef87b81",
+    "unreal/Mirmir/Content/Mirmir/Shared/Cat/cat-walk-loop/SkeletalMeshes/Object_10.uasset": "f8bcc016ef0fe4d7b2539271a965e6663670ace0e0448add6a0037fc2c578390",
+    "unreal/Mirmir/Content/Mirmir/Shared/Cat/cat-walk-loop/SkeletalMeshes/Object_10_PhysicsAsset.uasset": "849b5db3e39691272796d6f4e65829e6ce56b496e080acb2d5bb4c017f1a453c",
+    "unreal/Mirmir/Content/Mirmir/Shared/Cat/cat-walk-loop/SkeletalMeshes/Object_13.uasset": "92f8cb1d470ceafcf07dbd0445383d0d8a7bb207bf922ed0ddb07c49413a615d",
+    "unreal/Mirmir/Content/Mirmir/Shared/Cat/cat-walk-loop/SkeletalMeshes/Object_13_PhysicsAsset.uasset": "2347f35663dff1f4e5c6c27f4173c6004fca814a462df4d35db4da164f5fa14d",
+    "unreal/Mirmir/Content/Mirmir/Shared/Cat/cat-walk-loop/SkeletalMeshes/Object_16.uasset": "b448020d46eef8a2d1a69bf7c46c61515ce7b6f4a5100d186df57c473dbe2614",
+    "unreal/Mirmir/Content/Mirmir/Shared/Cat/cat-walk-loop/SkeletalMeshes/Object_16_PhysicsAsset.uasset": "8475d4d8a0e980ea019d7422bdf43383a713c26cbd8a081f172c8d9f494a54e1",
+    "unreal/Mirmir/Content/Mirmir/Shared/Cat/cat-walk-loop/SkeletalMeshes/cat-walk-loop_Anim.uasset": "188d8d7b7fe6067466c986dec525667110028e5aeb9a575c3d7a089a86ab9fd9",
+    "unreal/Mirmir/Content/Mirmir/Shared/Cat/cat-walk-loop/Materials/pet_s_4cat_Black_mat.uasset": "3db675c3295f123abd38df969329f23dea91a7df95ef2eaa31b513f161d5f92e",
+    "unreal/Mirmir/Content/Mirmir/Shared/Cat/cat-walk-loop/Materials/pet_s_4cat_Blackeye_mat.uasset": "1ecdb095dcf8c75796aea91edf0cb39401e89cd7e160a1c7c2b3a6b138f15292"
+  },
+  "all_original_imports_byte_identical_at_recording": true,
+  "runtime_visual_acceptance": false,
+  "limits": [
+    "Material templates are real PBR shader assets, not strand Groom or a new photographic coat texture.",
+    "The existing short-haired anatomy is recolored; this does not make the mesh an anatomically exact British Shorthair or Van breed.",
+    "Blackeye material is ear-area alpha geometry, not the iris; original Object_16 material is preserved.",
+    "Pupil/sclera and nose/mouth/ear atlas detail are retained with UV/color masks; actual rendered appearance needs review.",
+    "Pre-skinned vertex position interpolation must be validated on the real renderer; no GPU skin-cache compatibility claim is made.",
+    "Optional fur shells require actual motion/silhouette and performance review before enabling. Layered shell coverage is not strand Groom."
+  ],
+  "primary_four_asset_manifest_changed": false,
+  "previous_created_asset_snapshots": [
+    {
+      "recorded_at_utc": "2026-10-27T19:23:01.921577+00:00",
+      "assets": [
+        {
+          "file": "unreal/Mirmir/Content/Mirmir/Appearance/M_CatCoat.uasset",
+          "sha256": "cc63b48c3ae48f852fca4d01428c125f5c6a8cc647f729edc6f4c684056ef0b4",
+          "bytes": 12902
+        },
+        {
+          "file": "unreal/Mirmir/Content/Mirmir/Appearance/M_CatEyes.uasset",
+          "sha256": "3dfd383b417d5beb6867362005bf31ffb8fa30e162d854533a9b4120b38cf282",
+          "bytes": 12755
+        },
+        {
+          "file": "unreal/Mirmir/Content/Mirmir/Appearance/M_CatFur.uasset",
+          "sha256": "3ac07756646cebf6b0226cf87401129fe31fc9b840e16d1c88e78346eb40d7a2",
+          "bytes": 17641
+        }
+      ]
+    },
+    {
+      "recorded_at_utc": "2026-10-27T19:58:36.608885+00:00",
+      "assets": [
+        {
+          "file": "unreal/Mirmir/Content/Mirmir/Appearance/M_CatCoat.uasset",
+          "sha256": "8a06a96dc0c144347b6c07716029bae04461e32c13f8281ccf2cc6b6c7f7c358",
+          "bytes": 21303
+        },
+        {
+          "file": "unreal/Mirmir/Content/Mirmir/Appearance/M_CatEyes.uasset",
+          "sha256": "3dfd383b417d5beb6867362005bf31ffb8fa30e162d854533a9b4120b38cf282",
+          "bytes": 12755
+        },
+        {
+          "file": "unreal/Mirmir/Content/Mirmir/Appearance/M_CatFur.uasset",
+          "sha256": "b4ea623dc35afb2fa91dd55bf8e07bdaf070780e45ae4ca99ae576de77676de6",
+          "bytes": 27048
+        },
+        {
+          "file": "unreal/Mirmir/Content/Mirmir/Appearance/T_FineFurDetail.uasset",
+          "sha256": "2707ce38f8fccceb3700dd652ed370b4861f1776b900772b11953a270345b52c",
+          "bytes": 2691454
+        }
+      ]
+    }
+  ],
+  "fine_fur_update": {
+    "schema_version": 1,
+    "actual_editor_python_executed": true,
+    "generated_image": "assets/generated/fur-detail-v1.png",
+    "generated_image_sha256": "43e54a8ed44e9cefd045e971759f6e604dd70ed65e115e96c7d03479816a3455",
+    "texture": "/Game/Mirmir/Appearance/T_FineFurDetail.T_FineFurDetail",
+    "coat": {
+      "path": "/Game/Mirmir/Appearance/M_CatCoat.M_CatCoat",
+      "shader_compile_errors": [],
+      "scalar_parameters": [
+        "OriginalCoatWeight",
+        "FurDetailStrength",
+        "FineFurTiling",
+        "FineFurAlbedoStrength",
+        "FineFurNormalStrength",
+        "FurRoughness",
+        "DielectricSpecular"
+      ],
+      "vector_parameters": [
+        "CoatColor"
+      ],
+      "texture": "/Game/Mirmir/Shared/Cat/cat-walk-loop/Textures/cat-walk-loop_texture_0.cat-walk-loop_texture_0"
+    },
+    "shell_material": "/Game/Mirmir/Appearance/M_CatFur.M_CatFur",
+    "original_eye_material_modified": false,
+    "texture_build_settings": {
+      "srgb": false,
+      "maximum_size_px": 1024,
+      "power_of_two_mode": "StretchToPowerOfTwo",
+      "mips": "SimpleAverage",
+      "filter": "Trilinear",
+      "address_x": "Mirror",
+      "address_y": "Mirror"
+    },
+    "shader_defaults": {
+      "FineFurTiling": 3.0,
+      "uv_aspect_multiplier": [
+        1,
+        2
+      ],
+      "FineFurAlbedoStrength": 0.45,
+      "FineFurNormalStrength": 1.4
+    },
+    "ab_test": "Set FineFurAlbedoStrength and FineFurNormalStrength to 0 for baseline; no native code change required.",
+    "preservation": {
+      "source_bitmap_byte_identical": true,
+      "imported_cat_assets_byte_identical": true,
+      "OriginalCoatWeight_1": "Original source albedo and original normal path retained; generated modulation disabled",
+      "nose_mouth_iris": "Original atlas protection and separate iris material retained"
+    },
+    "runtime_visual_acceptance": false,
+    "limits": [
+      "The generated source image is not an exactly periodic bitmap; mirror addressing removes abrupt wrap seams at the shader sampler.",
+      "Frequency is estimated in the source atlas UVs; the source model has nonuniform UV distortion and there is no per-fiber anatomical growth calibration.",
+      "This adds filtered surface fiber detail and shallow normal variation, not strand Groom, simulation or additional silhouette geometry.",
+      "Actual 512px movement and A/B review must judge shimmer, repeated patterns and realism before acceptance."
+    ]
+  },
+  "fine_fur_generated_image_provenance": "assets/generated/fur-detail-v1.json",
+  "updated_at_utc": "2026-10-27T20:04:54.936059+00:00",
+  "eye_material_update_provenance": "assets/provenance/appearance/eye-material-update.json"
+}

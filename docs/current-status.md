@@ -1,75 +1,56 @@
-# Güncel durum — 2026-10-27
+# Güncel durum — 2026-10-28
 
-Ana ürün Unreal Engine **5.8.4** kullanıyor. Kullanıcının gerçekçilik ve doğal
-yürüyüş hedefi sürüyor. İlk Godot prototipi kapalıdır; kullanıcı tarafından
-bildirilen yürüyüş kusuru geçmiş otomatik pencere testleriyle geçersiz sayılmaz.
+**0.4.0 Linux Shipping** üretildi ve kullanıcının kaydı korunarak başlatıldı.
+Motor Unreal Engine5.8.4; Godot deneyi kapalı arşivdir. Kod ve paketler
+[halka açık GitHub deposunda](https://github.com/zeynelgun-afk/Mirmir),
+indirmeler [Releases](https://github.com/zeynelgun-afk/Mirmir/releases) altındadır.
 
-## Tamamlanan ve gerçek çalıştırmayla doğrulananlar
+## Bu sürümde
 
-- Resmî `Linux_Unreal_Engine_5.8.4.zip` indirmesi tamamlandı; ZIP CRC kontrolüyle
-  `/home/zeynel/Applications/UnrealEngine-5.8.4` altına kuruldu.
-- Paket içindeki v26 Clang 20.1.8 araçsetiyle gerçek UE/UHT C++ derlemesi geçti.
-  İndirilen eski v20 Clang13 arşivi motor değildir, kurulmadı ve korundu.
-- Gerçek iskelet, dört mesh parçası, 0.8 saniyelik yürüyüş döngüsü ve CC0
-  miyavlama/mırlama kayıtları Unreal'a aktarıldı. Blueprint ve önizleme haritası
-  editör API'siyle oluşturulup kaydedildi.
-- Unreal otomasyonunda iki davranış testi başarılı; Linux süreç çıkışı0.
-  C++ çekirdeği ASan/UBSan ve yerel kabuk/hash kontrolleri başarılı.
-- Gerçek Vulkan/Unreal sahne yakalamasında alpha0–255 kedi kareleri alındı.
-  Qt/XWayland kabuğu bunları gerçek motora ait PID, oturum, sıra, boyut ve CRC
-  eşleşmesiyle canlı masaüstünde gösterdi. Godot veya sabit resim yedeği yoktur.
-- Yaklaşık21 saniyelik gerçek örneklemede 307 kare / 14.61FPS; sevme, oyun,
-  dinlenme, mama ve sessize alma komutları motor durumunda gözlendi.
-- Yerel X11 pencere incelemesinde kedi biçimli bounding maskesi ve klavye odağı
-  istemeyen pencere doğrulandı; aktif pencere kimliği açılış boyunca değişmedi.
-  Gerçek kullanıcı tıklama deneyimi ayrıca kullanıcı gözlemine açıktır.
-- Shipping build/cook/stage/pak/package/archive aşamaları geçti. Son sürümde
-  yavaş dönüş animasyon alt sınırı ve Shipping kare sınırı düzeltmeleri bulunur.
-  Son bağımsız runtime/ses doğrulaması `unreal-runtime-verification.json` içinde kayıtlıdır.
+- Sabit yatak/mama kabı gerçek Unreal RGBA'sıyla ayrı şeffaf pencerede kalır.
+  Kedi yatağa yürüyüp çömelerek dinlenir; kuyruk gevşemesi ve küçük nefes vardır.
+  Mama kabına yaklaşır, başını eğerek yeme tepkisi verir. Yaklaşma anlık değildir;
+  kontrollü başlangıçta yaklaşık13s sürdü.
+- Ekran kenarında Play'e yanlışlıkla Rest gönderilmesi giderildi. Feed/Play
+  önceki sevme beklemesine takılmaz; sevme yemeği/oyunu kesmez. Motor onaylı
+  eylem mesajları menüde görünür. Yatak/kaba tıklama Rest/Feed gönderir.
+- Donmuş pozda yerinde gövde pivotu yerine sınırlı hız/eğrilik/yaw ivmesiyle
+  ileri yaylar kullanılır. Dört pati için sınırlı IK vardır; hızlı bırakma
+  sıçraması azaltılmıştır, sıfır kayma iddiası yoktur.
+- Van/British/siyah-beyaz görünüm, gerçek bekleme/kuyruk/yürüyüş klip harmanı,
+  kısa kürk kabukları, floatHDR renk dönüşümü ve fiziksel Chaos topu vardır.
+- Arada imleç ilgisi ve kısa yaklaşma; el imleci, sevmede küçük baş eğimi ve
+  gerçek kedi kayıtlarından mırlama/miyavlama. İmleç geçmişi kaydedilmez.
+- Hareket30, sakin duruş8fps hedeflenir. Kayıtlar XDGdata, günlükler XDGstate,
+  canlı kareler mümkünse özel runtime tmpfs dizinindedir.
 
-## Yürüyüş
+## Kanıt ve sınırlar
 
-Kaynak veride düşük yükseklikli pati kemiği örnekleri yaklaşık68cm/s adım
-referansı verdi. Gerçek UE ölçümünde düz ilerleme bakış yönüyle eşleşiyor;
-123 düşük yükseklikli distal kemik aralığında artık hareketin medyanı2.06cm/s,
-p95'i17.08cm/s. Bu sonuç pati tabanı kilidi veya sıfır kayma anlamına gelmez.
-Ölçüm ve yöntem `unreal-motion-verification.json` içinde kayıtlıdır.
+C++/UHT Editor ve Shipping cook/package geçti. Çekirdek ASan/UBSan, kabuk/hash
+kontrolleri ve3/3 gerçek Unreal otomasyonu başarılıdır.47s gerçek RHI testinde
+bed/rest/feed/game/pet geçişleri,1093 örnek ve90 ham PNG kaydedildi. Oyundan
+sonra gelen sevmede115/115 örnekte Play+top aktif kaldı. Gerçek Shipping ve
+Flatpak sandbox içinde kedi/eşya kareleri PID/oturum/CRC/alpha ile doğrulandı;
+normal kapatma testleri geçti.
 
-Doğrulamada eski0.1 animasyon hız alt sınırının çok yavaş dönüşleri zorladığı
-bulundu;0.01'e indirildi. Hareket gerçek bakış yönünde ve dönüşte yavaşlayarak
-ilerler. Gösterim ve masaüstü hareketi aynı ortografik piksel/cm ölçeğini kullanır.
+`.deb`, `.rpm`, Arch paketi, AppImage, taşınabilir arşiv ve doğrudan Flatpak
+üretildi. Son.deb temiz resmi Ubuntu22.04 container'da apt ile kuruldu; QtXCB
+bağlantıları ve offscreen kabuk testi geçti. Bu, ayrı masaüstü/GPU testi değildir.
+Fedora/openSUSE/Arch temiz kurulumu ve Windows çalıştırması doğrulanmadı.
+Windows per-user sihirbazı/derleme kaynakları hazırdır; Windows EXE üretilmedi.
 
-Eksik bekleme klibi için mevcut yürüyüşün1/30 saniyedeki pozu tutulur. Yerinde
-pivottaki tutulan poz, duruş geçişleri ve klibin kısa döngü sınırı görsel
-cilalama ister. Ayrı oturma, uyuma, temizlenme veya koşma klipleri yoktur.
-Groom/fotogerçekçi kürk ve pati sabitleme/IK henüz uygulanmadı.
+Son kullanıcı oturumu kilitlidir.0.4 motor ve Qt gösterim isteği/kareleri hazır,
+fakat kilit sırasında X11 map/ekranda görünürlük doğrulanamadı. Kilit, oturum,
+KWin veya sürücü ayarı değiştirilmedi.0.1–0.3 açık oturum kanıtları0.4 için
+aynen yeniden etiketlenmez. Kullanıcının görsel doğallık kabulü ayrıca açıktır.
 
-## Ses ve ürün sınırları
+Dinlenme sınırlı prosedürel loaf/çömelme pozudur; sanatçı uyku klibi veya kapalı
+göz geometrisi yoktur. Kedi hareketi tam kuvvet/kas/pati tabanı simülasyonu
+değildir. IK bırakmasında ve hızlı top temasında kalan hatalar vardır. Görünüm
+profilleri aynı modeli kullanır; Groom ve nihai fotogerçekçilik tamamlanmadı.
 
-Offscreen Unreal varsayılan SDL dummy ses çıkışı ve odağı kaybedince sessize
-alma davranışı tespit edildi. Yalnız uygulamanın alt sürecine gerçek PulseAudio
-sürücüsü seçilir; proje arka plan ses çarpanı1'dir. Son pakette yalnız kendi PulseAudio çıkış akışı ölçüldü: RMS0.01137, tepe0.09781.
-Mikrofon veya diğer uygulamaların sesi alınmadı; fiziksel hoparlörde duyma
-kullanıcı tarafından ayrıca değerlendirilebilir.
-
-Bu çalışan ilk Unreal dilimidir. Nihai fotogerçekçilik, kapsamlı oyun içeriği
-ve kullanıcı tarafından doğal yürüyüş kabulü tamamlandı diye sunulmaz. Model
-kişisel/ticari olmayan kullanım için CC BY-NC4.0; sesler CC0 lisanslıdır.
-Kullanıcı verileri korunur; otomatik oturum başlangıcı kurulmadı.
-
-## Bağımsız sürüm son kontrolü
-
-Final Shipping örneğinde 26 saniyede381 kare, 14.63FPS gözlendi; motor kare
-sınırı15 olarak doğrulandı. On yavaş hareket örneği dahil animasyon
-hızının gerçek hız/68 oranından en büyük farkı2.81e-8 oldu. Dururken yürüyüş
-oynatımı kapalıdır. Kısa başlangıç örneğinde yaklaşık440MiB RSS ve tek
-çekirdeğe göre%66 CPU görüldü; uzun süreli enerji ölçümü yapılmadı.
-
-İlk Shipping koşusunda Mesa ACO shader ön hazırlık havuzunda çöktü. Yalnız
-projenin PSO ön hazırlığı kapatıldı; gerçek çizilen kedi için gereken
-pipeline'lar çalışıyor. Sistem sürücüleri ve oturum ayarları değiştirilmedi.
-
-Normal kapatma, kaydetme ve tekrar açma gerçek paketle sınandı: bağ değeri
-aynı kaldı, son kapanışta bekleyen komut sayısı0 oldu. İki kez gönderilen
-kapat komutunun sonraki açılışı bitirmesi giderildi. Uygulama menüsü kuruldu
-ve gerçek Shipping sürümü kullanıcının mevcut masaüstünde açık bırakıldı.
+[0.4 doğrulaması](release-0.4-verification.json) ·
+[Hareket araştırması](research/locomotion-2026-10-27.md) ·
+[Kurulum](INSTALL.md) · [Flatpak/Flathub sınırı](FLATPAK.md).
+Özgün kod MIT, ayrı PyQt kabuk GPL3; Cat Walk türevleri CC BY-NC4.0, ek hareket
+CC BY4.0, sesler CC0. [Kaynaklar ve lisanslar](../ASSET-LICENSES.md).

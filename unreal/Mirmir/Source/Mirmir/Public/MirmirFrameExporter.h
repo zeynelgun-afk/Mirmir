@@ -14,7 +14,8 @@ class IImageWrapperModule;
  * Opt-in bridge from Unreal's isolated cat render to the native desktop shell.
  * Spawn explicitly, then Initialize(Cat, Camera); both operations are inert
  * without -MirmirDesktop. This never reads the desktop or another application's
- * pixels. Initial synchronous GPU readback/PNG encoding is capped at 15 fps.
+ * pixels. Synchronous GPU readback/PNG encoding uses at most 30 fps while
+ * moving/turning or reacting, then 8 fps while idle. No frame queue is kept.
  *
  * Integration: add ImageWrapper, ImageCore, RenderCore and RHI to the module.
  * Output: $XDG_STATE_HOME/mirmir/unreal/{frame.png,runtime.json}; XDG fallback
@@ -41,8 +42,16 @@ public:
     UPROPERTY(EditAnywhere, Category="Mirmir|Desktop", meta=(ClampMin="128", ClampMax="1024"))
     int32 FrameSize = 512;
 
-    UPROPERTY(EditAnywhere, Category="Mirmir|Desktop", meta=(ClampMin="1.0", ClampMax="15.0"))
-    float FramesPerSecond = 15.0f;
+    UPROPERTY(EditAnywhere, Category="Mirmir|Desktop", meta=(ClampMin="1.0", ClampMax="30.0"))
+    float FramesPerSecond = 30.0f;
+
+    UPROPERTY(EditAnywhere, Category="Mirmir|Desktop", meta=(ClampMin="1.0", ClampMax="30.0"))
+    float IdleFramesPerSecond = 8.0f;
+
+    // Remain responsive through brief stops and animation crossfades rather
+    // than switching engine cadence on each zero-speed sample.
+    UPROPERTY(EditAnywhere, Category="Mirmir|Desktop", meta=(ClampMin="0.1", ClampMax="5.0"))
+    float ActiveGraceSeconds = 1.0f;
 
     // Physical image pixels per world centimeter; the Qt shell divides by DPR.
     UPROPERTY(EditAnywhere, Category="Mirmir|Desktop", meta=(ClampMin="0.01", ClampMax="20.0"))
@@ -51,10 +60,14 @@ public:
     UPROPERTY(EditAnywhere, Category="Mirmir|Desktop")
     bool bMatchCameraPixelScale = true;
 
-    // ReadPixels applies linear->sRGB once. This optional gain is applied after
-    // that readback; it cannot recover HDR highlights already clipped to U8.
+    // Exposure is applied to float HDR before the filmic mapping and the one
+    // final sRGB conversion. White coats retain highlights rather than clipping
+    // in an intermediate U8 readback.
     UPROPERTY(EditAnywhere, Category="Mirmir|Desktop", meta=(ClampMin="0.1", ClampMax="4.0"))
     float DisplayGain = 1.0f;
+
+    UPROPERTY(EditAnywhere, Category="Mirmir|Desktop|Calibration")
+    bool bUseFilmicToneMap = true;
 
     // SCS_SceneColorHDR carries inverse opacity. Disable only after checking
     // actual capture semantics in the installed engine, not to mask a failure.
@@ -84,6 +97,16 @@ private:
     UPROPERTY(Transient)
     TObjectPtr<UTextureRenderTarget2D> RenderTarget;
 
+    UPROPERTY() TObjectPtr<USceneCaptureComponent2D> PropsCapture;
+    UPROPERTY(Transient) TObjectPtr<UTextureRenderTarget2D> PropsRenderTarget;
+    uint64 PropsSequence = 0;
+    int64 PropsPNGBytes = 0;
+    uint32 PropsPNGCRC32 = 0;
+    double NextPropsCaptureSeconds = 0.0;
+    bool bPropsReady = false;
+    bool bLastFoodVisible = true;
+    FVector PropsCameraShift = FVector::ZeroVector;
+
     UPROPERTY(Transient)
     TWeakObjectPtr<AMirmirCat> Subject;
 
@@ -99,13 +122,32 @@ private:
     FRotator CameraRotation = FRotator::ZeroRotator;
     uint64 FrameSequence = 0;
     double NextCaptureSeconds = 0.0;
+    double ActiveUntilSeconds = 0.0;
     double NextFailureStatusSeconds = 0.0;
+    FVector LastActorLocation = FVector::ZeroVector;
+    FQuat LastActorRotation = FQuat::Identity;
+    float CurrentCaptureFPS = 30.0f;
+    float LastBond = 0.0f;
+    float LastSatiety = 0.0f;
+    float LastHeadYaw = 0.0f;
+    float LastHeadPitch = 0.0f;
+    uint8 LastActivity = 0;
+    bool bLastMuted = false;
+    FString RenderProfile = TEXT("warm");
     int32 FileLockDescriptor = -1;
+    void* WindowsLockHandle = nullptr;
     int32 WarningCount = 0;
+    float LastHDRPeak = 0.0f;
+    int32 LastHDRHighlightPixels = 0;
+    FName LastAppearance = NAME_None;
     bool bInitialized = false;
     bool bOwnsOutput = false;
+    double LastCursorSampleMilliseconds = -1.0;
 
+    void PollCursorInterest();
+    void CapturePropsIfNeeded();
     bool CaptureAndPublish();
+    void UpdateCadence(double Now, float DeltaSeconds);
     bool PublishRuntime(const TCHAR* Status, bool bReady, int64 PNGBytes = 0,
         uint32 PNGCRC32 = 0, int32 AlphaMin = 0, int32 AlphaMax = 0,
         int32 ForegroundPixels = 0, const FString& Error = FString());

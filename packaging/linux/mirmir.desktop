@@ -1,0 +1,15 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Mırmır
+Comment=Unreal ile çalışan 3B masaüstü kedisi
+Exec=mirmir
+Icon=mirmir
+Terminal=false
+Categories=Game;Simulation;
+StartupNotify=false
+Actions=Stop;
+
+[Desktop Action Stop]
+Name=Mırmır'ı kapat
+Exec=mirmir --stop

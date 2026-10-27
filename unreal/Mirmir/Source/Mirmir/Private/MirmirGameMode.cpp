@@ -1,5 +1,7 @@
 #include "MirmirGameMode.h"
 #include "MirmirCat.h"
+#include "MirmirToy.h"
+#include "MirmirHabitat.h"
 #include "MirmirFrameExporter.h"
 #include "Camera/CameraActor.h"
 #include "Camera/CameraComponent.h"
@@ -7,12 +9,16 @@
 #include "Components/LightComponent.h"
 #include "Engine/Canvas.h"
 #include "Engine/DirectionalLight.h"
+#include "Engine/SkyLight.h"
+#include "Components/SkyLightComponent.h"
+#include "Engine/TextureCube.h"
 #include "Engine/World.h"
 #include "InputCoreTypes.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Misc/CommandLine.h"
 #include "Misc/Parse.h"
+#include "UObject/ConstructorHelpers.h"
 
 namespace
 {
@@ -29,6 +35,9 @@ AMirmirGameMode::AMirmirGameMode()
     PlayerControllerClass = AMirmirPlayerController::StaticClass();
     HUDClass = AMirmirHUD::StaticClass();
     CatClass = AMirmirCat::StaticClass();
+    static ConstructorHelpers::FObjectFinder<UTextureCube> Ambient(
+        TEXT("/Engine/EngineResources/GrayLightTextureCube.GrayLightTextureCube"));
+    if (Ambient.Succeeded()) AmbientCubemap = Ambient.Object;
 }
 
 void AMirmirGameMode::BeginPlay()
@@ -58,6 +67,30 @@ void AMirmirGameMode::BeginPlay()
     {
         Fill->GetLightComponent()->SetIntensity(1.3f);
         Fill->GetLightComponent()->SetLightColor(FLinearColor(0.8f, 0.87f, 1.0f));
+    }
+    if (AmbientCubemap)
+        if (ASkyLight* Ambient = GetWorld()->SpawnActor<ASkyLight>())
+        {
+            // A neutral environment lights the eyes and underside of white
+            // fur. Only cat/toy actors enter the RGBA capture; no sky backdrop
+            // or user's desktop is read or painted into the image.
+            USkyLightComponent* Light = Ambient->GetLightComponent();
+            Light->SetMobility(EComponentMobility::Movable);
+            Light->SourceType = SLS_SpecifiedCubemap;
+            Light->bLowerHemisphereIsBlack = false;
+            Light->SetIntensity(FMath::Clamp(AmbientIntensity, 0.0f, 2.0f));
+            Light->SetCubemap(AmbientCubemap);
+        }
+    if (Cat)
+    {
+        Habitat = GetWorld()->SpawnActor<AMirmirHabitat>(Cat->GetActorLocation(), FRotator::ZeroRotator);
+        Cat->Habitat = Habitat;
+        Toy = GetWorld()->SpawnActor<AMirmirToy>();
+        if (Toy)
+        {
+            Toy->BallMaterial = ToyMaterial;
+            Cat->Toy = Toy;
+        }
     }
     if (bDesktop && Cat && Camera)
         if (AMirmirFrameExporter* Exporter = GetWorld()->SpawnActor<AMirmirFrameExporter>())

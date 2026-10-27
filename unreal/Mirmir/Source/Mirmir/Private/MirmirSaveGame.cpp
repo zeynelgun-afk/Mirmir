@@ -16,12 +16,26 @@ bool Number(const TSharedPtr<FJsonObject>& Object, const TCHAR* Key, double& Out
 }
 }
 
+FName UMirmirSaveGame::NormalizeAppearance(FName Value)
+{
+    const FString Id = Value.ToString().ToLower();
+    if (Id == TEXT("british")) return TEXT("british");
+    if (Id == TEXT("tuxedo")) return TEXT("tuxedo");
+    return TEXT("van");
+}
+
 FString UMirmirSaveGame::SavePath()
 {
     FString Base = FPlatformMisc::GetEnvironmentVariable(TEXT("XDG_DATA_HOME"));
     if (Base.IsEmpty() || FPaths::IsRelative(Base))
     {
+#if PLATFORM_WINDOWS
+        Base = FPlatformMisc::GetEnvironmentVariable(TEXT("LOCALAPPDATA"));
+        if (Base.IsEmpty() || FPaths::IsRelative(Base))
+            Base = FPaths::Combine(FPlatformProcess::UserHomeDir(), TEXT("AppData/Local"));
+#else
         Base = FPaths::Combine(FPlatformProcess::UserHomeDir(), TEXT(".local/share"));
+#endif
     }
     return FPaths::Combine(Base, TEXT("mirmir/unreal/cat-v1.json"));
 }
@@ -70,6 +84,10 @@ bool UMirmirSaveGame::Load(UMirmirSaveGame& Out, FString& Error)
     State.RandomState = static_cast<uint32>(Seed);
     Out.CatState = Mirmir::Behavior(State).Get();
     Root->TryGetBoolField(TEXT("muted"), Out.bMuted);
+    FString Appearance;
+    // Optional v1 extension: old saves default to Van without touching needs.
+    Root->TryGetStringField(TEXT("appearance"), Appearance);
+    Out.AppearanceId = Appearance.Len() <= 16 ? NormalizeAppearance(FName(*Appearance)) : FName(TEXT("van"));
     Out.SavedAtUnixSeconds = static_cast<int64>(SavedAt);
     return true;
 }
@@ -80,6 +98,7 @@ bool UMirmirSaveGame::Store(const UMirmirSaveGame& Value, FString& Error)
     const TSharedRef<FJsonObject> Root = MakeShared<FJsonObject>();
     Root->SetNumberField(TEXT("version"), 1);
     Root->SetBoolField(TEXT("muted"), Value.bMuted);
+    Root->SetStringField(TEXT("appearance"), NormalizeAppearance(Value.AppearanceId).ToString().ToLower());
     Root->SetNumberField(TEXT("saved_at"), static_cast<double>(Value.SavedAtUnixSeconds));
     Root->SetNumberField(TEXT("satiety"), S.Satiety);
     Root->SetNumberField(TEXT("energy"), S.Energy);

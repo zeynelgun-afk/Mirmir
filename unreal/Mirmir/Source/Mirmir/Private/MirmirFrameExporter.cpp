@@ -1,7 +1,11 @@
 #include "MirmirFrameExporter.h"
 
 #include "MirmirCat.h"
+#include "MirmirToy.h"
+#include "MirmirHabitat.h"
+#include "MirmirAnimInstance.h"
 #include "Animation/AnimationAsset.h"
+#include "Animation/AnimSequence.h"
 #include "Animation/AnimSingleNodeInstance.h"
 #include "Camera/CameraComponent.h"
 #include "Components/SceneCaptureComponent2D.h"
@@ -27,6 +31,7 @@
 #include "Modules/ModuleManager.h"
 #include "RHI.h"
 #include "Serialization/JsonSerializer.h"
+#include "Serialization/JsonReader.h"
 #include "Serialization/JsonWriter.h"
 #include "UnrealClient.h"
 
@@ -36,6 +41,8 @@
 #include <fcntl.h>
 #include <sys/file.h>
 #include <unistd.h>
+#elif PLATFORM_WINDOWS
+#include "Windows/WindowsHWrapper.h"
 #endif
 
 DEFINE_LOG_CATEGORY_STATIC(LogMirmirFrameExporter, Log, All);
@@ -44,6 +51,9 @@ namespace
 {
 FString StateDirectory()
 {
+    FString Output = FPlatformMisc::GetEnvironmentVariable(TEXT("MIRMIR_FRAME_DIR"));
+    if (!Output.IsEmpty() && !FPaths::IsRelative(Output))
+        return FPaths::ConvertRelativePathToFull(Output);
     FString Base = FPlatformMisc::GetEnvironmentVariable(TEXT("XDG_STATE_HOME"));
     if (Base.IsEmpty() || FPaths::IsRelative(Base))
         Base = FPaths::Combine(FPlatformProcess::UserHomeDir(), TEXT(".local/state"));
@@ -77,6 +87,18 @@ AMirmirFrameExporter::AMirmirFrameExporter()
     CaptureComponent->ShowFlags.SetPostProcessing(false);
     CaptureComponent->ShowFlags.SetMotionBlur(false);
     CaptureComponent->ShowFlags.SetTemporalAA(false);
+    PropsCapture = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("HabitatCapture"));
+    PropsCapture->SetupAttachment(CaptureComponent);
+    PropsCapture->bCaptureEveryFrame = false;
+    PropsCapture->bCaptureOnMovement = false;
+    PropsCapture->bAlwaysPersistRenderingState = false;
+    PropsCapture->PrimitiveRenderMode = ESceneCapturePrimitiveRenderMode::PRM_UseShowOnlyList;
+    PropsCapture->CaptureSource = ESceneCaptureSource::SCS_SceneColorHDR;
+    PropsCapture->ShowFlags.SetAtmosphere(false);
+    PropsCapture->ShowFlags.SetFog(false);
+    PropsCapture->ShowFlags.SetPostProcessing(false);
+    PropsCapture->ShowFlags.SetMotionBlur(false);
+    PropsCapture->ShowFlags.SetTemporalAA(false);
 }
 
 bool AMirmirFrameExporter::Initialize(AMirmirCat* InCat, UCameraComponent* InCamera)
@@ -88,8 +110,8 @@ bool AMirmirFrameExporter::Initialize(AMirmirCat* InCat, UCameraComponent* InCam
         ReportFailure(TEXT("Desktop export requires a valid cat, camera and rendering RHI."));
         return false;
     }
-#if !PLATFORM_LINUX
-    ReportFailure(TEXT("This initial atomic desktop exporter is implemented for Linux only."));
+#if !PLATFORM_LINUX && !PLATFORM_WINDOWS
+    ReportFailure(TEXT("Desktop frame export requires Linux or Windows."));
     return false;
 #endif
     OutputDirectory = StateDirectory();
@@ -106,19 +128,29 @@ bool AMirmirFrameExporter::Initialize(AMirmirCat* InCat, UCameraComponent* InCam
         return false;
     }
     FrameSize = FMath::Clamp(FrameSize, 128, 1024);
-    FramesPerSecond = FMath::Clamp(FramesPerSecond, 1.0f, 15.0f);
+    FramesPerSecond = FMath::Clamp(FMath::IsFinite(FramesPerSecond) ? FramesPerSecond : 30.0f, 1.0f, 30.0f);
+    IdleFramesPerSecond = FMath::Clamp(FMath::IsFinite(IdleFramesPerSecond) ? IdleFramesPerSecond : 8.0f, 1.0f, FramesPerSecond);
+    ActiveGraceSeconds = FMath::Clamp(FMath::IsFinite(ActiveGraceSeconds) ? ActiveGraceSeconds : 1.0f, 0.1f, 5.0f);
+    CurrentCaptureFPS = FramesPerSecond;
     // Shipping excludes command-line ExecCmds, so apply the companion's cap in
     // code as well. Avoid an uncapped hidden game viewport behind the shell.
-    if (GEngine) GEngine->SetMaxFPS(FramesPerSecond);
+    if (GEngine) GEngine->SetMaxFPS(CurrentCaptureFPS);
     Subject = InCat;
     SourceCamera = InCamera;
     InitialCatLocation = InCat->GetActorLocation();
+    LastActorLocation = InitialCatLocation;
+    LastActorRotation = InCat->GetActorQuat();
+    LastActivity = uint8(InCat->Activity);
+    LastBond = InCat->Bond;
+    LastSatiety = InCat->Satiety;
+    bLastMuted = InCat->bMuted;
     CameraOffset = InCamera->GetComponentLocation() - InitialCatLocation;
     CameraRotation = InCamera->GetComponentRotation();
     SessionId = FGuid::NewGuid().ToString(EGuidFormats::DigitsWithHyphens);
     FrameSequence = 0;
     CaptureComponent->ShowOnlyActors.Reset();
     CaptureComponent->ShowOnlyActors.Add(InCat);
+    if (IsValid(InCat->Toy)) CaptureComponent->ShowOnlyActors.Add(InCat->Toy);
     CaptureComponent->ProjectionType = InCamera->ProjectionMode;
     CaptureComponent->FOVAngle = InCamera->FieldOfView;
     CaptureComponent->OrthoWidth = InCamera->OrthoWidth;
@@ -139,8 +171,29 @@ bool AMirmirFrameExporter::Initialize(AMirmirCat* InCat, UCameraComponent* InCam
     RenderTarget->InitCustomFormat(FrameSize, FrameSize, PF_FloatRGBA, true);
     RenderTarget->UpdateResourceImmediate(true);
     CaptureComponent->TextureTarget = RenderTarget;
+    if (IsValid(InCat->Habitat))
+    {
+        // Centre the separate fixed canvas on the furniture's planar bounds.
+        // Publish the matching pixel offset so its desktop world alignment is
+        // unchanged; clipping furniture is not fixed by scaling the scene.
+        const FBox Bounds = InCat->Habitat->GetComponentsBoundingBox(true);
+        if (Bounds.IsValid)
+        {
+            PropsCameraShift = Bounds.GetCenter() - InitialCatLocation;
+            PropsCameraShift.Z = 0.0;
+        }
+        PropsCapture->ShowOnlyActors.Add(InCat->Habitat);
+        PropsCapture->ProjectionType = CaptureComponent->ProjectionType;
+        PropsCapture->OrthoWidth = CaptureComponent->OrthoWidth;
+        PropsRenderTarget = NewObject<UTextureRenderTarget2D>(this, TEXT("DesktopHabitatFrame"));
+        PropsRenderTarget->ClearColor = FLinearColor(0, 0, 0, 1);
+        PropsRenderTarget->InitCustomFormat(FrameSize, FrameSize, PF_FloatRGBA, true);
+        PropsRenderTarget->UpdateResourceImmediate(true);
+        PropsCapture->TextureTarget = PropsRenderTarget;
+    }
     bInitialized = true;
     NextCaptureSeconds = FPlatformTime::Seconds();
+    ActiveUntilSeconds = NextCaptureSeconds + ActiveGraceSeconds;
     if (!PublishRuntime(TEXT("waiting_for_frame"), false))
     {
         ReportFailure(TEXT("Initial desktop runtime metadata could not be published."));
@@ -163,39 +216,178 @@ void AMirmirFrameExporter::Tick(float DeltaSeconds)
         return;
     }
     const double Now = FPlatformTime::Seconds();
-    if (Now < NextCaptureSeconds) return;
+    PollCursorInterest();
+    UpdateCadence(Now, DeltaSeconds);
+    // The engine uses the same cap. Sub-millisecond timer jitter must not turn
+    // one nominal 8 Hz tick into a missed capture and a visible 250 ms pause.
+    if (Now + 0.001 < NextCaptureSeconds) return;
     // Keep the clock phase through ordinary frame jitter. Scheduling from Now
-    // each time skips every other engine frame when both limits are 15 fps.
+    // each time can skip every other frame when engine and capture limits match.
     // A genuinely missed deadline drops the backlog rather than catching up.
-    const double Interval = 1.0 / FMath::Clamp(FramesPerSecond, 1.0f, 15.0f);
+    const double Interval = 1.0 / CurrentCaptureFPS;
     NextCaptureSeconds += Interval;
     if (NextCaptureSeconds <= Now) NextCaptureSeconds = Now + Interval;
     CaptureAndPublish();
 }
 
+void AMirmirFrameExporter::PollCursorInterest()
+{
+    AMirmirCat* Cat = Subject.Get();
+    if (!Cat) return;
+    const FString Path = FPaths::Combine(OutputDirectory, TEXT("cursor.json"));
+    FString Text;
+    TSharedPtr<FJsonObject> Cursor;
+    auto Reject = [this, Cat]()
+    {
+        LastCursorSampleMilliseconds = -1.0;
+        Cat->SetCuriosityTarget(FVector::ZeroVector, false);
+    };
+    const int64 Size = IFileManager::Get().FileSize(*Path);
+    if (Size <= 0 || Size > 2048 || !FFileHelper::LoadFileToString(Text, *Path) ||
+        !FJsonSerializer::Deserialize(TJsonReaderFactory<>::Create(Text), Cursor) || !Cursor.IsValid())
+    {
+        Reject();
+        return;
+    }
+    double Schema, Producer, Sample, Expiry;
+    FString Session;
+    bool bActive = false;
+    const TArray<TSharedPtr<FJsonValue>>* Offset = nullptr;
+    const FDateTime UTC = FDateTime::UtcNow();
+    const double NowMS = double(UTC.ToUnixTimestamp()) * 1000.0 + UTC.GetMillisecond();
+    if (!Cursor->TryGetNumberField(TEXT("schema_version"), Schema) || Schema != 1.0 ||
+        !Cursor->TryGetNumberField(TEXT("producer_pid"), Producer) || Producer != FPlatformProcess::GetCurrentProcessId() ||
+        !Cursor->TryGetStringField(TEXT("session_id"), Session) || Session != SessionId ||
+        !Cursor->TryGetBoolField(TEXT("active"), bActive) || !bActive ||
+        !Cursor->TryGetNumberField(TEXT("sampled_at_unix_ms"), Sample) || !FMath::IsFinite(Sample) ||
+        !Cursor->TryGetNumberField(TEXT("expires_at_unix_ms"), Expiry) || !FMath::IsFinite(Expiry) ||
+        Sample > NowMS + 100.0 || NowMS > Expiry || Expiry < Sample || Expiry - Sample > 750.0 ||
+        !Cursor->TryGetArrayField(TEXT("target_offset_px"), Offset) || Offset->Num() != 2)
+    {
+        Reject();
+        return;
+    }
+    double DX, DY;
+    if (!(*Offset)[0].IsValid() || !(*Offset)[1].IsValid() ||
+        !(*Offset)[0]->TryGetNumber(DX) || !(*Offset)[1]->TryGetNumber(DY) ||
+        !FMath::IsFinite(DX) || !FMath::IsFinite(DY) ||
+        FMath::Abs(DX) > FrameSize * 0.5 || FMath::Abs(DY) > FrameSize * 0.5)
+    {
+        Reject();
+        return;
+    }
+    if (Sample == LastCursorSampleMilliseconds) return;
+    // Invert the same orthographic projection used by desktop_offset_px.
+    // Only the current offset inside our own render frame is exchanged; no
+    // absolute desktop coordinate, other window or screenshot is collected.
+    const FRotationMatrix Basis(CameraRotation);
+    const FVector Right = Basis.GetUnitAxis(EAxis::Y);
+    const FVector Up = Basis.GetUnitAxis(EAxis::Z);
+    const double Determinant = Right.X * Up.Y - Right.Y * Up.X;
+    if (FMath::Abs(Determinant) < 0.05 || CaptureComponent->ProjectionType != ECameraProjectionMode::Orthographic)
+    {
+        Reject();
+        return;
+    }
+    const double Scale = FMath::Clamp(DesktopPixelsPerCentimeter, 0.01f, 20.0f);
+    const double R = DX / Scale, U = -DY / Scale;
+    FVector Delta((R * Up.Y - Right.Y * U) / Determinant,
+        (Right.X * U - R * Up.X) / Determinant, 0.0);
+    Delta = Delta.GetClampedToMaxSize(100.0);
+    FVector Target = Cat->GetActorLocation() + Delta;
+    Target.Z = InitialCatLocation.Z;
+    LastCursorSampleMilliseconds = Sample;
+    Cat->SetCuriosityTarget(Target, true);
+}
+
+void AMirmirFrameExporter::UpdateCadence(double Now, float DeltaSeconds)
+{
+    const AMirmirCat* Cat = Subject.Get();
+    const FVector Location = Cat->GetActorLocation();
+    const FQuat Rotation = Cat->GetActorQuat();
+    const float SafeDelta = FMath::Max(DeltaSeconds, 0.001f);
+    const bool bTranslated = FVector::DistSquared(Location, LastActorLocation) > FMath::Square(0.5f * SafeDelta);
+    const bool bTurning = FMath::RadiansToDegrees(Rotation.AngularDistance(LastActorRotation)) > 0.05f;
+    bool bAuthoredPlaying = Cat->bAnimationTransitionBlocksMovement;
+    if (const USkeletalMeshComponent* Mesh = Cat->CatMesh.Get())
+    {
+        if (const UAnimSingleNodeInstance* Single = Mesh->GetSingleNodeInstance())
+            bAuthoredPlaying |= Single->IsPlaying();
+        if (const UMirmirAnimInstance* Native = Cast<UMirmirAnimInstance>(Mesh->GetAnimInstance()))
+            bAuthoredPlaying |= Native->PlaybackState == TEXT("IdleVariation");
+    }
+    // Native BlendStack is not a SingleNode player: actor motion and its
+    // explicit transition flag decide cadence without treating idle as walking.
+    const bool bToyMoving = Cat->Toy && Cat->Toy->IsPlaying() && Cat->Toy->GetBallSpeedCmPerSecond() > 1.0f;
+    const bool bHeadMoving = FMath::Abs(Cat->CuriosityHeadYaw - LastHeadYaw) > 0.1f ||
+        FMath::Abs(Cat->CuriosityHeadPitch - LastHeadPitch) > 0.1f;
+    const bool bRestTransition = Cat->RestPoseAlpha > 0.001f && Cat->RestPoseAlpha < 0.999f;
+    const bool bActiveMotion = Cat->MovementSpeed > 1.0f || bTranslated || bTurning || bAuthoredPlaying || bToyMoving || bHeadMoving ||
+        Cat->PetReactionStrength > 0.001f || bRestTransition || Cat->EatingPoseStrength > 0.001f;
+    const bool bInteraction = uint8(Cat->Activity) != LastActivity || Cat->Bond > LastBond + 0.0001f ||
+        Cat->Satiety > LastSatiety + 0.001f || Cat->bMuted != bLastMuted || Cat->AppearanceId != LastAppearance;
+    if (bActiveMotion || bInteraction) ActiveUntilSeconds = Now + ActiveGraceSeconds;
+    const bool bWarm = Now < ActiveUntilSeconds;
+    const float Target = (bActiveMotion || bWarm) ? FramesPerSecond : IdleFramesPerSecond;
+    RenderProfile = bActiveMotion ? TEXT("active") : bWarm ? TEXT("warm") : TEXT("idle");
+    if (!FMath::IsNearlyEqual(Target, CurrentCaptureFPS))
+    {
+        CurrentCaptureFPS = Target;
+        // Publish the first frame of a wake/sleep transition immediately; then
+        // resume phase scheduling. Missed deadlines never create a catch-up loop.
+        NextCaptureSeconds = Now;
+    }
+    if (GEngine && !FMath::IsNearlyEqual(GEngine->GetMaxFPS(), CurrentCaptureFPS))
+        GEngine->SetMaxFPS(CurrentCaptureFPS);
+    LastActorLocation = Location;
+    LastActorRotation = Rotation;
+    LastActivity = uint8(Cat->Activity);
+    LastBond = Cat->Bond;
+    LastSatiety = Cat->Satiety;
+    bLastMuted = Cat->bMuted;
+    LastAppearance = Cat->AppearanceId;
+    LastHeadYaw = Cat->CuriosityHeadYaw;
+    LastHeadPitch = Cat->CuriosityHeadPitch;
+}
+
 bool AMirmirFrameExporter::CaptureAndPublish()
 {
+    CapturePropsIfNeeded();
     CaptureComponent->SetWorldLocationAndRotation(
         Subject->GetActorLocation() + CameraOffset, CameraRotation);
     // CaptureScene is manual; enabling capture-every-frame would double render.
     // https://dev.epicgames.com/documentation/en-us/unreal-engine/API/Runtime/Engine/USceneCaptureComponent2D/CaptureScene
     CaptureComponent->CaptureScene();
     FTextureRenderTargetResource* Resource = RenderTarget->GameThread_GetRenderTargetResource();
-    TArray<FColor> Pixels;
+    TArray<FLinearColor> HDRPixels;
     FReadSurfaceDataFlags ReadFlags(RCM_MinMax);
-    ReadFlags.SetLinearToGamma(true);
-    // HDR float -> sRGB FColor, exactly once. Alpha remains linear coverage.
-    // https://dev.epicgames.com/documentation/en-us/unreal-engine/API/Runtime/Engine/FRenderTarget/ReadPixels
-    if (!Resource || !Resource->ReadPixels(Pixels, ReadFlags) || Pixels.Num() != FrameSize * FrameSize)
+    ReadFlags.SetLinearToGamma(false);
+    if (!Resource || !Resource->ReadLinearColorPixels(HDRPixels, ReadFlags) || HDRPixels.Num() != FrameSize * FrameSize)
     {
         ReportFailure(TEXT("Unreal cat render-target readback failed."));
         return false;
     }
     int32 AlphaMin = 255, AlphaMax = 0, ForegroundPixels = 0;
     const float Gain = FMath::Clamp(DisplayGain, 0.1f, 4.0f);
-    for (FColor& Pixel : Pixels)
+    TArray<FColor> Pixels;
+    Pixels.SetNumUninitialized(HDRPixels.Num());
+    LastHDRPeak = 0.0f;
+    LastHDRHighlightPixels = 0;
+    const auto MapChannel = [this](float Value)
     {
-        Pixel.A = bInvertCaptureAlpha ? 255 - Pixel.A : Pixel.A;
+        const float X = FMath::Max(0.0f, Value);
+        // A compact fitted filmic shoulder. This is a display transform, not a
+        // claim of a complete ACES color-management pipeline.
+        return bUseFilmicToneMap ? FMath::Clamp(
+            (X * (2.51f * X + 0.03f)) / (X * (2.43f * X + 0.59f) + 0.14f), 0.0f, 1.0f)
+            : FMath::Clamp(X, 0.0f, 1.0f);
+    };
+    for (int32 Index = 0; Index < HDRPixels.Num(); ++Index)
+    {
+        FLinearColor Linear = HDRPixels[Index];
+        const float Coverage = FMath::Clamp(bInvertCaptureAlpha ? 1.0f - Linear.A : Linear.A, 0.0f, 1.0f);
+        FColor& Pixel = Pixels[Index];
+        Pixel.A = static_cast<uint8>(FMath::RoundToInt(Coverage * 255.0f));
         AlphaMin = FMath::Min(AlphaMin, int32(Pixel.A));
         AlphaMax = FMath::Max(AlphaMax, int32(Pixel.A));
         ForegroundPixels += Pixel.A > 0 ? 1 : 0;
@@ -204,15 +396,14 @@ bool AMirmirFrameExporter::CaptureAndPublish()
             Pixel = FColor(0, 0, 0, 0);
             continue;
         }
-        if (Gain != 1.0f || bUnpremultiplyCapturedRGB)
-        {
-            const uint8 Alpha = Pixel.A;
-            FLinearColor Linear = FLinearColor::FromSRGBColor(Pixel);
-            const float Factor = Gain / (bUnpremultiplyCapturedRGB ? Alpha / 255.0f : 1.0f);
-            Linear.R *= Factor; Linear.G *= Factor; Linear.B *= Factor;
-            Pixel = Linear.ToFColorSRGB();
-            Pixel.A = Alpha;
-        }
+        const uint8 Alpha = Pixel.A;
+        const float Factor = Gain / (bUnpremultiplyCapturedRGB ? FMath::Max(Coverage, 1.0f / 255.0f) : 1.0f);
+        Linear.R *= Factor; Linear.G *= Factor; Linear.B *= Factor;
+        LastHDRPeak = FMath::Max(LastHDRPeak, FMath::Max3(Linear.R, Linear.G, Linear.B));
+        LastHDRHighlightPixels += Linear.R > 1.0f || Linear.G > 1.0f || Linear.B > 1.0f ? 1 : 0;
+        Linear.R = MapChannel(Linear.R); Linear.G = MapChannel(Linear.G); Linear.B = MapChannel(Linear.B);
+        Pixel = Linear.ToFColorSRGB();
+        Pixel.A = Alpha;
     }
     if (bRequireMixedAlpha && (AlphaMin != 0 || AlphaMax == 0))
     {
@@ -249,6 +440,61 @@ bool AMirmirFrameExporter::CaptureAndPublish()
     return true;
 }
 
+void AMirmirFrameExporter::CapturePropsIfNeeded()
+{
+    const AMirmirCat* Cat = Subject.Get();
+    if (!Cat || !IsValid(Cat->Habitat) || !PropsRenderTarget) return;
+    const double Now = FPlatformTime::Seconds();
+    const bool bFood = Cat->Habitat->IsFoodVisible();
+    if (bPropsReady && bFood == bLastFoodVisible && Now < NextPropsCaptureSeconds) return;
+    NextPropsCaptureSeconds = Now + 1.0;
+    PropsCapture->SetWorldLocationAndRotation(InitialCatLocation + CameraOffset + PropsCameraShift, CameraRotation);
+    PropsCapture->CaptureScene();
+    FTextureRenderTargetResource* Resource = PropsRenderTarget->GameThread_GetRenderTargetResource();
+    TArray<FLinearColor> HDR;
+    FReadSurfaceDataFlags Flags(RCM_MinMax);
+    Flags.SetLinearToGamma(false);
+    if (!Resource || !Resource->ReadLinearColorPixels(HDR, Flags) || HDR.Num() != FrameSize * FrameSize)
+    {
+        bPropsReady = false;
+        return;
+    }
+    TArray<FColor> Pixels;
+    Pixels.SetNumUninitialized(HDR.Num());
+    int32 Low = 255, High = 0;
+    auto Map = [this](float V)
+    {
+        const float X = FMath::Max(0.0f, V * FMath::Clamp(DisplayGain, .1f, 4.0f));
+        return bUseFilmicToneMap ? FMath::Clamp((X * (2.51f * X + .03f)) /
+            (X * (2.43f * X + .59f) + .14f), 0.0f, 1.0f) : FMath::Clamp(X, 0.0f, 1.0f);
+    };
+    for (int32 I = 0; I < HDR.Num(); ++I)
+    {
+        const float Coverage = FMath::Clamp(bInvertCaptureAlpha ? 1.0f - HDR[I].A : HDR[I].A, 0.0f, 1.0f);
+        const uint8 Alpha = uint8(FMath::RoundToInt(Coverage * 255.0f));
+        Low = FMath::Min(Low, int32(Alpha)); High = FMath::Max(High, int32(Alpha));
+        Pixels[I] = Alpha ? FLinearColor(Map(HDR[I].R), Map(HDR[I].G), Map(HDR[I].B)).ToFColorSRGB() : FColor(0, 0, 0, 0);
+        Pixels[I].A = Alpha;
+    }
+    if (Low != 0 || High == 0) { bPropsReady = false; return; }
+    if (bFlipVertically)
+        for (int32 Y = 0; Y < FrameSize / 2; ++Y)
+            for (int32 X = 0; X < FrameSize; ++X)
+                Swap(Pixels[Y * FrameSize + X], Pixels[(FrameSize - Y - 1) * FrameSize + X]);
+    const FImageView Image(Pixels.GetData(), FrameSize, FrameSize, EGammaSpace::sRGB);
+    TArray64<uint8> PNG;
+    if (!ImageWrapper->CompressImage(PNG, EImageFormat::PNG, Image, 0) || PNG.IsEmpty() || !AtomicWrite(TEXT("props.png"), PNG))
+    {
+        bPropsReady = false;
+        return;
+    }
+    PropsPNGBytes = PNG.Num();
+    PropsPNGCRC32 = FCrc::MemCrc32(PNG.GetData(), int32(PNG.Num()));
+    ++PropsSequence;
+    bLastFoodVisible = bFood;
+    bPropsReady = true;
+}
+
 bool AMirmirFrameExporter::PublishRuntime(const TCHAR* Status, bool bReady, int64 PNGBytes,
     uint32 PNGCRC32, int32 AlphaMin, int32 AlphaMax, int32 ForegroundPixels, const FString& Error)
 {
@@ -261,7 +507,10 @@ bool AMirmirFrameExporter::PublishRuntime(const TCHAR* Status, bool bReady, int6
     JSON->SetNumberField(TEXT("frame_seq"), double(FrameSequence));
     JSON->SetNumberField(TEXT("width"), FrameSize);
     JSON->SetNumberField(TEXT("height"), FrameSize);
-    JSON->SetNumberField(TEXT("fps_limit"), FMath::Clamp(FramesPerSecond, 1.0f, 15.0f));
+    JSON->SetNumberField(TEXT("fps_limit"), CurrentCaptureFPS);
+    JSON->SetNumberField(TEXT("nominal_fps_limit"), FramesPerSecond);
+    JSON->SetNumberField(TEXT("idle_fps_limit"), IdleFramesPerSecond);
+    JSON->SetStringField(TEXT("render_profile"), RenderProfile);
     JSON->SetNumberField(TEXT("engine_fps_limit"), GEngine ? GEngine->GetMaxFPS() : 0.0f);
     JSON->SetBoolField(TEXT("running"), bInitialized);
     JSON->SetBoolField(TEXT("ready"), bReady);
@@ -271,6 +520,9 @@ bool AMirmirFrameExporter::PublishRuntime(const TCHAR* Status, bool bReady, int6
     JSON->SetNumberField(TEXT("png_crc32"), double(PNGCRC32));
     JSON->SetStringField(TEXT("alpha_mode"), TEXT("straight"));
     JSON->SetStringField(TEXT("color_space"), TEXT("sRGB"));
+    JSON->SetStringField(TEXT("tone_map"), bUseFilmicToneMap ? TEXT("filmic_fitted") : TEXT("clamp"));
+    JSON->SetNumberField(TEXT("hdr_peak_linear"), LastHDRPeak);
+    JSON->SetNumberField(TEXT("hdr_highlight_pixels"), LastHDRHighlightPixels);
     JSON->SetBoolField(TEXT("capture_alpha_inverted"), bInvertCaptureAlpha);
     JSON->SetBoolField(TEXT("rgb_unpremultiplied"), bUnpremultiplyCapturedRGB);
     JSON->SetBoolField(TEXT("flipped_vertically"), bFlipVertically);
@@ -282,6 +534,63 @@ bool AMirmirFrameExporter::PublishRuntime(const TCHAR* Status, bool bReady, int6
     if (!Error.IsEmpty()) JSON->SetStringField(TEXT("error"), Error);
     if (const AMirmirCat* Cat = Subject.Get())
     {
+        const TSharedRef<FJsonObject> Interaction = MakeShared<FJsonObject>();
+        Interaction->SetNumberField(TEXT("serial"), double(Cat->InteractionSerial));
+        Interaction->SetStringField(TEXT("action"), Cat->LastInteractionAction.ToString().ToLower());
+        Interaction->SetBoolField(TEXT("accepted"), Cat->bLastInteractionAccepted);
+        Interaction->SetStringField(TEXT("message"), Cat->InteractionMessage);
+        JSON->SetObjectField(TEXT("interaction"), Interaction);
+        if (const AMirmirHabitat* Habitat = Cat->Habitat.Get())
+        {
+            const TSharedRef<FJsonObject> Props = MakeShared<FJsonObject>();
+            Props->SetBoolField(TEXT("ready"), bPropsReady && bReady);
+            Props->SetStringField(TEXT("frame_file"), TEXT("props.png"));
+            Props->SetNumberField(TEXT("png_bytes"), double(PropsPNGBytes));
+            Props->SetNumberField(TEXT("png_crc32"), double(PropsPNGCRC32));
+            Props->SetNumberField(TEXT("frame_seq"), double(PropsSequence));
+            Props->SetNumberField(TEXT("width"), FrameSize);
+            Props->SetNumberField(TEXT("height"), FrameSize);
+            const FRotationMatrix Projection(CameraRotation);
+            const double PixelsPerCM = FMath::Clamp(DesktopPixelsPerCentimeter, .01f, 20.0f);
+            Props->SetArrayField(TEXT("desktop_offset_px"), {
+                MakeShared<FJsonValueNumber>(FVector::DotProduct(PropsCameraShift, Projection.GetUnitAxis(EAxis::Y)) * PixelsPerCM),
+                MakeShared<FJsonValueNumber>(-FVector::DotProduct(PropsCameraShift, Projection.GetUnitAxis(EAxis::Z)) * PixelsPerCM) });
+            auto ScreenPoint = [&](FVector World)
+            {
+                const FVector Offset = World - InitialCatLocation - CameraOffset - PropsCameraShift;
+                const double X = FrameSize * .5 + FVector::DotProduct(Offset, Projection.GetUnitAxis(EAxis::Y)) * PixelsPerCM;
+                double Y = FrameSize * .5 - FVector::DotProduct(Offset, Projection.GetUnitAxis(EAxis::Z)) * PixelsPerCM;
+                if (bFlipVertically) Y = FrameSize - Y;
+                return TArray<TSharedPtr<FJsonValue>>{ MakeShared<FJsonValueNumber>(X), MakeShared<FJsonValueNumber>(Y) };
+            };
+            Props->SetArrayField(TEXT("bed_center_px"), ScreenPoint(Habitat->GetBedLocation()));
+            Props->SetArrayField(TEXT("bowl_center_px"), ScreenPoint(Habitat->GetBowlLocation()));
+            Props->SetBoolField(TEXT("food_visible"), Habitat->IsFoodVisible());
+            Props->SetBoolField(TEXT("traveling"), Cat->bHabitatTraveling);
+            Props->SetBoolField(TEXT("arrived"), Cat->bHabitatArrived);
+            Props->SetNumberField(TEXT("rest_pose_alpha"), Cat->RestPoseAlpha);
+            Props->SetNumberField(TEXT("eating_pose_strength"), Cat->EatingPoseStrength);
+            Props->SetArrayField(TEXT("bed_world_cm"), VectorJSON(Habitat->GetBedLocation()));
+            Props->SetArrayField(TEXT("bowl_world_cm"), VectorJSON(Habitat->GetBowlLocation()));
+            JSON->SetObjectField(TEXT("props"), Props);
+        }
+        JSON->SetStringField(TEXT("appearance"), Cat->AppearanceId.ToString());
+        JSON->SetBoolField(TEXT("appearance_ready"), Cat->bAppearanceReady);
+        JSON->SetBoolField(TEXT("fur_shells_ready"), Cat->bFurShellsReady);
+        JSON->SetStringField(TEXT("appearance_head_bone"), Cat->AppearanceHeadBoneName.ToString());
+        JSON->SetNumberField(TEXT("appearance_head_scale"), Cat->AppearanceHeadScale);
+        if (const AMirmirToy* Toy = Cat->Toy.Get())
+        {
+            TSharedRef<FJsonObject> ToyState = MakeShared<FJsonObject>();
+            ToyState->SetBoolField(TEXT("active"), Toy->IsPlaying());
+            ToyState->SetArrayField(TEXT("ball_world_cm"), VectorJSON(Toy->GetBallLocation()));
+            ToyState->SetArrayField(TEXT("velocity_cm_s"), VectorJSON(Toy->GetBallVelocity()));
+            ToyState->SetNumberField(TEXT("speed_cm_s"), Toy->GetBallSpeedCmPerSecond());
+            ToyState->SetNumberField(TEXT("playing_seconds"), Toy->PlayingSeconds);
+            ToyState->SetStringField(TEXT("stop_reason"), Toy->LastStopReason.ToString());
+            ToyState->SetBoolField(TEXT("cat_waiting"), Cat->bWaitingAtToy);
+            JSON->SetObjectField(TEXT("toy"), ToyState);
+        }
         const FVector Location = Cat->GetActorLocation();
         const FVector Delta = Location - InitialCatLocation;
         const FRotationMatrix Basis(CameraRotation);
@@ -301,6 +610,11 @@ bool AMirmirFrameExporter::PublishRuntime(const TCHAR* Status, bool bReady, int6
         TSharedRef<FJsonObject> Motion = MakeShared<FJsonObject>();
         Motion->SetNumberField(TEXT("sample_monotonic_s"), FPlatformTime::Seconds());
         Motion->SetNumberField(TEXT("movement_speed_cm_s"), Cat->MovementSpeed);
+        Motion->SetNumberField(TEXT("yaw_rate_rad_s"), Cat->LocomotionYawRate);
+        Motion->SetNumberField(TEXT("curvature_per_cm"), Cat->LocomotionCurvature);
+        Motion->SetNumberField(TEXT("minimum_turn_radius_cm"), Cat->MinimumTurnRadius);
+        Motion->SetNumberField(TEXT("curiosity_head_yaw_deg"), Cat->CuriosityHeadYaw);
+        Motion->SetNumberField(TEXT("curiosity_head_pitch_deg"), Cat->CuriosityHeadPitch);
         Motion->SetNumberField(TEXT("actor_yaw_deg"), Cat->GetActorRotation().Yaw);
         Motion->SetArrayField(TEXT("actor_forward_world"), VectorJSON(Cat->GetActorForwardVector()));
         if (const USkeletalMeshComponent* Mesh = Cat->CatMesh.Get())
@@ -344,12 +658,37 @@ bool AMirmirFrameExporter::PublishRuntime(const TCHAR* Status, bool bReady, int6
             FVector Head, Pelvis;
             if (BonePosition(TEXT("cat_bip_Head"), Head) && BonePosition(TEXT("cat_bip_Pelvis"), Pelvis))
                 Motion->SetArrayField(TEXT("head_forward_world"), VectorJSON((Head - Pelvis).GetSafeNormal2D()));
-            if (const UAnimSingleNodeInstance* Instance = Mesh->GetSingleNodeInstance())
+            if (const UMirmirAnimInstance* Instance = Cast<UMirmirAnimInstance>(Mesh->GetAnimInstance()))
             {
-                Motion->SetStringField(TEXT("animation_asset"), GetNameSafe(Instance->GetAnimationAsset()));
-                Motion->SetNumberField(TEXT("animation_time_s"), Instance->GetCurrentTime());
-                Motion->SetNumberField(TEXT("animation_rate"), Instance->GetPlayRate());
-                Motion->SetBoolField(TEXT("animation_playing"), Instance->IsPlaying());
+                Motion->SetStringField(TEXT("animation_graph"), TEXT("native_blend_stack"));
+                Motion->SetStringField(TEXT("animation_asset"), GetNameSafe(Instance->ActiveClip.Get()));
+                Motion->SetNumberField(TEXT("animation_time_s"), Instance->ActiveClipTime);
+                Motion->SetNumberField(TEXT("animation_rate"), Instance->ActivePlayRate);
+                Motion->SetBoolField(TEXT("animation_playing"), Instance->ActivePlayRate > 0.0f);
+                Motion->SetStringField(TEXT("animation_state"), Instance->PlaybackState.ToString());
+                Motion->SetNumberField(TEXT("animation_blend_count"), Instance->ActiveBlendCount);
+                Motion->SetNumberField(TEXT("stance_valid_legs"), Instance->StanceValidLegs);
+                auto FloatArray = [](const TArray<float>& Values)
+                {
+                    TArray<TSharedPtr<FJsonValue>> Result;
+                    for (float Value : Values) Result.Add(MakeShared<FJsonValueNumber>(Value));
+                    return Result;
+                };
+                Motion->SetArrayField(TEXT("stance_weights"), FloatArray(Instance->StanceWeights));
+                Motion->SetArrayField(TEXT("stance_correction_cm"), FloatArray(Instance->StanceCorrectionCm));
+                Motion->SetArrayField(TEXT("stance_residual_cm"), FloatArray(Instance->StanceResidualCm));
+                Motion->SetStringField(TEXT("stance_note"), TEXT("Bounded source-walk stance proxy IK; not paw collision sensing or full physical animal simulation."));
+                Motion->SetBoolField(TEXT("animation_transition_blocks_movement"), Instance->bTransitionBlocksMovement);
+                Motion->SetStringField(TEXT("rest_pose_note"), Instance->PlaybackState == TEXT("HeldWalk")
+                    ? TEXT("Frozen sample of the existing authored walk; no authored idle/sleep clip assigned.") : TEXT("Assigned compatible authored clip."));
+            }
+            else if (const UAnimSingleNodeInstance* SingleInstance = Mesh->GetSingleNodeInstance())
+            {
+                Motion->SetStringField(TEXT("animation_graph"), TEXT("legacy_single_node"));
+                Motion->SetStringField(TEXT("animation_asset"), GetNameSafe(SingleInstance->GetAnimationAsset()));
+                Motion->SetNumberField(TEXT("animation_time_s"), SingleInstance->GetCurrentTime());
+                Motion->SetNumberField(TEXT("animation_rate"), SingleInstance->GetPlayRate());
+                Motion->SetBoolField(TEXT("animation_playing"), SingleInstance->IsPlaying());
             }
         }
         JSON->SetObjectField(TEXT("motion"), Motion);
@@ -377,6 +716,10 @@ bool AMirmirFrameExporter::AtomicWrite(const FString& Basename, const TArray64<u
     // Generic Move implementations may delete the old file first; avoid that.
     const FTCHARToUTF8 From(*Temporary), To(*Final);
     if (::rename(From.Get(), To.Get()) == 0) return true;
+#elif PLATFORM_WINDOWS
+    // The reader opens with delete sharing. Replace on the same volume; never
+    // delete the visible frame first or let a failed replace publish a hole.
+    if (::MoveFileExW(*Temporary, *Final, MOVEFILE_REPLACE_EXISTING)) return true;
 #endif
     IFileManager::Get().Delete(*Temporary, false, true, true);
     return false;
@@ -390,6 +733,17 @@ bool AMirmirFrameExporter::AcquireOutputLock()
     if (FileLockDescriptor >= 0 && ::flock(FileLockDescriptor, LOCK_EX | LOCK_NB) == 0)
         return true;
     ReleaseOutputLock();
+#elif PLATFORM_WINDOWS
+    const FString Path = FPaths::Combine(OutputDirectory, TEXT("desktop-export.lock"));
+    // A non-inheritable zero-share handle gives this output directory exactly
+    // one producer, with automatic release on process exit/crash.
+    HANDLE Handle = ::CreateFileW(*Path, GENERIC_READ | GENERIC_WRITE, 0,
+        nullptr, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+    if (Handle != INVALID_HANDLE_VALUE)
+    {
+        WindowsLockHandle = Handle;
+        return true;
+    }
 #endif
     return false;
 }
@@ -402,6 +756,12 @@ void AMirmirFrameExporter::ReleaseOutputLock()
         ::flock(FileLockDescriptor, LOCK_UN);
         ::close(FileLockDescriptor);
         FileLockDescriptor = -1;
+    }
+#elif PLATFORM_WINDOWS
+    if (WindowsLockHandle)
+    {
+        ::CloseHandle(WindowsLockHandle);
+        WindowsLockHandle = nullptr;
     }
 #endif
     // Keep the one fixed lock inode. Removing it could let two processes lock
@@ -436,6 +796,9 @@ void AMirmirFrameExporter::ShutdownExporter()
         bOwnsOutput = false;
     }
     CaptureComponent->TextureTarget = nullptr;
+    PropsCapture->TextureTarget = nullptr;
+    if (PropsRenderTarget) PropsRenderTarget->ReleaseResource();
+    PropsRenderTarget = nullptr;
     if (RenderTarget) RenderTarget->ReleaseResource();
     RenderTarget = nullptr;
     Subject.Reset();

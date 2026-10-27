@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Name=Mırmır
+Comment=Unreal Engine ile masaüstünde yaşayan 3B kedi
+Exec=mirmir
+Icon=io.github.zeynelgun_afk.Mirmir
+Categories=Game;Simulation;
+Terminal=false
+StartupNotify=false
+Actions=Stop;
+
+[Desktop Action Stop]
+Name=Kapat
+Exec=mirmir --stop

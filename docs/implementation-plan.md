@@ -14,3 +14,25 @@
 - [ ] Kullanıcının doğal yürüyüş ve görsel kalite kabulünü al; bu teknik ölçümlerle varsayılmaz.
 - [ ] Ayrı bekleme/oturma/uyuma/bakım/oyun kliplerini ve yumuşak geçişleri ekle; gerçekçi kürk/LOD ve göz/nefes/kulak hareketlerini geliştir.
 - [ ] Uzun süreli enerji, sıcaklık, GPU/CPU/bellek; çoklu ekran ve tam ekran uygulama davranışını ölç.
+
+## Aktif hareket cilası dilimi
+
+- [x] Hareket sırasında30FPS, sakin duruşta8FPS ve kontrollü geçiş payını gerçek render ile ölç.
+- [x] Native animasyon grafiğinde yürüyüş/bekleme poz geçişlerini harmanla; klibi baştan sıfırlayan sert geçişleri kaldır.
+- [x] Gerçek hızlanma/yavaşlamayı adım hızına bağla ve duruşta kaymayı incele.
+- [x] CC BY4.0 Tuxedo hareket donörünü mevcut anatomik iskelete uyarlanan ayrı aday olarak hazırla; rig/provenance ve UE görüntüsünü doğrula.
+- [x] Görsel kabulü geçen idle/tail kliplerini ata; sorunlu sit/stand adaylarını ve eksik uyku klibini atamadan açık tut.
+- [x] Yeni Shipping paketini izole XDG durumunda test et; kaydı koruyarak masaüstündeki sürümü yenile.
+
+## 0.4 habitat ve dağıtım
+
+- [x] Yatak/mama kabını sabit gerçek Unreal RGBA akışıyla ekle.
+- [x] Yatağa/kaba yaklaşma ve bounded prosedürel dinlenme/yeme pozu.
+- [x] Feed/Play debounce, Pet kesintisi ve native boundary Rest kusurunu gider.
+- [x] El imleci, sevme tepkisi, arada imleç ilgisi ve motor onaylı geri bildirim.
+- [x] Kaydı koruyarak0.4 Shipping açılışı; kedi/eşya CRC doğrulaması.
+- [x] Linux beş paket biçimi ve doğrudan Flatpak; gerçek runtime/IPC testleri.
+- [x] Windows sihirbazı kaynağı ve trusted manual build workflow.
+- [ ] Windows EXE üretimi ve Windows masaüstü çalıştırma testi.
+- [ ] Kilidi açık oturumda0.4 son görsel/doğrudan kullanıcı kontrolü.
+- [ ] Gerçek yan yatma/kapalı göz klibi, Groom ve ek sanatçı davranışları.

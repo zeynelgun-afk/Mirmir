@@ -1,0 +1,24 @@
+name: Windows installer (licensed build host)
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  windows:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch'
+    runs-on: [self-hosted, Windows, X64, unreal-5.8]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Real Win64 cook, frozen shell and Inno Setup
+        shell: pwsh
+        run: ./packaging/windows/build-all.ps1 -UnrealRoot $env:MIRMIR_UE_ROOT -Version (Get-Content packaging/VERSION -Raw).Trim()
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-installers
+          path: .local/dist/windows-*/installers/*
+          if-no-files-found: error

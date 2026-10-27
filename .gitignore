@@ -10,3 +10,11 @@ unreal/**/Intermediate/
 unreal/**/Saved/
 artifacts/
 .local/
+.venv/
+dist/
+build/
+*.egg-info/
+.env
+.env.*
+# The editor regenerates its full default input table; input is bound in C++.
+unreal/Mirmir/Config/DefaultInput.ini

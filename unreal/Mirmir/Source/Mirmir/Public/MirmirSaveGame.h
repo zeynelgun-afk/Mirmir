@@ -15,7 +15,9 @@ public:
     Mirmir::State CatState;
     int64 SavedAtUnixSeconds = 0;
     bool bMuted = false;
+    FName AppearanceId = TEXT("van");
 
+    static FName NormalizeAppearance(FName Value);
     static FString SavePath();
     static bool Load(UMirmirSaveGame& Out, FString& Error);
     static bool Store(const UMirmirSaveGame& Value, FString& Error);

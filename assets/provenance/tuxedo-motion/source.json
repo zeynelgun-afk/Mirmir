@@ -1,0 +1,44 @@
+{
+  "uid": "783fcb78b55b4394a212c2b6392e1113",
+  "name": "Tuxedo Cat Animated 2.0",
+  "description": "An animated low poly Tuxedo cat.\n\nVersion 2:\nI made some changes to the face shape, edited shape of the colors for more realism, and redid the eyes. The eyes can now be rotated so that the cat can look in different directions. The animations for the eyes is best seen in Blender.",
+  "license": {
+    "uri": "https://api.sketchfab.com/v3/licenses/322a749bcfa841b29dff1e8a1bb74b0b",
+    "label": "CC Attribution",
+    "fullName": "Creative Commons Attribution",
+    "requirements": "Author must be credited. Commercial use is allowed.",
+    "url": "http://creativecommons.org/licenses/by/4.0/",
+    "slug": "by"
+  },
+  "isDownloadable": true,
+  "animationCount": 6,
+  "faceCount": 6376,
+  "viewerUrl": "https://sketchfab.com/3d-models/tuxedo-cat-animated-20-783fcb78b55b4394a212c2b6392e1113",
+  "author": {
+    "displayName": "DreamNoms",
+    "username": "DreamNoms",
+    "profileUrl": "https://sketchfab.com/DreamNoms"
+  },
+  "metadata_url": "https://api.sketchfab.com/v3/models/783fcb78b55b4394a212c2b6392e1113",
+  "pinned_download_base": "https://raw.githubusercontent.com/lhns/steam-frame-nix/881c1de6a9e813b7c269be80a9bf91baf588f5f2/modules/pet/sources/tuxedo-cat/",
+  "files": [
+    {
+      "file": "scene.gltf",
+      "sha256": "04bc11ad664beb9c84284fb8a4e630de5aee9fc654af0e47a9e337a25f7a1e82",
+      "bytes": 308319,
+      "download_url": "https://raw.githubusercontent.com/lhns/steam-frame-nix/881c1de6a9e813b7c269be80a9bf91baf588f5f2/modules/pet/sources/tuxedo-cat/scene.gltf"
+    },
+    {
+      "file": "scene.bin",
+      "sha256": "8a2459455d86c629410d4bf3ead500cd3df3e7e56aaff024cd0eb015915f4eac",
+      "bytes": 411988,
+      "download_url": "https://raw.githubusercontent.com/lhns/steam-frame-nix/881c1de6a9e813b7c269be80a9bf91baf588f5f2/modules/pet/sources/tuxedo-cat/scene.bin"
+    },
+    {
+      "file": "LICENSE.md",
+      "sha256": "bf3f0e3262b10cd3f9493115d095fc578d21e32c6de19e43d11bdeed782be5e8",
+      "bytes": 855,
+      "download_url": "https://raw.githubusercontent.com/lhns/steam-frame-nix/881c1de6a9e813b7c269be80a9bf91baf588f5f2/modules/pet/sources/tuxedo-cat/LICENSE.md"
+    }
+  ]
+}

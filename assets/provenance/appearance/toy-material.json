@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "owner": "mirmir-toy-material-v1",
+  "actual_editor_python_executed": true,
+  "material": "/Game/Mirmir/Toys/M_ToyBall.M_ToyBall",
+  "shader_compile_errors": [],
+  "external_textures": [],
+  "geometry": "/Engine/BasicShapes/Sphere.Sphere (provided with the installed Unreal Engine)",
+  "material_changes": "PBR rubber roughness and antialiased UV bands, authored in this helper",
+  "runtime_physics_verified": false,
+  "map_or_blueprint_modified": false,
+  "script_sha256": "f12e961d6868d6284d8e6c9a04bc681d55e5988107392d6227bad0934c64e879",
+  "material_asset_snapshot": {
+    "file": "unreal/Mirmir/Content/Mirmir/Toys/M_ToyBall.uasset",
+    "sha256": "7e2097ca88d7335f4c510eb671c4ed09a5412e985f199ca35438159008b0551b",
+    "bytes": 8436
+  },
+  "current_source_script": {
+    "file": "unreal/Mirmir/scripts/create-toy-material.py",
+    "sha256": "f12e961d6868d6284d8e6c9a04bc681d55e5988107392d6227bad0934c64e879",
+    "bytes": 3853
+  }
+}

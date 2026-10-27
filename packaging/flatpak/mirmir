@@ -1,0 +1,28 @@
+#!/bin/sh
+# AI-assisted upstream direct bundle launcher; not a Flathub submission.
+set -eu
+if [ "${FLATPAK_ID:-}" != "io.github.zeynelgun_afk.Mirmir" ]; then
+    echo "This launcher runs only inside its Flatpak sandbox." >&2
+    exit 1
+fi
+# Flatpak grants its own runtime subtree, not the host application's runtime.
+case "${XDG_RUNTIME_DIR:?}" in
+    */app/"$FLATPAK_ID") ;;
+    *) export XDG_RUNTIME_DIR="$XDG_RUNTIME_DIR/app/$FLATPAK_ID" ;;
+esac
+mkdir -p "$XDG_RUNTIME_DIR"
+chmod 700 "$XDG_RUNTIME_DIR"
+export XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.var/app/$FLATPAK_ID/state}"
+# Flatpak itself resets XDG base variables at startup. A bounded verification
+# token is applied here, inside the sandbox, to isolate automated app tests.
+if [ -n "${MIRMIR_VERIFY_NAMESPACE:-}" ]; then
+    case "$MIRMIR_VERIFY_NAMESPACE" in
+        *[!0-9a-f]*) echo "Invalid verification namespace." >&2; exit 2 ;;
+    esac
+    if [ "${#MIRMIR_VERIFY_NAMESPACE}" -ne 32 ]; then
+        echo "Invalid verification namespace length." >&2; exit 2
+    fi
+    export XDG_DATA_HOME="$XDG_DATA_HOME/verification/$MIRMIR_VERIFY_NAMESPACE"
+    export XDG_STATE_HOME="$XDG_STATE_HOME/verification/$MIRMIR_VERIFY_NAMESPACE"
+fi
+exec /app/lib/mirmir/mirmir "$@"

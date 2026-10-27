@@ -61,7 +61,7 @@ public:
         if (Data.RandomState == 0) Data.RandomState = 0x4d49524du;
     }
 
-    void Advance(double DeltaSeconds)
+    void Advance(double DeltaSeconds, bool AllowRestRecovery = true)
     {
         if (!std::isfinite(DeltaSeconds) || DeltaSeconds <= 0.0) return;
         // A suspended process must not fast-forward hours of online decay.
@@ -69,7 +69,7 @@ public:
         Data.OnlineSeconds += Dt;
         Data.ActivitySeconds += Dt;
         Data.Satiety = Unit(Data.Satiety - static_cast<float>(Dt / 14400.0));
-        const bool Sleeping = Data.CurrentActivity == Activity::Sleep;
+        const bool Sleeping = AllowRestRecovery && Data.CurrentActivity == Activity::Sleep;
         const bool Playing = Data.CurrentActivity == Activity::Play;
         Data.Energy = Unit(Data.Energy + static_cast<float>(
             Dt * (Sleeping ? 1.0 / 150.0 : (Playing ? -1.0 / 300.0 : -1.0 / 3600.0))));
@@ -80,12 +80,16 @@ public:
 
     bool Interact(Interaction Action)
     {
-        if (Data.OnlineSeconds - Data.LastInteractionSeconds < 0.75) return false;
+        // Direct menu commands must not disappear because the user just
+        // stroked the cat. Only repeated petting is rate limited.
+        if (Action == Interaction::Pet && Data.OnlineSeconds - Data.LastInteractionSeconds < 0.75) return false;
         switch (Action)
         {
         case Interaction::Pet:
             Data.Bond = Unit(Data.Bond + 0.025f);
-            Begin(Activity::Petted, 4.0);
+            // A gentle stroke does not cancel an explicit meal or ball game.
+            if (Data.CurrentActivity != Activity::Eat && Data.CurrentActivity != Activity::Play)
+                Begin(Activity::Petted, 4.0);
             break;
         case Interaction::Feed:
             Data.Satiety = Unit(Data.Satiety + 0.35f);
@@ -120,6 +124,17 @@ public:
     }
 
     void Rest() { Begin(Activity::Sleep, 30.0); }
+
+    void KeepActivityFor(double RemainingSeconds)
+    {
+        if (std::isfinite(RemainingSeconds) && RemainingSeconds > 0.0)
+            Data.ActivityDuration = std::min(60.0, Data.ActivitySeconds + std::clamp(RemainingSeconds, 1.0, 45.0));
+    }
+
+    void RestartActivity(double DurationSeconds)
+    {
+        Begin(Data.CurrentActivity, std::clamp(DurationSeconds, 1.0, 45.0));
+    }
 
 private:
     State Data;
@@ -161,7 +176,8 @@ private:
             return;
         }
         const float Choice = Random();
-        if (Choice < 0.16f) Begin(Activity::Groom, 12.0);
+        if (Choice < 0.06f) Begin(Activity::Sleep, 28.0);
+        else if (Choice < 0.16f) Begin(Activity::Groom, 12.0);
         else if (Choice < 0.32f) Begin(Activity::SeekAttention, 8.0);
         else if (Choice < 0.32f + 0.5f * Data.Curiosity) Begin(Activity::Wander, 10.0);
         else Begin(Activity::Idle, 5.0 + 7.0 * Random());

@@ -29,6 +29,15 @@ if [[ ! -x "$uat" ]]; then
 fi
 
 map='/Game/Mirmir/Preview/MirmirPreview'
+project_version=$(python - "$project_dir/Config/DefaultGame.ini" <<'PY'
+from pathlib import Path
+import re, sys
+match = re.search(r'^ProjectVersion=([0-9]+\.[0-9]+\.[0-9]+)$', Path(sys.argv[1]).read_text(), re.M)
+if not match:
+    raise SystemExit('A numeric ProjectVersion is required before packaging.')
+print(match[1])
+PY
+)
 stamp=$(date -u +%Y%m%dT%H%M%SZ)
 # Each invocation archives to a new directory so previous packages survive.
 archive_dir="$project_root/.local/dist/package-$stamp-$$"
@@ -71,16 +80,22 @@ log_file="$log_dir/package-$stamp-$$.log"
 # pipefail propagates AutomationTool failure; no package metadata is updated then.
 "${command[@]}" 2>&1 | tee "$log_file"
 
-python - "$project_root" "$archive_dir" "$map" "$log_file" <<'PY'
+python - "$project_root" "$archive_dir" "$map" "$log_file" "$project_version" <<'PY'
 import json
 import os
 from pathlib import Path
 import shutil
+import re
 import sys
 import tempfile
 from datetime import datetime, timezone
 
 project, archive, preview_map, log = Path(sys.argv[1]), Path(sys.argv[2]), sys.argv[3], sys.argv[4]
+version = sys.argv[5]
+current = re.search(r'^ProjectVersion=([0-9]+\.[0-9]+\.[0-9]+)$',
+    (project / 'unreal/Mirmir/Config/DefaultGame.ini').read_text(), re.M)
+if not current or current[1] != version:
+    raise SystemExit('ProjectVersion changed during packaging; metadata was not published.')
 launchers = list(archive.rglob("Mirmir.sh"))
 if len(launchers) != 1 or not os.access(launchers[0], os.X_OK):
     raise SystemExit("UAT returned success but exactly one executable Mirmir.sh was not found; metadata was not updated.")
@@ -98,6 +113,7 @@ record = {
     "schema_version": 1,
     "configuration": "Shipping",
     "platform": "Linux",
+    "project_version": version,
     "packaged_at_utc": datetime.now(timezone.utc).isoformat(),
     "archive_directory": str(archive),
     "launcher": str(launcher),

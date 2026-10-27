@@ -18,6 +18,10 @@
     {
       "Name": "AndroidFileServer",
       "Enabled": false
+    },
+    {
+      "Name": "BlendStack",
+      "Enabled": true
     }
   ]
 }

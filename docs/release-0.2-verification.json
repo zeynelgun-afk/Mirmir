@@ -1,0 +1,88 @@
+{
+  "schema_version": 1,
+  "release": "0.2.0",
+  "engine": "Unreal Engine 5.8.4",
+  "platform_verified": "Linux x86_64, KDE Wayland through XWayland",
+  "verification": "actual packaged Shipping runtime and isolated engine render",
+  "appearance_profiles": [
+    "van",
+    "british",
+    "tuxedo"
+  ],
+  "native_animation_graph": "native_blend_stack",
+  "authored_idle_and_tail": true,
+  "sit_sleep_assigned": false,
+  "fur": "six masked skinned shells; not Groom",
+  "capture_fps_targets": {
+    "active": 30,
+    "idle": 8
+  },
+  "actual_idle_sample_fps": 7.999,
+  "frames_storage": "private runtime tmpfs when available",
+  "user_data_preserved_during_cutover": true,
+  "physics_probe": {
+    "producer_pid": 637167,
+    "appearance": "van",
+    "substepping_profile": "MaxSubstepDeltaTime .008333, MaxSubsteps16, bSubstepping true (project configuration)",
+    "active_samples": 195,
+    "ball_z_min_cm": 1.3381202865187465,
+    "ball_z_max_cm": 6.820048700391887,
+    "negative_to_positive_vz": [
+      {
+        "t": 0.6880466880029417,
+        "z": 3.12240727309456,
+        "vz_before": -99.56624603271484,
+        "vz_after": 13.378838539123535
+      }
+    ],
+    "old_van_ball_z_min_cm": 1.004520172446268,
+    "cat_displacement_cm": 15.571391641547496,
+    "cat_speed_max_cm_s": 36.48568344116211,
+    "waiting_samples": 90,
+    "waiting_speed_max": 0,
+    "cat_ball_distance_min_cm": 31.99999999995313,
+    "cat_ball_distance_max_cm": 38.676616883010205,
+    "ball_moving_fps_limits": [
+      30
+    ],
+    "final_toy": {
+      "active": false,
+      "ball_world_cm": [
+        33.524109633623986,
+        -12.182353158439227,
+        2.500000295214095
+      ],
+      "velocity_cm_s": [
+        0,
+        0,
+        0
+      ],
+      "speed_cm_s": 0,
+      "playing_seconds": 14.966723442077637,
+      "stop_reason": "session_ended",
+      "cat_waiting": false
+    },
+    "final_render_ready": true,
+    "crc_matched_png_count": 15,
+    "best_front_angle_error_deg": 44.45779312880728,
+    "scope": "Isolated final UE renderer only; no source, user live app or package changes.",
+    "rigidbody_warning_scan": {
+      "log": ".local/appearance-render-final/engine.log",
+      "matching_lines": 0
+    },
+    "best_front_capture": "van-active-5044.png",
+    "normal_quit_completed": true,
+    "restored_appearance": "van"
+  },
+  "unchanged_render_image": {
+    "path": "docs/images/unreal-van-toy.png",
+    "sha256": "c1868c69939e899368d63a9f46b3358c90400d9a3d438c57596c0c0dee11d567"
+  },
+  "limits": [
+    "Walking turn quality reported unnatural by user; a new motion pass is in progress.",
+    "Transient sphere/ground penetration remains in fast collisions.",
+    "Appearance profiles use the same base model, not breed-specific scanned geometry.",
+    "No complete force-driven cat locomotion simulation; no authored sitting/sleeping animation.",
+    "Windows runtime and fresh installation on other distributions unverified."
+  ]
+}

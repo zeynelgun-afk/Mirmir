@@ -1,0 +1,6 @@
+*.uasset binary
+*.umap binary
+*.glb binary
+*.png binary
+*.ogg binary
+*.bin binary

@@ -1,0 +1,36 @@
+name: Linux installers (licensed build host)
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  linux:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch'
+    runs-on: [self-hosted, Linux, X64, unreal-5.8]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build actual UE editor module
+        run: unreal/Mirmir/scripts/build.sh -MaxParallelActions=2
+      - name: Build and cook actual Linux Shipping runtime
+        run: unreal/Mirmir/scripts/package-game.sh
+      - name: Prepare pinned private Python and Qt runtime
+        run: python packaging/prepare-runtime.py
+      - name: Produce Linux installers
+        run: python packaging/build-linux.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-installers
+          path: |
+            .local/dist/installers/*/artifacts/*.deb
+            .local/dist/installers/*/artifacts/*.rpm
+            .local/dist/installers/*/artifacts/*.pkg.tar.zst
+            .local/dist/installers/*/artifacts/*linux-x86_64.tar.zst
+            .local/dist/installers/*/artifacts/*.AppImage
+            .local/dist/installers/*/artifacts/*.json
+            .local/dist/installers/*/artifacts/SHA256SUMS
+          if-no-files-found: error
