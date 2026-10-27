@@ -1,0 +1,24 @@
+{
+  "uid": "915680200c064815bba75e008ba9efb5",
+  "name": "Cat Walk",
+  "description": "Cat Walk",
+  "license": {
+    "uri": "https://api.sketchfab.com/v3/licenses/bbfe3f7dbcdd4122b966b85b9786a989",
+    "label": "CC Attribution-NonCommercial",
+    "fullName": "Creative Commons Attribution-NonCommercial",
+    "requirements": "Author must be credited. No commercial use.",
+    "url": "http://creativecommons.org/licenses/by-nc/4.0/",
+    "slug": "by-nc"
+  },
+  "isDownloadable": true,
+  "faceCount": 4575,
+  "animationCount": 1,
+  "viewerUrl": "https://sketchfab.com/3d-models/cat-walk-915680200c064815bba75e008ba9efb5",
+  "author": {
+    "username": "LostModels2025",
+    "displayName": "LostBoyz2078",
+    "profileUrl": "https://sketchfab.com/LostModels2025"
+  },
+  "source_metadata_url": "https://api.sketchfab.com/v3/models/915680200c064815bba75e008ba9efb5",
+  "verified_at": "2026-10-27T16:30:52.505741+00:00"
+}

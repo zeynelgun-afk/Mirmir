@@ -1,0 +1,42 @@
+{
+  "verified_at": "2026-10-27T15:56:14.349036+00:00",
+  "source_page": "https://bigsoundbank.com/little-meow-of-a-cat-s0494.html",
+  "license_declaration": "CC0 (public domain): Free and royalty-free",
+  "license_evidence": "The official individual download page states CC0; the source license page identifies CC0 1.0 Universal and permits redistribution, modification, and commercial use.",
+  "audio_object": {
+    "name": "Little Meow of a Cat #1 — Free Download WAV & MP3 | BigSoundBank",
+    "description": "A single small cat meow.",
+    "duration": "PT1S",
+    "license": "https://bigsoundbank.com/licenses.html",
+    "author": {
+      "@type": "Person",
+      "name": "Joseph Sardin"
+    },
+    "encoding": [
+      {
+        "@type": "MediaObject",
+        "encodingFormat": "audio/wav",
+        "contentUrl": "https://bigsoundbank.com/UPLOAD/bwf-en/0494.wav",
+        "contentSize": "47256"
+      },
+      {
+        "@type": "MediaObject",
+        "encodingFormat": "audio/aiff",
+        "contentUrl": "https://bigsoundbank.com/UPLOAD/aiff/0494.aiff",
+        "contentSize": "46096"
+      },
+      {
+        "@type": "MediaObject",
+        "encodingFormat": "audio/mpeg",
+        "contentUrl": "https://bigsoundbank.com/UPLOAD/mp3/0494.mp3",
+        "contentSize": "22208"
+      },
+      {
+        "@type": "MediaObject",
+        "encodingFormat": "audio/ogg",
+        "contentUrl": "https://bigsoundbank.com/UPLOAD/ogg/0494.ogg",
+        "contentSize": "17819"
+      }
+    ]
+  }
+}

@@ -1,0 +1,100 @@
+{
+  "schema_version": 1,
+  "scope": "Optional asset for the user’s local personal, noncommercial Unreal prototype. Do not treat this as a commercial-use asset.",
+  "notes": [
+    "Frozen desktop-lab retains separate Fripouille prototype asset.",
+    "Bicolor Cat was rejected as a locomotion replacement: its authored sequence is idle/head movement only."
+  ],
+  "assets": [
+    {
+      "file": "assets/personal-use/cat-walk.glb",
+      "title": "Cat Walk",
+      "author": "LostBoyz2078",
+      "author_url": "https://sketchfab.com/LostModels2025",
+      "source_url": "https://sketchfab.com/3d-models/cat-walk-915680200c064815bba75e008ba9efb5",
+      "license": "CC-BY-NC-4.0",
+      "license_url": "https://creativecommons.org/licenses/by-nc/4.0/",
+      "source_metadata_url": "https://api.sketchfab.com/v3/models/915680200c064815bba75e008ba9efb5",
+      "mirror_repository": "https://github.com/Jaaf4r/myGames/tree/8e5537e20d104686a462917b7bdc53bb05cf0df6/Godot/hungryCat/assets/cat_walk",
+      "source_files": [
+        {
+          "file": "assets/provenance/cat-walk-personal/original/license.txt",
+          "download_url": "https://raw.githubusercontent.com/Jaaf4r/myGames/8e5537e20d104686a462917b7bdc53bb05cf0df6/Godot/hungryCat/assets/cat_walk/license.txt",
+          "sha256": "ddf02da8b9a7d7d3172631d78aa998fca46416b99f606f80e856f32059c20e4e",
+          "bytes": 676
+        },
+        {
+          "file": "assets/provenance/cat-walk-personal/original/scene.bin",
+          "download_url": "https://raw.githubusercontent.com/Jaaf4r/myGames/8e5537e20d104686a462917b7bdc53bb05cf0df6/Godot/hungryCat/assets/cat_walk/scene.bin",
+          "sha256": "4ac3c5e51c615b19263c2dfe9c55ba784d82620106d044fa5ee519afb419e7e4",
+          "bytes": 282644
+        },
+        {
+          "file": "assets/provenance/cat-walk-personal/original/scene.gltf",
+          "download_url": "https://raw.githubusercontent.com/Jaaf4r/myGames/8e5537e20d104686a462917b7bdc53bb05cf0df6/Godot/hungryCat/assets/cat_walk/scene.gltf",
+          "sha256": "5cf868003b816af9a01ad36aab946245b429049be5600c32d8792a6283f2b772",
+          "bytes": 84238
+        },
+        {
+          "file": "assets/provenance/cat-walk-personal/original/textures/pet_s_4cat_Blackeye_mat_baseColor.png",
+          "download_url": "https://raw.githubusercontent.com/Jaaf4r/myGames/8e5537e20d104686a462917b7bdc53bb05cf0df6/Godot/hungryCat/assets/cat_walk/textures/pet_s_4cat_Blackeye_mat_baseColor.png",
+          "sha256": "e0b540d37fe6ef577bc0ec04e6116431c7f7dceffdd4902700af13c58823ca2d",
+          "bytes": 34769
+        },
+        {
+          "file": "assets/provenance/cat-walk-personal/original/textures/pet_s_4cat_Black_mat_baseColor.jpeg",
+          "download_url": "https://raw.githubusercontent.com/Jaaf4r/myGames/8e5537e20d104686a462917b7bdc53bb05cf0df6/Godot/hungryCat/assets/cat_walk/textures/pet_s_4cat_Black_mat_baseColor.jpeg",
+          "sha256": "685f60a09db5648ff1c0866651448121cf78098ae0ca107757314aa125298ff0",
+          "bytes": 175925
+        }
+      ],
+      "sha256": "68958741aa58f18f7957ca9037b89e235e73611c8d0f1902ecda6c11c36d613f",
+      "bytes": 541780,
+      "modified": true,
+      "modifications": [
+        "External source buffer and textures embedded losslessly in self-contained GLB.",
+        "Fur material metadata explicitly metallicFactor 0, roughnessFactor 0.9.",
+        "Source geometry, joint transforms, animation key values and timing are unchanged."
+      ],
+      "authored_animation": {
+        "name": "GltfAnimation 0",
+        "duration_seconds": 0.7666666507720947,
+        "key_samples": 24,
+        "sample_rate_hz": 30,
+        "tracks": 52,
+        "type": "in-place walk",
+        "separate_run_or_sit_clips": false
+      },
+      "verification": {
+        "method": "Temporary Godot 4.7.1 asset viewer only; no Godot product changes. Evaluated 9 rendered phases over one cycle.",
+        "phases_seconds": [
+          0.0,
+          0.1,
+          0.2,
+          0.3,
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.7666666
+        ],
+        "result": "Alternating foot placements and knee flexion observed, no exploding or twisted limbs. Near-closing first/last poses. Root track has small sway rather than scene forward travel.",
+        "root_translation_range_source_units": [
+          1.593973994255066,
+          0.36950302124022844,
+          1.2977466583251953
+        ],
+        "body_length_source_units": 69.0270767211914,
+        "unreal_import_or_playback_verified": false,
+        "not_verified": [
+          "Unreal importer compatibility",
+          "Game-world stride/contact synchronization",
+          "Final fur realism",
+          "Run or sit actions"
+        ]
+      },
+      "credit": "This work is based on “Cat Walk” by LostBoyz2078, licensed under CC BY-NC 4.0. Adapted for Mırmır by lossless GLB packaging and nonmetallic material settings.",
+      "verified_at": "2026-10-27T16:30:52.505741+00:00"
+    }
+  ]
+}

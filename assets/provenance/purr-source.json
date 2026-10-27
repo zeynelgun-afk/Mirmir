@@ -1,0 +1,42 @@
+{
+  "verified_at": "2026-10-27T15:56:14.349036+00:00",
+  "source_page": "https://bigsoundbank.com/cat-purr-s0436.html",
+  "license_declaration": "CC0 (public domain): Free and royalty-free",
+  "license_evidence": "The official individual download page states CC0; the source license page identifies CC0 1.0 Universal and permits redistribution, modification, and commercial use.",
+  "audio_object": {
+    "name": "Cat Purr — Free Download WAV & MP3 | BigSoundBank",
+    "description": "Loud purring from an 8-month-old male cat. The sound is low-pitched and very dry. Recorded about 10 cm in front of the muzzle, possibly too close and too much on axis. Slight breath noise in the high frequencies.",
+    "duration": "PT11S",
+    "license": "https://bigsoundbank.com/licenses.html",
+    "author": {
+      "@type": "Person",
+      "name": "Joseph Sardin"
+    },
+    "encoding": [
+      {
+        "@type": "MediaObject",
+        "encodingFormat": "audio/wav",
+        "contentUrl": "https://bigsoundbank.com/UPLOAD/bwf-en/0436.wav",
+        "contentSize": "889118"
+      },
+      {
+        "@type": "MediaObject",
+        "encodingFormat": "audio/aiff",
+        "contentUrl": "https://bigsoundbank.com/UPLOAD/aiff/0436.aiff",
+        "contentSize": "887998"
+      },
+      {
+        "@type": "MediaObject",
+        "encodingFormat": "audio/mpeg",
+        "contentUrl": "https://bigsoundbank.com/UPLOAD/mp3/0436.mp3",
+        "contentSize": "405547"
+      },
+      {
+        "@type": "MediaObject",
+        "encodingFormat": "audio/ogg",
+        "contentUrl": "https://bigsoundbank.com/UPLOAD/ogg/0436.ogg",
+        "contentSize": "325047"
+      }
+    ]
+  }
+}

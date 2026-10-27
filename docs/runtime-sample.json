@@ -1,0 +1,16 @@
+{
+  "timestamp_utc": "2026-10-27T16:10:57.214653+00:00",
+  "implementation": "godot-desktop-lab",
+  "service_active": true,
+  "cpu_sample_seconds": 3.0,
+  "cpu_percent_one_core": 6.33,
+  "rss_mib": 223.91,
+  "fps_latest_reported": 30.0,
+  "renderer": "AMD Radeon 890M Graphics (radeonsi, strIx1, ACO, DRM 3.64, 7.3.0-5-cachyos)",
+  "limits": [
+    "One short process sample, not a continuous performance guarantee.",
+    "RSS includes process memory; Godot static allocator memory alone is smaller.",
+    "GPU load, energy, battery, temperature, fullscreen and multi-monitor behavior are unmeasured.",
+    "This is not Unreal Engine performance evidence or human usability validation."
+  ]
+}

@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "verified_at": "2026-10-27T15:56:14.349036+00:00",
+  "assets": [
+    {
+      "file": "desktop-lab/assets/cat/fripouille.glb",
+      "title": "3d modelling my cat: Fripouille",
+      "author": "guillaume bolis",
+      "author_url": "https://sketchfab.com/guillaume.bolis",
+      "license": "CC-BY-4.0",
+      "license_url": "http://creativecommons.org/licenses/by/4.0/",
+      "source_metadata": "https://api.sketchfab.com/v3/models/0ab14bf98e754f8d90fe1bf1c84ca66c",
+      "sha256": "c2762ca867fbde5319d3856b79595de5975061efb13905ff8124cfdc0923fa3e",
+      "original_source_url": "https://sketchfab.com/3d-models/3d-modelling-my-cat-fripouille-0ab14bf98e754f8d90fe1bf1c84ca66c",
+      "mirror_download_url": "https://huggingface.co/datasets/allenai/objaverse/resolve/main/glbs/000-125/0ab14bf98e754f8d90fe1bf1c84ca66c.glb",
+      "modified": false,
+      "runtime_modifications": "Procedural skeletal animation, scene placement, lighting, and scale are applied by the Mırmır prototype; no authored animation clips are present in the source GLB.",
+      "verified_at": "2026-10-27T15:56:14.349036+00:00",
+      "evidence_file": "assets/provenance/fripouille-source.json"
+    },
+    {
+      "file": "desktop-lab/assets/audio/purr.ogg",
+      "author": "Joseph SARDIN",
+      "title": "Cat Purr",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "download_url": "https://bigsoundbank.com/UPLOAD/ogg/0436.ogg",
+      "sha256": "575e675ea4cdbefb46e6b8e9344b04412d43bc4da068c3788b546dae27796f53",
+      "original_source_url": "https://bigsoundbank.com/cat-purr-s0436.html",
+      "verified_at": "2026-10-27T15:56:14.349036+00:00",
+      "modified": false,
+      "evidence_file": "assets/provenance/purr-source.json"
+    },
+    {
+      "file": "desktop-lab/assets/audio/meow-1.ogg",
+      "author": "Joseph SARDIN",
+      "title": "Little Meow of a Cat #1",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "download_url": "https://bigsoundbank.com/UPLOAD/ogg/0494.ogg",
+      "sha256": "4f542f766a47b36d9424125796c837ecedc22fd159972188c17e5e581425cc64",
+      "original_source_url": "https://bigsoundbank.com/little-meow-of-a-cat-s0494.html",
+      "verified_at": "2026-10-27T15:56:14.349036+00:00",
+      "modified": false,
+      "evidence_file": "assets/provenance/meow-1-source.json"
+    },
+    {
+      "file": "desktop-lab/assets/audio/meow-2.ogg",
+      "author": "Joseph SARDIN",
+      "title": "Little meow of a cat #9",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "download_url": "https://bigsoundbank.com/UPLOAD/ogg/1479.ogg",
+      "sha256": "5d10312029da24309775277657c9bc561ab237c3f1cd5034ff447a77e10eb47d",
+      "original_source_url": "https://bigsoundbank.com/little-meow-of-a-cat-9-s1479.html",
+      "verified_at": "2026-10-27T15:56:14.349036+00:00",
+      "modified": false,
+      "evidence_file": "assets/provenance/meow-2-source.json"
+    }
+  ],
+  "notes": [
+    "Only Fripouille is included; the evaluated Somali cat is not part of this project.",
+    "The cat GLB has textures and a rig, but no authored motion clips or strand-based fur.",
+    "SHA256 values describe the downloaded source bytes. Runtime procedural changes are documented separately."
+  ]
+}

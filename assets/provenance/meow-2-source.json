@@ -1,0 +1,60 @@
+{
+  "verified_at": "2026-10-27T15:56:14.349036+00:00",
+  "source_page": "https://bigsoundbank.com/little-meow-of-a-cat-9-s1479.html",
+  "license_declaration": "CC0 (public domain): Free and royalty-free",
+  "license_evidence": "The official individual download page states CC0; the source license page identifies CC0 1.0 Universal and permits redistribution, modification, and commercial use.",
+  "audio_object": {
+    "name": "Little meow of a cat #9 — Free Sound Effect Download | BigSoundBank",
+    "description": "Meow of a cat (Emi), who would like us to take care of her.",
+    "duration": "PT1S",
+    "license": "https://bigsoundbank.com/licenses.html",
+    "author": {
+      "@type": "Person",
+      "name": "Joseph Sardin"
+    },
+    "encoding": [
+      {
+        "@type": "MediaObject",
+        "encodingFormat": "audio/wav",
+        "contentUrl": "https://bigsoundbank.com/UPLOAD/bwf-en/1479.wav",
+        "contentSize": "110470"
+      },
+      {
+        "@type": "MediaObject",
+        "encodingFormat": "audio/aiff",
+        "contentUrl": "https://bigsoundbank.com/UPLOAD/aiff/1479.aiff",
+        "contentSize": "109678"
+      },
+      {
+        "@type": "MediaObject",
+        "encodingFormat": "audio/mpeg",
+        "contentUrl": "https://bigsoundbank.com/UPLOAD/mp3/1479.mp3",
+        "contentSize": "33828"
+      },
+      {
+        "@type": "MediaObject",
+        "encodingFormat": "audio/ogg",
+        "contentUrl": "https://bigsoundbank.com/UPLOAD/ogg/1479.ogg",
+        "contentSize": "30904"
+      },
+      {
+        "@type": "MediaObject",
+        "encodingFormat": "audio/flac",
+        "contentUrl": "https://bigsoundbank.com/UPLOAD/flac/1479.flac",
+        "contentSize": "89298"
+      },
+      {
+        "@type": "MediaObject",
+        "encodingFormat": "audio/aac",
+        "contentUrl": "https://bigsoundbank.com/UPLOAD/aac/1479.aac",
+        "contentSize": "12104"
+      },
+      {
+        "@type": "MediaObject",
+        "encodingFormat": "audio/mp4",
+        "contentUrl": "https://bigsoundbank.com/UPLOAD/m4a/1479.m4a",
+        "contentSize": "14842"
+      }
+    ]
+  }
+}
