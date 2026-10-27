@@ -69,6 +69,7 @@ bool UMirmirSaveGame::Load(UMirmirSaveGame& Out, FString& Error)
     State.ActivityDuration = Duration;
     State.RandomState = static_cast<uint32>(Seed);
     Out.CatState = Mirmir::Behavior(State).Get();
+    Root->TryGetBoolField(TEXT("muted"), Out.bMuted);
     Out.SavedAtUnixSeconds = static_cast<int64>(SavedAt);
     return true;
 }
@@ -78,6 +79,7 @@ bool UMirmirSaveGame::Store(const UMirmirSaveGame& Value, FString& Error)
     const Mirmir::State S = Mirmir::Behavior(Value.CatState).Get();
     const TSharedRef<FJsonObject> Root = MakeShared<FJsonObject>();
     Root->SetNumberField(TEXT("version"), 1);
+    Root->SetBoolField(TEXT("muted"), Value.bMuted);
     Root->SetNumberField(TEXT("saved_at"), static_cast<double>(Value.SavedAtUnixSeconds));
     Root->SetNumberField(TEXT("satiety"), S.Satiety);
     Root->SetNumberField(TEXT("energy"), S.Energy);

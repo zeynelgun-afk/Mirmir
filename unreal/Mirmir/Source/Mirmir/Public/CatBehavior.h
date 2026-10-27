@@ -119,6 +119,8 @@ public:
         Begin(Activity::Idle, 5.0);
     }
 
+    void Rest() { Begin(Activity::Sleep, 30.0); }
+
 private:
     State Data;
 

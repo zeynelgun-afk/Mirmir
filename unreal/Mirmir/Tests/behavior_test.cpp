@@ -21,6 +21,11 @@ int main()
     Cat.Advance(1.0);
     assert(Cat.Interact(Interaction::Play));
     assert(Cat.Get().CurrentActivity == Activity::Play);
+    const float BeforeRest = Cat.Get().Energy;
+    Cat.Rest();
+    assert(Cat.Get().CurrentActivity == Activity::Sleep);
+    Cat.Advance(2.0);
+    assert(Cat.Get().Energy > BeforeRest);
 
     State Tired;
     Tired.Energy = 0.05f;

@@ -14,6 +14,7 @@ class MIRMIR_API UMirmirSaveGame : public USaveGame
 public:
     Mirmir::State CatState;
     int64 SavedAtUnixSeconds = 0;
+    bool bMuted = false;
 
     static FString SavePath();
     static bool Load(UMirmirSaveGame& Out, FString& Error);

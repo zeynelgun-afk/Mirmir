@@ -9,3 +9,4 @@ unreal/**/DerivedDataCache/
 unreal/**/Intermediate/
 unreal/**/Saved/
 artifacts/
+.local/

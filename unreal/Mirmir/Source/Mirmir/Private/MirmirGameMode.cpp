@@ -1,13 +1,18 @@
 #include "MirmirGameMode.h"
 #include "MirmirCat.h"
+#include "MirmirFrameExporter.h"
 #include "Camera/CameraActor.h"
+#include "Camera/CameraComponent.h"
 #include "Components/InputComponent.h"
+#include "Components/LightComponent.h"
 #include "Engine/Canvas.h"
 #include "Engine/DirectionalLight.h"
 #include "Engine/World.h"
 #include "InputCoreTypes.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Parse.h"
 
 namespace
 {
@@ -31,15 +36,32 @@ void AMirmirGameMode::BeginPlay()
     Super::BeginPlay();
     Cat = GetWorld()->SpawnActor<AMirmirCat>(CatClass, FVector::ZeroVector, FRotator::ZeroRotator);
     ACameraActor* Camera = GetWorld()->SpawnActor<ACameraActor>();
+    const bool bDesktop = FParse::Param(FCommandLine::Get(), TEXT("MirmirDesktop"));
     if (Camera)
     {
-        Camera->SetActorLocation(FVector(260, -260, 130));
-        Camera->SetActorRotation((FVector(0, 0, 35) - Camera->GetActorLocation()).Rotation());
+        const FBox Bounds = Cat ? Cat->GetComponentsBoundingBox() : FBox(ForceInit);
+        const FVector Center = Bounds.IsValid ? Bounds.GetCenter() : FVector(0, 0, 35);
+        Camera->SetActorLocation(Center + FVector(210, -250, 105));
+        Camera->SetActorRotation((Center - Camera->GetActorLocation()).Rotation());
+        if (bDesktop)
+        {
+            Camera->GetCameraComponent()->ProjectionMode = ECameraProjectionMode::Orthographic;
+            Camera->GetCameraComponent()->OrthoWidth = Bounds.IsValid
+                ? FMath::Max(100.0f, static_cast<float>(Bounds.GetSize().GetMax()) * 1.5f) : 120.0f;
+        }
         if (APlayerController* Player = UGameplayStatics::GetPlayerController(this, 0))
             Player->SetViewTarget(Camera);
     }
-    // Preview light only. No floor, stand-in cat, or claimed desktop overlay.
-    GetWorld()->SpawnActor<ADirectionalLight>(FVector(0, 0, 300), FRotator(-45, -35, 0));
+    if (ADirectionalLight* Key = GetWorld()->SpawnActor<ADirectionalLight>(FVector(0, 0, 300), FRotator(-45, -35, 0)))
+        Key->GetLightComponent()->SetIntensity(4.0f);
+    if (ADirectionalLight* Fill = GetWorld()->SpawnActor<ADirectionalLight>(FVector(0, 0, 300), FRotator(-25, 140, 0)))
+    {
+        Fill->GetLightComponent()->SetIntensity(1.3f);
+        Fill->GetLightComponent()->SetLightColor(FLinearColor(0.8f, 0.87f, 1.0f));
+    }
+    if (bDesktop && Cat && Camera)
+        if (AMirmirFrameExporter* Exporter = GetWorld()->SpawnActor<AMirmirFrameExporter>())
+            Exporter->Initialize(Cat, Camera->GetCameraComponent());
 }
 
 void AMirmirPlayerController::BeginPlay()

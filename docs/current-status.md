@@ -35,11 +35,24 @@ hızıyla adım eşleştirmesi ve nihai gerçekçilik henüz bekliyor.
 
 ## Motor erişimi
 
-Kurulu Unreal bulunamadı. Resmi Linux indirmesi mevcut Brave oturumunda
-canlı açıldı ve “Epic Account Required” gösterdi. Kullanıcıya gerekli hesap
-girişi bildirildi; oturum bekleniyor. Eski 5.0–5.2 clang araçseti tablosu
-motor indirmesi değildir. İndirme hedefi güncel kararlı Unreal Engine 5.8
-Linux hazır ZIP paketidir.
+Kurulu Unreal başlangıçta bulunamadı. Hesap erişimi daha sonra açıldı ve
+resmî Linux sayfasından `Linux_Unreal_Engine_5.8.4.zip` (37.08 GB, 20 Ekim
+2026) indirmesi başlatıldı. Kullanıcının indirdiği
+`native-linux-v20_clang-13.0.1-centos7.tar.gz` arşivi incelendi: eski clang
+araçsetidir, motor değildir; kurulmadı ve kullanılmadı. Linux sayfasındaki
+gereksinim bağlantısının `application_version=5.0` belgesine gitmesi bu
+karışıklığa katkıda bulunuyor.
+
+İndirme izleyicisi, yalnız tamamlanmış doğru ZIP göründüğünde kullanıcı
+dizinine çıkarma, uyumlu araçseti, C++ derlemesi ve varlık/preview hazırlığı
+aşamalarını başlatır. Sonuçlar `~/.local/state/mirmir/unreal/preparation.json`
+ve aşama günlüklerinde tutulur. İndirme/kurulum tamamlanana kadar motor
+çalıştı veya yürüyüş düzeldi denmez.
+
+Unreal sahne yakalamasıyla yalnız kedinin kendi RGBA karesini üreten bir
+aktarış katmanı ve bu gerçek görüntüyü şeffaf Qt penceresinde gösteren yerel
+kabuk hazırlandı. 3B model ve animasyonlar Unreal'a aittir; Godot yedeği
+yoktur. Şu an bu kaynakların gerçek motorla derlenip çizildiği doğrulanmadı.
 
 Motor erişimi sonrası sıra: arşivi açma → uyumlu SDK/derleme → UE projesini
 açma → animasyonlu kediyi içe aktarma → gerçek yürüyüş kabulü → Unreal

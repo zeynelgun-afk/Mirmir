@@ -32,6 +32,10 @@ public:
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Mirmir|Visual")
     TObjectPtr<USkeletalMesh> CatSkeletalMesh;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Mirmir|Visual")
+    bool bNormalizeImportedMesh = true;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Mirmir|Visual", meta=(ClampMin="20.0", ClampMax="150.0"))
+    float TargetBodyLength = 70.0f;
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Mirmir|Animation")
     TObjectPtr<UAnimSequence> WalkAnimation;
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Mirmir|Animation")
@@ -46,6 +50,8 @@ public:
     float WalkSpeed = 35.0f;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Mirmir|Sound")
     TObjectPtr<USoundBase> PurrSound;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Mirmir|Sound")
+    TObjectPtr<USoundBase> MeowSound;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Mirmir|Sound")
     TObjectPtr<USoundBase> FeedSound;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Mirmir|Sound")
@@ -72,6 +78,7 @@ public:
     UFUNCTION(BlueprintCallable, Category="Mirmir|Interaction") bool Feed();
     UFUNCTION(BlueprintCallable, Category="Mirmir|Interaction") bool Play();
     UFUNCTION(BlueprintCallable, Category="Mirmir|Interaction") void ToggleMute();
+    UFUNCTION(BlueprintCallable, Category="Mirmir|Interaction") void Rest();
     UFUNCTION(BlueprintCallable, Category="Mirmir|Persistence") bool SaveCat();
     UFUNCTION(BlueprintCallable, Category="Mirmir|Persistence") void ResetCat();
 
@@ -91,12 +98,22 @@ private:
     FVector HomeLocation = FVector::ZeroVector;
     FVector WanderTarget = FVector::ZeroVector;
     float SaveElapsed = 0.0f;
+    float DesktopCommandElapsed = 0.0f;
+    float DesktopStatusElapsed = 0.0f;
+    bool bDesktopMode = false;
+    FRandomStream MovementRandom;
+    float VoiceCooldown = 3.0f;
+    bool bWelcomed = false;
     bool bCanSave = true;
     UPROPERTY(Transient) TObjectPtr<UAudioComponent> ActiveSound;
     UPROPERTY(Transient) TObjectPtr<UAnimSequence> ActiveSequence;
 
     void RefreshState();
     void UpdateAuthoredAnimation();
+    void NormalizeMesh();
+    void Meow();
+    void PollDesktopCommands();
+    void WriteDesktopStatus();
     bool Interact(Mirmir::Interaction Action, FName Name, USoundBase* Sound);
     UFUNCTION() void HandleClicked(UPrimitiveComponent* Component, FKey Key);
 };
