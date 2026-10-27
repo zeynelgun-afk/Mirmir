@@ -130,6 +130,42 @@ def configured_map(project_root=ROOT):
     return package
 
 
+def launch_plan(project_root, frames, environment=None):
+    """Prefer a completed local Shipping archive, invoking its binary directly."""
+    environment = os.environ if environment is None else environment
+    package = json_file(project_root / ".local/package.json")
+    if package.get("configuration") == "Shipping" and package.get("platform") == "Linux" and package.get("packaging_command_succeeded") is True:
+        try:
+            binary, launcher = Path(package["binary"]).resolve(), Path(package["launcher"]).resolve()
+            archive = Path(package["archive_directory"]).resolve()
+            binary.relative_to(archive); launcher.relative_to(archive)
+            world = package.get("map")
+            if (binary.name == "Mirmir-Linux-Shipping" and binary.is_file() and os.access(binary, os.X_OK) and
+                    launcher.name == "Mirmir.sh" and launcher.is_file() and isinstance(world, str) and
+                    re.fullmatch(r"/Game/[A-Za-z0-9_/-]+", world) and ".." not in world):
+                # Official LinuxPlatform.Automation code-based bootstrap supplies
+                # ShortProjectName (Mirmir) before user args. Preserve it without
+                # the .sh intermediate process, so producer_pid matches Popen.pid.
+                prefix = [str(binary), "Mirmir", world]
+                kind, cwd = "shipping", launcher.parent
+            else:
+                raise ValueError("Incomplete package")
+        except (KeyError, OSError, TypeError, ValueError):
+            prefix = None
+    else:
+        prefix = None
+    if prefix is None:
+        config = json_file(project_root / ".local/engine.json")
+        engine = environment.get("MIRMIR_UE_ROOT") or config.get("engine_root")
+        binary = Path(engine) / "Engine/Binaries/Linux/UnrealEditor" if isinstance(engine, str) and engine else None
+        if not binary or not binary.is_file() or not os.access(binary, os.X_OK):
+            raise ValueError("Çalışır Shipping paketi veya Unreal motoru bulunamadı; engine.json / MIRMIR_UE_ROOT gerekli.")
+        prefix = [str(binary), str(project_root / "unreal/Mirmir/Mirmir.uproject"), configured_map(project_root), "-game"]
+        kind, cwd = "editor", project_root
+    return {"kind": kind, "cwd": cwd, "command": prefix + ["-windowed", "-MirmirDesktop", "-RenderOffscreen", "-nosplash",
+            "-ResX=640", "-ResY=640", "-ExecCmds=t.MaxFPS 15", f"-abslog={frames / 'engine-session.log'}"]}
+
+
 def acquire_instance(frames):
     frames.mkdir(mode=0o700, parents=True, exist_ok=True)
     descriptor = os.open(frames / "shell.lock", os.O_RDWR | os.O_CREAT | os.O_CLOEXEC, 0o600)
@@ -186,12 +222,14 @@ class MirmirShell(QWidget):
         self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.setWindowTitle("Mırmır · Unreal masaüstü katmanı")
         self.args, self.process, self.engine_log = args, None, None
+        self.engine_kind = "none"
         self.data = Path(os.environ.get("XDG_DATA_HOME", str(Path.home() / ".local/share"))) / "mirmir/unreal"
         self.frames = args.frame_dir or Path(os.environ.get("XDG_STATE_HOME", str(Path.home() / ".local/state"))) / "mirmir/unreal"
         self.image, self.frame_key, self.home = QImage(), None, None
         self.valid_until, self.last_metadata = 0.0, {}
         self.offset, self.drag_start, self.drag_home = QPoint(), None, None
         self.last_pet, self.closed, self.last_error = 0.0, False, ""
+        self.last_boundary_rest = 0.0
         self.started = time.monotonic()
         self.started_wall = lease[1]["started_at"] if lease else time.time()
         self.owner_token = lease[1]["owner_token"] if lease else uuid.uuid4().hex
@@ -218,24 +256,33 @@ class MirmirShell(QWidget):
         QApplication.instance().aboutToQuit.connect(self.stop_engine)
 
     def start_engine(self):
-        config = json_file(ROOT / ".local/engine.json")
-        engine = os.environ.get("MIRMIR_UE_ROOT") or config.get("engine_root")
-        binary = Path(engine) / "Engine/Binaries/Linux/UnrealEditor" if engine else None
-        if not binary or not binary.is_file() or not os.access(binary, os.X_OK):
-            self.error("Unreal motoru hazır değil; engine.json veya MIRMIR_UE_ROOT gerekli.", notify=True)
-            return
         try:
-            preview_map = configured_map()
+            plan = launch_plan(ROOT, self.frames)
         except ValueError as failure:
             self.error(str(failure), notify=True); return
         self.frames.mkdir(mode=0o700, parents=True, exist_ok=True)
+        # Commands are transient UI events, never a persistent queue. In
+        # particular, a second quit left by a previous shutdown must not close
+        # a newly launched game. Touch only our small UUID-named command files.
+        try:
+            for pending in (self.data / "commands").glob("*.json"):
+                if (re.fullmatch(r"[0-9a-f]{32}\.json", pending.name) and not pending.is_symlink() and
+                        pending.stat().st_size <= 1024 and pending.stat().st_mtime < self.started_wall and
+                        json_file(pending).get("command") in {"pet", "feed", "play", "rest", "mute", "quit"}):
+                    pending.unlink(missing_ok=True)
+        except OSError as failure:
+            self.error("Önceki oturumun geçici komutları temizlenemedi: " + str(failure), True)
+            return
         self.engine_log = (self.frames / "engine-shell.log").open("a")
-        command = [str(binary), str(ROOT / "unreal/Mirmir/Mirmir.uproject"), preview_map, "-game", "-windowed",
-                   "-MirmirDesktop", "-RenderOffscreen", "-nosplash", "-ResX=640", "-ResY=640",
-                   "-ExecCmds=t.MaxFPS 15", f"-abslog={self.frames / 'engine-session.log'}"]
         try:
             child_env = os.environ.copy(); child_env["SDL_VIDEODRIVER"] = "x11"
-            self.process = subprocess.Popen(command, env=child_env, stdout=self.engine_log, stderr=subprocess.STDOUT)
+            # UE 5.8's offscreen path otherwise selects SDL's silent dummy
+            # backend. The old variable bypasses that gate; SDL3 reads the new
+            # hint name. Keep both local to this child and respect user choices.
+            child_env.setdefault("SDL_AUDIODRIVER", "pulseaudio")
+            child_env.setdefault("SDL_AUDIO_DRIVER", child_env["SDL_AUDIODRIVER"])
+            self.process = subprocess.Popen(plan["command"], cwd=plan["cwd"], env=child_env, stdout=self.engine_log, stderr=subprocess.STDOUT)
+            self.engine_kind = plan["kind"]
         except OSError as failure:
             self.error("Unreal başlatılamadı: " + str(failure), notify=True)
 
@@ -276,9 +323,11 @@ class MirmirShell(QWidget):
     def publish_status(self, waiting_for_pair=False):
         try:
             atomic_json(self.frames / "shell-status.json", {"implementation": "qt-unreal-frame-shell", "engine_started": self.process is not None,
+                        "engine_kind": self.engine_kind,
                         "test_mode": self.args.no_engine, "ready": True, "waiting_for_pair": waiting_for_pair,
                         "session_id": self.last_metadata.get("session_id"), "frame_seq": self.last_metadata.get("frame_seq"),
-                        "geometry": [self.x(), self.y(), self.width(), self.height()], "device_pixel_ratio": self.devicePixelRatioF()})
+                        "geometry": [self.x(), self.y(), self.width(), self.height()], "device_pixel_ratio": self.devicePixelRatioF(),
+                        "window_id": int(self.winId())})
         except OSError:
             self.error("Masaüstü durumu yazılamadı.")
 
@@ -339,14 +388,26 @@ class MirmirShell(QWidget):
                 self.setMask(region)
                 if self.home is None:
                     available = QGuiApplication.primaryScreen().availableGeometry()
-                    self.home = QPoint(available.right() - self.width() - 24, available.bottom() - self.height() - 24)
+                    # Leave space for the first walks in both screen directions.
+                    self.home = QPoint(available.right() - self.width() - 24 - min(280, available.width() // 5),
+                                       available.bottom() - self.height() - 24 - min(90, available.height() // 10))
                 self.update()
             raw_offset = self.last_metadata.get("desktop_offset_px", [0, 0])
             if not isinstance(raw_offset, list) or len(raw_offset) != 2 or not all(isinstance(v, (int, float)) and math.isfinite(v) for v in raw_offset):
                 raise ValueError("Unreal hareket konumu geçersiz.")
             self.offset = QPoint(round(raw_offset[0] / self.devicePixelRatioF()), round(raw_offset[1] / self.devicePixelRatioF()))
             screen = QGuiApplication.screenAt(self.home) or QGuiApplication.primaryScreen()
-            self.move(clamp_position(self.home + self.offset, self.size(), screen.availableGeometry()))
+            requested = self.home + self.offset
+            bounded = clamp_position(requested, self.size(), screen.availableGeometry())
+            self.move(bounded)
+            if bounded != requested and time.monotonic() - self.last_boundary_rest > 3:
+                # Stop the actual Unreal actor at a screen edge, rather than
+                # letting a clamped window show an endless walking-in-place pose.
+                needs = metadata.get("needs")
+                activity = needs.get("activity") if isinstance(needs, dict) else None
+                if activity in ("Wander", "Play"):
+                    self.send("rest")
+                    self.last_boundary_rest = time.monotonic()
             self.show()
             self.last_error = ""
             state = json_file(self.data / "desktop-status.json")
@@ -379,6 +440,8 @@ class MirmirShell(QWidget):
                 self.drag_start, self.drag_home = event.globalPosition().toPoint(), QPoint(self.home)
             else:
                 self.send("pet")
+        elif event.button() == Qt.MouseButton.RightButton:
+            self.tray.contextMenu().popup(event.globalPosition().toPoint())
 
     def mouseMoveEvent(self, event):
         if self.drag_start is not None:
@@ -391,7 +454,8 @@ class MirmirShell(QWidget):
 
     def close_companion(self):
         self.closed = True
-        self.timer.stop(); self.hide(); self.send("quit")
+        self.timer.stop(); self.hide()
+        # aboutToQuit/stop_engine sends exactly one quit and waits for its child.
         QApplication.instance().quit()
 
     def stop_engine(self):
@@ -430,6 +494,23 @@ def self_test():
         world.parent.mkdir(parents=True); world.touch()
         atomic_json(fixture / ".local/preview.json", {"preview_map": "/Game/Mirmir/Preview/MirmirPreview"})
         assert configured_map(fixture) == "/Game/Mirmir/Preview/MirmirPreview"
+        editor = fixture / "engine/Engine/Binaries/Linux/UnrealEditor"
+        editor.parent.mkdir(parents=True); editor.touch(); editor.chmod(0o755)
+        atomic_json(fixture / ".local/engine.json", {"engine_root": str(fixture / "engine")})
+        fallback = launch_plan(fixture, fixture / "frames", environment={})
+        assert fallback["kind"] == "editor" and fallback["command"][2] == "/Game/Mirmir/Preview/MirmirPreview"
+        archive = fixture / "archive"
+        shipping = archive / "Linux/Mirmir/Binaries/Linux/Mirmir-Linux-Shipping"
+        shipping.parent.mkdir(parents=True); shipping.touch(); shipping.chmod(0o755)
+        launcher = archive / "Linux/Mirmir.sh"; launcher.touch(); launcher.chmod(0o755)
+        atomic_json(fixture / ".local/package.json", {"configuration": "Shipping", "platform": "Linux", "packaging_command_succeeded": True,
+                    "archive_directory": str(archive), "binary": str(shipping), "launcher": str(launcher), "map": "/Game/Mirmir/Preview/MirmirPreview"})
+        packaged = launch_plan(fixture, fixture / "frames", environment={})
+        assert packaged["kind"] == "shipping" and packaged["command"][:3] == [str(shipping), "Mirmir", "/Game/Mirmir/Preview/MirmirPreview"]
+        editor.unlink()
+        assert launch_plan(fixture, fixture / "frames", environment={})["kind"] == "shipping"
+        editor.touch(); editor.chmod(0o755); shipping.chmod(0o644)
+        assert launch_plan(fixture, fixture / "frames", environment={})["kind"] == "editor"
         path = Path(temporary) / "commands/one.json"
         atomic_json(path, {"command": "pet"})
         assert json_file(path) == {"command": "pet"} and not list(path.parent.glob("*.tmp"))
@@ -510,7 +591,7 @@ def self_test():
     started = time.perf_counter(); fallback = alpha_region(benchmark, 1, use_numpy=False)
     fallback_ms = (time.perf_counter() - started) * 1000
     assert measured[0] == fallback[0]
-    print("PASS: preview-map gate, single-instance/owned stop, paired frames, readiness, alpha/DPI mask, IPC/rate limit; Unreal rendering not tested.")
+    print("PASS: Shipping preference/editor fallback, preview gate, owned stop, paired frames, alpha/DPI, IPC; Unreal rendering not tested.")
     print(json.dumps({"synthetic_mask_size": [512, 512], "mask_backend": "numpy+Qt-bitmap" if np is not None else "Python-fallback",
                       "mask_ms_mean_5": round(milliseconds, 3), "fallback_ms_one": round(fallback_ms, 3)}))
 

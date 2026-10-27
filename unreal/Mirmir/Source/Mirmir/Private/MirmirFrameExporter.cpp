@@ -1,10 +1,14 @@
 #include "MirmirFrameExporter.h"
 
 #include "MirmirCat.h"
+#include "Animation/AnimationAsset.h"
+#include "Animation/AnimSingleNodeInstance.h"
 #include "Camera/CameraComponent.h"
 #include "Components/SceneCaptureComponent2D.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Dom/JsonObject.h"
 #include "Engine/TextureRenderTarget2D.h"
+#include "Engine/Engine.h"
 #include "HAL/FileManager.h"
 #include "HAL/PlatformProcess.h"
 #include "HAL/PlatformMisc.h"
@@ -103,6 +107,9 @@ bool AMirmirFrameExporter::Initialize(AMirmirCat* InCat, UCameraComponent* InCam
     }
     FrameSize = FMath::Clamp(FrameSize, 128, 1024);
     FramesPerSecond = FMath::Clamp(FramesPerSecond, 1.0f, 15.0f);
+    // Shipping excludes command-line ExecCmds, so apply the companion's cap in
+    // code as well. Avoid an uncapped hidden game viewport behind the shell.
+    if (GEngine) GEngine->SetMaxFPS(FramesPerSecond);
     Subject = InCat;
     SourceCamera = InCamera;
     InitialCatLocation = InCat->GetActorLocation();
@@ -157,8 +164,12 @@ void AMirmirFrameExporter::Tick(float DeltaSeconds)
     }
     const double Now = FPlatformTime::Seconds();
     if (Now < NextCaptureSeconds) return;
-    // Do not accumulate a backlog or run catch-up captures after a long frame.
-    NextCaptureSeconds = Now + 1.0 / FMath::Clamp(FramesPerSecond, 1.0f, 15.0f);
+    // Keep the clock phase through ordinary frame jitter. Scheduling from Now
+    // each time skips every other engine frame when both limits are 15 fps.
+    // A genuinely missed deadline drops the backlog rather than catching up.
+    const double Interval = 1.0 / FMath::Clamp(FramesPerSecond, 1.0f, 15.0f);
+    NextCaptureSeconds += Interval;
+    if (NextCaptureSeconds <= Now) NextCaptureSeconds = Now + Interval;
     CaptureAndPublish();
 }
 
@@ -251,6 +262,7 @@ bool AMirmirFrameExporter::PublishRuntime(const TCHAR* Status, bool bReady, int6
     JSON->SetNumberField(TEXT("width"), FrameSize);
     JSON->SetNumberField(TEXT("height"), FrameSize);
     JSON->SetNumberField(TEXT("fps_limit"), FMath::Clamp(FramesPerSecond, 1.0f, 15.0f));
+    JSON->SetNumberField(TEXT("engine_fps_limit"), GEngine ? GEngine->GetMaxFPS() : 0.0f);
     JSON->SetBoolField(TEXT("running"), bInitialized);
     JSON->SetBoolField(TEXT("ready"), bReady);
     JSON->SetStringField(TEXT("status"), Status);
@@ -286,6 +298,61 @@ bool AMirmirFrameExporter::PublishRuntime(const TCHAR* Status, bool bReady, int6
         Needs->SetBoolField(TEXT("muted"), Cat->bMuted);
         Needs->SetStringField(TEXT("activity"), StaticEnum<EMirmirActivity>()->GetNameStringByValue(int64(Cat->Activity)));
         JSON->SetObjectField(TEXT("needs"), Needs);
+        TSharedRef<FJsonObject> Motion = MakeShared<FJsonObject>();
+        Motion->SetNumberField(TEXT("sample_monotonic_s"), FPlatformTime::Seconds());
+        Motion->SetNumberField(TEXT("movement_speed_cm_s"), Cat->MovementSpeed);
+        Motion->SetNumberField(TEXT("actor_yaw_deg"), Cat->GetActorRotation().Yaw);
+        Motion->SetArrayField(TEXT("actor_forward_world"), VectorJSON(Cat->GetActorForwardVector()));
+        if (const USkeletalMeshComponent* Mesh = Cat->CatMesh.Get())
+        {
+            Motion->SetArrayField(TEXT("mesh_relative_scale"), VectorJSON(Mesh->GetRelativeScale3D()));
+            Motion->SetNumberField(TEXT("skeleton_bone_count"), Mesh->GetNumBones());
+            // Importers can replace hyphens with underscores or retain numeric
+            // suffixes. Match the semantic source names, never assume indices.
+            auto BonePosition = [Mesh](const TCHAR* Fragment, FVector& Out)
+            {
+                for (int32 Index = 0; Index < Mesh->GetNumBones(); ++Index)
+                {
+                    const FName Bone = Mesh->GetBoneName(Index);
+                    const FString Name = Bone.ToString().Replace(TEXT("-"), TEXT("_"));
+                    if (Name.Contains(Fragment))
+                    {
+                        Out = Mesh->GetBoneLocation(Bone, EBoneSpaces::WorldSpace);
+                        return true;
+                    }
+                }
+                return false;
+            };
+            TSharedRef<FJsonObject> Paws = MakeShared<FJsonObject>();
+            const TCHAR* Labels[] = { TEXT("front_left"), TEXT("front_right"), TEXT("hind_left"), TEXT("hind_right") };
+            const TCHAR* First[] = { TEXT("cat_bip_L_Finger01"), TEXT("cat_bip_R_Finger01"),
+                TEXT("cat_bip_L_Toe01"), TEXT("cat_bip_R_Toe01") };
+            const TCHAR* Second[] = { TEXT("cat_bip_L_Finger11"), TEXT("cat_bip_R_Finger11"), nullptr, nullptr };
+            for (int32 Paw = 0; Paw < 4; ++Paw)
+            {
+                FVector Position, Other;
+                bool bFound = BonePosition(First[Paw], Position);
+                if (bFound && Second[Paw])
+                {
+                    bFound = BonePosition(Second[Paw], Other);
+                    if (bFound) Position = (Position + Other) * 0.5;
+                }
+                if (bFound) Paws->SetArrayField(Labels[Paw], VectorJSON(Position));
+            }
+            Motion->SetObjectField(TEXT("paw_proxies_world_cm"), Paws);
+            Motion->SetStringField(TEXT("paw_proxy_note"), TEXT("Distal authored bone points; not measured paw-pad contacts."));
+            FVector Head, Pelvis;
+            if (BonePosition(TEXT("cat_bip_Head"), Head) && BonePosition(TEXT("cat_bip_Pelvis"), Pelvis))
+                Motion->SetArrayField(TEXT("head_forward_world"), VectorJSON((Head - Pelvis).GetSafeNormal2D()));
+            if (const UAnimSingleNodeInstance* Instance = Mesh->GetSingleNodeInstance())
+            {
+                Motion->SetStringField(TEXT("animation_asset"), GetNameSafe(Instance->GetAnimationAsset()));
+                Motion->SetNumberField(TEXT("animation_time_s"), Instance->GetCurrentTime());
+                Motion->SetNumberField(TEXT("animation_rate"), Instance->GetPlayRate());
+                Motion->SetBoolField(TEXT("animation_playing"), Instance->IsPlaying());
+            }
+        }
+        JSON->SetObjectField(TEXT("motion"), Motion);
     }
     FString Text;
     const TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&Text);

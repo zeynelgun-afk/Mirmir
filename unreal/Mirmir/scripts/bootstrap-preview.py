@@ -71,10 +71,16 @@ def find_imports(registry):
     if not feed:
         log("No feeding recording exists; FeedSound stays unassigned. Meows are not relabeled as food sounds.")
     mesh, walk = pairs[0]
-    return mesh, walk, purr, meow, feed, sounds
+    extras = [part for part in meshes if part != mesh and
+              object_path(part.get_editor_property("skeleton")) == object_path(mesh.get_editor_property("skeleton"))]
+    return mesh, walk, purr, meow, feed, sounds, extras
 
 
 def existing_owned(subsystem, path, expected_type):
+    # Loading a missing object creates an empty package in UE 5.8; the
+    # Blueprint creation API then correctly refuses that already-loaded package.
+    if not subsystem.does_asset_exist(path):
+        return None
     asset = unreal.load_asset(path)
     if not asset:
         return None
@@ -134,7 +140,7 @@ def main():
     subsystem = unreal.get_editor_subsystem(unreal.EditorAssetSubsystem)
     registry = unreal.AssetRegistryHelpers.get_asset_registry()
     registry.scan_paths_synchronous([SHARED], False)
-    mesh, walk, purr, meow, feed, sounds = find_imports(registry)
+    mesh, walk, purr, meow, feed, sounds, extras = find_imports(registry)
     cat_parent = unreal.load_class(None, "/Script/Mirmir.MirmirCat")
     mode_parent = unreal.load_class(None, "/Script/Mirmir.MirmirGameMode")
     if not cat_parent or not mode_parent:
@@ -146,8 +152,9 @@ def main():
     existing_owned(subsystem, MAP_PATH, unreal.World)
     cat = create_blueprint(subsystem, CAT_PATH, cat_parent, {
         "cat_skeletal_mesh": mesh,
+        "additional_skeletal_meshes": extras,
         "walk_animation": walk,
-        "authored_walk_speed": 35.0,
+        "authored_walk_speed": 68.0,
         "normalize_imported_mesh": True,
         "target_body_length": 70.0,
         "purr_sound": purr,
@@ -187,6 +194,7 @@ def main():
         "game_mode_class": object_path(mode_class),
         "configured_cat_class": object_path(mode_defaults.get_editor_property("cat_class")),
         "configured_skeletal_mesh": object_path(cat_defaults.get_editor_property("cat_skeletal_mesh")),
+        "configured_additional_meshes": [object_path(part) for part in cat_defaults.get_editor_property("additional_skeletal_meshes")],
         "configured_walk_animation": object_path(cat_defaults.get_editor_property("walk_animation")),
         "configured_authored_walk_speed": cat_defaults.get_editor_property("authored_walk_speed"),
         "configured_purr_sound": object_path(cat_defaults.get_editor_property("purr_sound")),
@@ -200,7 +208,7 @@ def main():
         "authored_walk_speed_calibrated": False,
         "desktop_overlay_verified": False,
         "notes": [
-            "The 35 cm/s walk reference speed and 70 cm body target are initial values, not calibrated measurements.",
+            "The 68 cm/s walk reference is estimated from authored contact-joint data at 70 cm body length; real UE contact remains unverified.",
             "No idle/run/sit clips, Groom or fake procedural leg motion were generated.",
             "Editor bootstrap success is not runtime playback, UHT build, gait/contact or desktop integration verification.",
             "Cat Walk source is CC BY-NC 4.0, local personal noncommercial use only; preserve its separate source/license record.",

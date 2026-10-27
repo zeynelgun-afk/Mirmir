@@ -1,30 +1,40 @@
 #!/usr/bin/env bash
 set -euo pipefail
 task_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
-if [[ "${1:-}" != "--lab" ]]; then
-  printf '%s\n' 'Unreal sürümü henüz derlenmedi; ürün başlatıcısı kurulmadı.' >&2
-  printf '%s\n' 'Eski Godot deneyini açıkça kurmak için --lab kullanın.' >&2
-  exit 2
+task_mode=product
+if [[ $# -gt 0 ]]; then
+  if [[ $# -eq 1 && "$1" == '--lab' ]]; then
+    task_mode=lab
+  else
+    printf '%s\n' 'Usage: install-launcher.sh [--lab]' >&2
+    exit 2
+  fi
 fi
-task_apps="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
+task_data="${XDG_DATA_HOME:-$HOME/.local/share}"
+if [[ "$task_data" != /* ]]; then task_data="$HOME/.local/share"; fi
+task_apps="$task_data/applications"
 mkdir -p -- "$task_apps"
-python - "$task_root" "$task_apps/mirmir.desktop" <<'PY'
+python - "$task_root" "$task_apps" "$task_mode" <<'PY'
 from pathlib import Path
 import sys
 root = Path(sys.argv[1])
-target = Path(sys.argv[2])
+lab = sys.argv[3] == 'lab'
+target = Path(sys.argv[2]) / ('mirmir-lab.desktop' if lab else 'mirmir.desktop')
 # Desktop-entry Exec quoting uses double quotes, not shell interpolation.
 def quote(value):
-    return '"' + str(value).replace('\\', '\\\\').replace('"', '\\"').replace('`', '\\`').replace('$', '\\$') + '"'
+    return '"' + str(value).replace('\\', '\\\\').replace('"', '\\"').replace('`', '\\`').replace('$', '\\$').replace('%', '%%') + '"'
+name = 'Mırmır — Godot masaüstü deneyi' if lab else 'Mırmır — Masaüstü Kedisi'
+launch = ' --lab' if lab else ''
+stop = ' --stop-lab' if lab else ' --stop'
 target.write_text('\n'.join([
     '[Desktop Entry]', 'Type=Application', 'Version=1.0',
-    'Name=Mırmır — Godot masaüstü deneyi', 'Name[tr]=Mırmır — Godot masaüstü deneyi',
-    'Comment=Animasyonlu 3B masaüstü kedisi — fizibilite prototipi',
-    'Exec=' + quote(root / 'run.sh') + ' --lab',
+    'Name=' + name, 'Name[tr]=' + name,
+    'Comment=' + ('Godot fizibilite prototipi' if lab else 'Unreal ile çalışan 3B masaüstü kedisi'),
+    'Exec=' + quote(root / 'run.sh') + launch,
     'Icon=' + str(root / 'desktop-lab/icon.svg'),
     'Terminal=false', 'Categories=Game;Simulation;', 'StartupNotify=false',
     'Actions=Stop;', '', '[Desktop Action Stop]', 'Name=Mırmır’ı kapat',
-    'Exec=' + quote(root / 'run.sh') + ' --stop-lab', ''
+    'Exec=' + quote(root / 'run.sh') + stop, ''
 ]), encoding='utf-8')
 target.chmod(0o644)
 print(target)

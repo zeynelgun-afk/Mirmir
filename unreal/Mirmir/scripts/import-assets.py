@@ -14,11 +14,13 @@ import unreal
 ROOT = Path(__file__).resolve().parents[3]
 SHARED = ROOT / "desktop-lab" / "assets"
 PERSONAL_CAT = ROOT / "assets" / "personal-use" / "cat-walk.glb"
+PERSONAL_LOOP = PERSONAL_CAT.with_name("cat-walk-loop.glb")
 DESTINATION = "/Game/Mirmir/Shared"
 
 
 def import_shared_assets():
-    cat_source = PERSONAL_CAT if PERSONAL_CAT.is_file() else SHARED / "cat" / "fripouille.glb"
+    cat_source = PERSONAL_LOOP if PERSONAL_LOOP.is_file() else PERSONAL_CAT if PERSONAL_CAT.is_file() else SHARED / "cat" / "fripouille.glb"
+    personal = cat_source in (PERSONAL_CAT, PERSONAL_LOOP)
     sources = (
         (cat_source, f"{DESTINATION}/Cat"),
         (SHARED / "audio" / "purr.ogg", f"{DESTINATION}/Audio"),
@@ -26,8 +28,10 @@ def import_shared_assets():
         (SHARED / "audio" / "meow-2.ogg", f"{DESTINATION}/Audio"),
     )
     required = [ROOT / "ASSET-LICENSES.md", *(source for source, _ in sources)]
-    if cat_source == PERSONAL_CAT:
+    if personal:
         required.append(PERSONAL_CAT.parent / "sources.json")
+    if cat_source == PERSONAL_LOOP:
+        required.append(PERSONAL_CAT.parent / "loop-variant.json")
     missing = [str(path) for path in required if not path.is_file()]
     if missing:
         raise RuntimeError("Missing shared asset/license files: " + ", ".join(missing))
@@ -39,7 +43,7 @@ def import_shared_assets():
             "artist changes; inspect/reimport deliberately in the editor."
         )
 
-    if cat_source == PERSONAL_CAT:
+    if personal:
         unreal.log_warning("LOCAL PERSONAL NONCOMMERCIAL ASSET: Cat Walk by LostBoyz2078, CC BY-NC 4.0.")
         unreal.log(f"Personal-use license and provenance: {PERSONAL_CAT.parent / 'sources.json'}")
     else:
@@ -92,7 +96,7 @@ def import_shared_assets():
         unreal.log(f"  Length seconds: {sequence.get_play_length()}")
         unreal.log(f"  Skeleton: {skeleton.get_path_name() if skeleton else 'NONE'}")
 
-    if failed_sources or not meshes or (cat_source == PERSONAL_CAT and not animations):
+    if failed_sources or not meshes or (personal and not animations):
         raise RuntimeError(
             "Mirmir import incomplete. Failed sources: "
             + (", ".join(failed_sources) or "none")

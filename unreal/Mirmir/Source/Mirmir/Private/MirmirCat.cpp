@@ -7,6 +7,7 @@
 #include "Components/SceneComponent.h"
 #include "Engine/Engine.h"
 #include "Engine/SkeletalMesh.h"
+#include "ReferenceSkeleton.h"
 #include "GameFramework/PlayerController.h"
 #include "InputCoreTypes.h"
 #include "Kismet/GameplayStatics.h"
@@ -39,6 +40,7 @@ void AMirmirCat::BeginPlay()
     if (CatSkeletalMesh) CatMesh->SetSkeletalMesh(CatSkeletalMesh);
     if (bNormalizeImportedMesh && CatMesh->GetSkeletalMeshAsset()) NormalizeMesh();
     CatMesh->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::AlwaysTickPoseAndRefreshBones;
+    AssembleAdditionalMeshes();
     HomeLocation = GetActorLocation();
     WanderTarget = HomeLocation;
     CatMesh->OnClicked.AddDynamic(this, &AMirmirCat::HandleClicked);
@@ -99,12 +101,24 @@ void AMirmirCat::Tick(float DeltaSeconds)
             WanderTarget = HomeLocation + FVector(FMath::Cos(Angle) * Radius, FMath::Sin(Angle) * Radius, 0);
         }
         const float Speed = FMath::Max(0.0f, WalkSpeed) * (Activity == EMirmirActivity::Play ? 1.6f : 1.0f);
-        const FVector Next = FMath::VInterpConstantTo(Before, WanderTarget, DeltaSeconds, Speed);
-        const FVector Direction = Next - Before;
-        if (!Direction.IsNearlyZero())
+        const FVector ToTarget = WanderTarget - Before;
+        const float RemainingDistance = ToTarget.Size2D();
+        if (RemainingDistance > SMALL_NUMBER)
         {
-            SetActorRotation(FMath::RInterpTo(GetActorRotation(), Direction.Rotation(), DeltaSeconds, 6.0f));
-            SetActorLocation(Next);
+            const FVector DesiredDirection = ToTarget.GetSafeNormal2D();
+            const FRotator DesiredRotation(0.0f, DesiredDirection.Rotation().Yaw, 0.0f);
+            const FRotator Facing = FMath::RInterpConstantTo(
+                GetActorRotation(), DesiredRotation, DeltaSeconds, 90.0f);
+            SetActorRotation(Facing);
+            const FVector Forward = Facing.Vector().GetSafeNormal2D();
+            const float Alignment = FMath::Clamp(
+                FVector::DotProduct(Forward, DesiredDirection), 0.0f, 1.0f);
+            // Travel along the facing direction, not sideways toward the target
+            // while yaw catches up. Slow around sharp turns; there is no
+            // separately authored turn-in-place clip in the current asset.
+            const float Step = FMath::Min(
+                Speed * Alignment * Alignment * DeltaSeconds, RemainingDistance);
+            SetActorLocation(Before + Forward * Step);
         }
     }
     MovementSpeed = DeltaSeconds > SMALL_NUMBER ? FVector::Dist(Before, GetActorLocation()) / DeltaSeconds : 0;
@@ -138,7 +152,11 @@ void AMirmirCat::UpdateAuthoredAnimation()
     // A user-selected AnimBlueprint owns animation completely. Otherwise use
     // authored clips, never procedural leg rotation or a walk cycle at rest.
     if (CatMesh->GetAnimationMode() == EAnimationMode::AnimationBlueprint && CatMesh->GetAnimClass()) return;
-    UAnimSequence* Selected = MovementSpeed > 1.0f ? WalkAnimation.Get() : IdleAnimation.Get();
+    const bool bMoving = MovementSpeed > 1.0f;
+    UAnimSequence* RestAnimation = IdleAnimation.Get() != WalkAnimation.Get() ? IdleAnimation.Get() : nullptr;
+    const bool bHoldAuthoredWalkPose = !bMoving && !RestAnimation && WalkAnimation;
+    UAnimSequence* Selected = bMoving ? WalkAnimation.Get()
+        : (RestAnimation ? RestAnimation : WalkAnimation.Get());
     if (Selected != ActiveSequence.Get() || CatMesh->GetAnimationMode() != EAnimationMode::AnimationSingleNode)
     {
         CatMesh->SetAnimationMode(EAnimationMode::AnimationSingleNode);
@@ -147,13 +165,24 @@ void AMirmirCat::UpdateAuthoredAnimation()
         else
         {
             CatMesh->Stop();
-            CatMesh->SetAnimation(nullptr); // No authored idle: stationary reference pose.
+            CatMesh->SetAnimation(nullptr); // No assigned authored asset at all.
         }
     }
     if (Selected)
     {
-        const float Rate = Selected == WalkAnimation.Get() && MovementSpeed > 1.0f
-            ? FMath::Clamp(MovementSpeed / FMath::Max(1.0f, AuthoredWalkSpeed), 0.1f, 3.0f) : 1.0f;
+        if (bHoldAuthoredWalkPose)
+        {
+            // This is a held existing walk sample, not an idle/sleep/groom clip.
+            // Source joint review found the 1/30 s pose closest to planted paws;
+            // the imported reference pose has a visibly lifted leg.
+            CatMesh->SetPosition(FMath::Min(1.0f / 30.0f, Selected->GetPlayLength()), false);
+            CatMesh->Stop();
+            return;
+        }
+        if (UAnimSingleNodeInstance* Instance = CatMesh->GetSingleNodeInstance())
+            Instance->SetPlaying(true); // Resume from a held phase without restarting.
+        const float Rate = Selected == WalkAnimation.Get() && bMoving
+            ? FMath::Clamp(MovementSpeed / FMath::Max(1.0f, AuthoredWalkSpeed), 0.01f, 3.0f) : 1.0f;
         CatMesh->SetPlayRate(Rate);
     }
 }
@@ -196,6 +225,41 @@ void AMirmirCat::NormalizeMesh()
     CatMesh->SetRelativeLocation(Rotation.RotateVector(Offset));
 }
 
+void AMirmirCat::AssembleAdditionalMeshes()
+{
+    USkeletalMesh* PrimaryMesh = CatMesh->GetSkeletalMeshAsset();
+    if (!PrimaryMesh) return;
+    TSet<USkeletalMesh*> AssignedMeshes;
+    AssignedMeshes.Add(PrimaryMesh);
+    for (USkeletalMesh* DetailMesh : AdditionalSkeletalMeshes)
+    {
+        if (!IsValid(DetailMesh) || AssignedMeshes.Contains(DetailMesh)) continue;
+        AssignedMeshes.Add(DetailMesh);
+        if (DetailMesh->GetSkeleton() != PrimaryMesh->GetSkeleton())
+        {
+            UE_LOG(LogTemp, Warning, TEXT("Mirmir: skipping detail mesh %s because its skeleton differs from the primary cat mesh."),
+                *GetNameSafe(DetailMesh));
+            continue;
+        }
+        USkeletalMeshComponent* Detail = NewObject<USkeletalMeshComponent>(this);
+        AddInstanceComponent(Detail);
+        Detail->SetupAttachment(CatMesh);
+        Detail->SetRelativeTransform(FTransform::Identity);
+        Detail->SetSkeletalMesh(DetailMesh);
+        Detail->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+        Detail->SetCollisionResponseToAllChannels(ECR_Ignore);
+        Detail->SetGenerateOverlapEvents(false);
+        Detail->SetCanEverAffectNavigation(false);
+        Detail->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::AlwaysTickPoseAndRefreshBones;
+        Detail->bUseBoundsFromLeaderPoseComponent = true;
+        // Reuse the primary mesh's authored bone pose, with no separate
+        // animation evaluation or independent normalization on the details.
+        Detail->SetLeaderPoseComponent(CatMesh, true, false);
+        Detail->RegisterComponent();
+        AdditionalMeshComponents.Add(Detail);
+    }
+}
+
 void AMirmirCat::RefreshState()
 {
     const Mirmir::State& State = Behavior.Get();
@@ -208,6 +272,7 @@ void AMirmirCat::RefreshState()
     if (Activity != Previous)
     {
         if (IsValid(ActiveSound)) ActiveSound->Stop();
+        bPurring = false;
         WanderTarget = GetActorLocation();
         OnActivityChanged(Previous, Activity);
         if (Activity == EMirmirActivity::SeekAttention) Meow();
@@ -220,8 +285,19 @@ bool AMirmirCat::Interact(Mirmir::Interaction Action, FName Name, USoundBase* So
     RefreshState();
     if (Accepted)
     {
-        if (IsValid(ActiveSound)) ActiveSound->Stop();
-        if (!bMuted && Sound) ActiveSound = UGameplayStatics::SpawnSoundAtLocation(this, Sound, GetActorLocation());
+        const bool ContinuePurr = Action == Mirmir::Interaction::Pet && bPurring &&
+            IsValid(ActiveSound) && ActiveSound->IsPlaying();
+        if (!ContinuePurr)
+        {
+            if (IsValid(ActiveSound)) ActiveSound->Stop();
+            bPurring = false;
+            if (!bMuted && Sound)
+            {
+                ActiveSound = UGameplayStatics::SpawnSoundAtLocation(this, Sound, GetActorLocation(),
+                    FRotator::ZeroRotator, FMath::Clamp(SoundVolume, 0.0f, 1.0f));
+                bPurring = Action == Mirmir::Interaction::Pet && IsValid(ActiveSound);
+            }
+        }
         OnInteractionAccepted(Name);
     }
     return Accepted;
@@ -234,11 +310,14 @@ void AMirmirCat::ToggleMute()
 {
     bMuted = !bMuted;
     if (bMuted && IsValid(ActiveSound)) ActiveSound->Stop();
+    if (bMuted) bPurring = false;
 }
 void AMirmirCat::Meow()
 {
     if (bMuted || !MeowSound || VoiceCooldown > 0 || (IsValid(ActiveSound) && ActiveSound->IsPlaying())) return;
-    ActiveSound = UGameplayStatics::SpawnSoundAtLocation(this, MeowSound, GetActorLocation());
+    ActiveSound = UGameplayStatics::SpawnSoundAtLocation(this, MeowSound, GetActorLocation(),
+        FRotator::ZeroRotator, FMath::Clamp(SoundVolume, 0.0f, 1.0f));
+    bPurring = false;
     VoiceCooldown = 30.0f;
 }
 void AMirmirCat::Rest()

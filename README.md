@@ -1,78 +1,70 @@
 # Mırmır — Unreal Engine masaüstü kedisi
 
-Ana ürün **Unreal Engine 5.8** ile geliştiriliyor. Kullanıcının çok gerçekçi
-görünüm ve doğal yürüyüş hedefi geçerlidir. Resmî 5.8.4 Linux motor indirmesi
-başlatıldı; motor kurulup UE modülü derlenene kadar Unreal çalıştırıldı denmez.
+Unreal Engine **5.8.4** kuruldu; proje derlendi, animasyonlu kedi ve gerçek
+miyavlama/mırlama kayıtları içe aktarıldı. Gerçek Unreal RGBA görüntüsü,
+şeffaf yerel masaüstü penceresinde çalıştırıldı. Bu ilk çalışan Unreal
+sürümüdür; fotogerçekçi kürk ve kapsamlı davranış animasyonları henüz yoktur.
 
-İlk Godot masaüstü deneyi kapatıldı. Kullanıcı yürüyüşte sorun bildirdi;
-prosedürel bacak hareketi ürün kabulünü geçmedi. Godot sürümü ana ürün veya
-Unreal üzerinde alınmış bir sonuç olarak sunulmaz. [Güncel durum](docs/current-status.md).
-
-## Unreal kaynakları
-
-Proje: [Mirmir.uproject](unreal/Mirmir/Mirmir.uproject).
+## Çalıştırma
 
 ```bash
-export MIRMIR_UE_ROOT=/absolute/path/to/UnrealEngine
-./unreal/Mirmir/scripts/build.sh
+./run.sh
+./run.sh --stop
+```
+
+Başlatıcı hazır Linux Shipping paketini kullanır; editör açılmaz. Paket
+bulunamazsa yerel motorun oyun kipini kullanır. Kurulu yol bilgileri
+`.local/engine.json`, `.local/preview.json` ve `.local/package.json` içindedir.
+Uygulama menüsünde **Mırmır — Masaüstü Kedisi** başlatıcısı kurulabilir:
+
+```bash
+./scripts/install-launcher.sh
+```
+
+- Kediyi tıklayarak veya sol tuş basılı üzerinde gezdirerek sev.
+- Sağ tık / sistem tepsisi menüsü: mama, oyun, dinlenme, ses ve kapat.
+- **Shift + sürükle:** kedinin masaüstündeki başlangıç yerini taşı.
+- Kedi klavye odağı istemez; boş saydam alan pencere maskesinden çıkarılır.
+
+Kayıtlar `~/.local/share/mirmir/unreal/`, günlükler ve canlı kareler
+`~/.local/state/mirmir/unreal/` altında tutulur; XDG değişkenleri desteklenir.
+Diğer uygulamaların görüntüsü/dosyaları veya mikrofon okunmaz. Oturum ve KWin
+ayarları değiştirilmez; oturum açılışında otomatik başlatma kurulmadı.
+
+## Mevcut sınırlar
+
+Modelde sanatçının hazırladığı gerçek yürüyüş vardır. Animasyon hızı gerçek
+ilerleme hızına bağlanır; dönüşte hareket bakış yönünü izler. Eksik bekleme
+klibi için yürüyüşün düşük pati yüksekliği olan bir pozu tutulur. Bu, uyuma,
+oturma veya temizlenme animasyonu değildir. Yerinde dönüş ve duruş geçişleri
+hâlâ görsel geliştirme ister. Pati tabanı IK kilidi ve Groom uygulanmadı.
+
+Kişisel kullanım modeli **CC BY-NC 4.0** lisanslıdır; kaynaklar ve değişiklikler
+[lisans dosyasında](ASSET-LICENSES.md) kayıtlıdır. Sesler CC0 kayıtlardır.
+[Güncel durum](docs/current-status.md) ve
+[gerçek Unreal hareket ölçümü](docs/unreal-motion-verification.json) kanıtı
+ve sınırları ayrı tutar.
+
+## Geliştirme ve doğrulama
+
+```bash
 ./run.sh --editor
-```
-
-Masaüstü başlatma: `./run.sh`; normal pencere oyun önizlemesi: `./run.sh --preview`.
-Masaüstü katmanı gerçek Unreal RGBA çıktısını yerel Qt penceresinde gösterir;
-motor/kare yoksa kedi göstermez. Godot'a geçmez. Unreal kurulumu, varlık içe aktarma,
-Animation Blueprint ve masaüstü katmanı için [Unreal belgesine](unreal/Mirmir/README.md) bakın.
-
-Şu anda kaynaklarda ihtiyaç/aktivite çekirdeği, etkileşimler, XDG kayıtları,
-Blueprint/animasyon bağlantı noktaları ve lisanslı kaynaklar için editör
-import yardımcısı vardır. Bunlar derlenmiş, doğal yürüyen veya fotogerçekçi
-bir Unreal kedi sürümü değildir. Varsayılan kaynak başlangıcı için varlıkların
-atanması gerekir. Groom ve gerçek Unreal masaüstü entegrasyon testi bekliyor.
-
-Motor için [resmî Linux sayfasından](https://www.unrealengine.com/en-US/linux)
-kararlı 5.8 Linux hazır ZIP'i kullanılacak. Eski 5.0–5.2 clang araçseti
-tablosu motor indirmesi değildir. Hesap girişi kullanıcıya aittir.
-
-## Yürüyüş kabulü
-
-Yeni varlıkta “animated” etiketi yeterli değildir. Gerçek yürüyüş klibi,
-başlangıç/bitiş döngüsü, dört bacak fazları, pati basışı, kök hareketi ve
-gövdenin hızı birlikte incelenecek. Hareket hızı kliple eşleşecek; gerekirse
-ayak sabitleme/IK uygulanacak. Bağımsız baş, kulak ve göz animasyonları ayrıca
-doğrulanacak. Varlık değerlendirmeleri kaynak ve lisanslarıyla kaydedilir;
-ücretli satın alma yapılmadı.
-
-## Otomatik kontroller
-
-```bash
+./run.sh --preview
+./unreal/Mirmir/scripts/build.sh -MaxParallelActions=2
+./unreal/Mirmir/scripts/test-engine.sh
 ./scripts/check.sh
+./unreal/Mirmir/scripts/package-game.sh
 ```
 
-Bu komut motor bağımsız Unreal C++ çekirdeğini Clang/ASan/UBSan ile, yerel
-masaüstü katmanının alpha/CRC/DPI testlerini, kaynak varlık hash'lerini ve
-betik sözdizimini denetler. Arşiv Godot testleri yalnız `--include-lab` ile
-eklenir. UE/UHT derlemesini, gerçek animasyon kalitesini veya Unreal masaüstü
-davranışını doğrulamaz.
+`check.sh`: C++ çekirdeği ASan/UBSan, yerel kabuk alpha/CRC/DPI/tek örnek
+kontrolleri, varlık hash'leri ve betik sözdizimi. `test-engine.sh`: gerçek
+Unreal otomasyon testleri. Hiçbiri tek başına fotogerçekçiliği veya kullanıcı
+beğenisini kanıtlamaz. Ayrıntılar [Unreal](unreal/Mirmir/README.md) ve
+[yerel kabuk](native-shell/README.md) belgelerinde.
 
-## Arşiv Godot deneyi
-
-`desktop-lab/` şeffaflık, XWayland giriş şekli, ses ve kayıt için bir
-fizibilite çalışmasıdır. Otomatik başlatılmaz ve varsayılan başlatıcı değildir.
-Yalnızca açık istekle teknik inceleme için:
-
-```bash
-./run.sh --lab
-./run.sh --stop-lab
-```
-
-Eski veriler `${XDG_DATA_HOME:-~/.local/share}/mirmir/` altında korunur.
-Unreal verileri ayrı `mirmir/unreal/` dizinindedir; iki kayıt biçimi arasında
-parite veya göç doğrulanmadı. Deneyin [masaüstü ölçümleri](docs/desktop-verification.md)
-geçmiş kanıttır. Bunlar kullanıcının yürüyüş kusuru bildirimini geçersiz kılmaz.
-
-Diğer uygulamaların görüntüsü/dosyaları okunmaz; mikrofon açılmaz. Deneyde
-yalnızca kendi çizilmiş görüntüsünden giriş poligonu hesaplanmıştır.
+İlk Godot fizibilite deneyi arşivdir; varsayılan ürün değildir ve kapalıdır.
+Eski kayıtları korunur. Yalnız açık `./run.sh --lab` seçeneğiyle çalışır;
+`./run.sh --stop-lab` kapatır. Geçmiş Godot ölçümleri Unreal kanıtı sayılmaz.
 
 [Tasarım](docs/superpowers/specs/2026-10-27-mirmir-design.md) ·
-[Uygulama planı](docs/implementation-plan.md) ·
-[Model ve ses kaynakları / lisanslar](ASSET-LICENSES.md)
+[Uygulama planı](docs/implementation-plan.md)

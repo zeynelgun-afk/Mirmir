@@ -1,59 +1,75 @@
-# Güncel yön ve açık işler — 2026-10-27
+# Güncel durum — 2026-10-27
 
-Kullanıcı, Unreal seçimine rağmen Godot prototipinin masaüstüne konmasını
-eleştirdi ve yürüyüşte problem gözledi. Bu gerçek kullanıcı bildirimi,
-otomatik durum ve pencere testlerinden daha yüksek önceliklidir.
+Ana ürün Unreal Engine **5.8.4** kullanıyor. Kullanıcının gerçekçilik ve doğal
+yürüyüş hedefi sürüyor. İlk Godot prototipi kapalıdır; kullanıcı tarafından
+bildirilen yürüyüş kusuru geçmiş otomatik pencere testleriyle geçersiz sayılmaz.
 
-## Karar
+## Tamamlanan ve gerçek çalıştırmayla doğrulananlar
 
-- Ana geliştirme yalnızca Unreal Engine 5.8 üzerinden sürecek.
-- Godot masaüstü deneyi kapatıldı. Otomatik başlatma kurulmadı; uygulama
-  menüsündeki eski Godot başlatıcısı devre dışı bırakıldı.
-- Kök `run.sh` artık Unreal çalıştırır. Eski deney yalnızca açık `--lab`
-  seçeneğiyle açılır. Kullanıcı kaydı korunur.
-- Önceki Godot ölçümleri Unreal'ın çalıştığını veya yürüyüşün doğal olduğunu
-  kanıtlamaz. Bu ölçümler geçmiş laboratuvar kanıtları olarak korunur.
+- Resmî `Linux_Unreal_Engine_5.8.4.zip` indirmesi tamamlandı; ZIP CRC kontrolüyle
+  `/home/zeynel/Applications/UnrealEngine-5.8.4` altına kuruldu.
+- Paket içindeki v26 Clang 20.1.8 araçsetiyle gerçek UE/UHT C++ derlemesi geçti.
+  İndirilen eski v20 Clang13 arşivi motor değildir, kurulmadı ve korundu.
+- Gerçek iskelet, dört mesh parçası, 0.8 saniyelik yürüyüş döngüsü ve CC0
+  miyavlama/mırlama kayıtları Unreal'a aktarıldı. Blueprint ve önizleme haritası
+  editör API'siyle oluşturulup kaydedildi.
+- Unreal otomasyonunda iki davranış testi başarılı; Linux süreç çıkışı0.
+  C++ çekirdeği ASan/UBSan ve yerel kabuk/hash kontrolleri başarılı.
+- Gerçek Vulkan/Unreal sahne yakalamasında alpha0–255 kedi kareleri alındı.
+  Qt/XWayland kabuğu bunları gerçek motora ait PID, oturum, sıra, boyut ve CRC
+  eşleşmesiyle canlı masaüstünde gösterdi. Godot veya sabit resim yedeği yoktur.
+- Yaklaşık21 saniyelik gerçek örneklemede 307 kare / 14.61FPS; sevme, oyun,
+  dinlenme, mama ve sessize alma komutları motor durumunda gözlendi.
+- Yerel X11 pencere incelemesinde kedi biçimli bounding maskesi ve klavye odağı
+  istemeyen pencere doğrulandı; aktif pencere kimliği açılış boyunca değişmedi.
+  Gerçek kullanıcı tıklama deneyimi ayrıca kullanıcı gözlemine açıktır.
+- Shipping build/cook/stage/pak/package/archive aşamaları geçti. Son sürümde
+  yavaş dönüş animasyon alt sınırı ve Shipping kare sınırı düzeltmeleri bulunur.
+  Son bağımsız runtime/ses doğrulaması `unreal-runtime-verification.json` içinde kayıtlıdır.
 
-## Yürüyüş kusuru
+## Yürüyüş
 
-Fripouille modelinin orijinal GLB'sinde yürüyüş klibi yoktu. Laboratuvarda
-kullanılan küçük prosedürel bacak dönüşleri, basış fazını ve gövdenin
-masaüstünde ilerleyişini eşleştirmiyordu. Pati sabitleme/IK ve sanatçı tarafından
-hazırlanmış gerçek hareket bulunmadığından yürüyüş ürün kabulünü geçmedi.
+Kaynak veride düşük yükseklikli pati kemiği örnekleri yaklaşık68cm/s adım
+referansı verdi. Gerçek UE ölçümünde düz ilerleme bakış yönüyle eşleşiyor;
+123 düşük yükseklikli distal kemik aralığında artık hareketin medyanı2.06cm/s,
+p95'i17.08cm/s. Bu sonuç pati tabanı kilidi veya sıfır kayma anlamına gelmez.
+Ölçüm ve yöntem `unreal-motion-verification.json` içinde kayıtlıdır.
 
-Yalnızca motoru değiştirmek bu kusuru çözmez. Yeni Unreal diliminde gerçek
-animasyonlu varlık; döngü, hız, kök hareketi, ayak teması ve dört bacak
-fazlarıyla birlikte doğrulanacak. İlk teknik incelemede gerçek animasyon
-kanalları bulunması, görüntünün doğal olduğunu tek başına kanıtlamaz.
+Doğrulamada eski0.1 animasyon hız alt sınırının çok yavaş dönüşleri zorladığı
+bulundu;0.01'e indirildi. Hareket gerçek bakış yönünde ve dönüşte yavaşlayarak
+ilerler. Gösterim ve masaüstü hareketi aynı ortografik piksel/cm ölçeğini kullanır.
 
-Kişisel kullanım için LostBoyz2078'in CC BY-NC 4.0 lisanslı “Cat Walk” modeli
-`assets/personal-use/cat-walk.glb` olarak hazırlandı. Gerçek 24 karelik yürüyüş
-döngüsü dokuz fazda bir varlık görüntüleyicisinde incelendi. Bu Unreal
-oynatımı veya son görsel kalite kabulü değildir. Siyah/beyaz kısa tüylü
-modelde Groom, bağımsız koşma ve oturma klibi yoktur. Unreal importu, oyun
-hızıyla adım eşleştirmesi ve nihai gerçekçilik henüz bekliyor.
+Eksik bekleme klibi için mevcut yürüyüşün1/30 saniyedeki pozu tutulur. Yerinde
+pivottaki tutulan poz, duruş geçişleri ve klibin kısa döngü sınırı görsel
+cilalama ister. Ayrı oturma, uyuma, temizlenme veya koşma klipleri yoktur.
+Groom/fotogerçekçi kürk ve pati sabitleme/IK henüz uygulanmadı.
 
-## Motor erişimi
+## Ses ve ürün sınırları
 
-Kurulu Unreal başlangıçta bulunamadı. Hesap erişimi daha sonra açıldı ve
-resmî Linux sayfasından `Linux_Unreal_Engine_5.8.4.zip` (37.08 GB, 20 Ekim
-2026) indirmesi başlatıldı. Kullanıcının indirdiği
-`native-linux-v20_clang-13.0.1-centos7.tar.gz` arşivi incelendi: eski clang
-araçsetidir, motor değildir; kurulmadı ve kullanılmadı. Linux sayfasındaki
-gereksinim bağlantısının `application_version=5.0` belgesine gitmesi bu
-karışıklığa katkıda bulunuyor.
+Offscreen Unreal varsayılan SDL dummy ses çıkışı ve odağı kaybedince sessize
+alma davranışı tespit edildi. Yalnız uygulamanın alt sürecine gerçek PulseAudio
+sürücüsü seçilir; proje arka plan ses çarpanı1'dir. Son pakette yalnız kendi PulseAudio çıkış akışı ölçüldü: RMS0.01137, tepe0.09781.
+Mikrofon veya diğer uygulamaların sesi alınmadı; fiziksel hoparlörde duyma
+kullanıcı tarafından ayrıca değerlendirilebilir.
 
-İndirme izleyicisi, yalnız tamamlanmış doğru ZIP göründüğünde kullanıcı
-dizinine çıkarma, uyumlu araçseti, C++ derlemesi ve varlık/preview hazırlığı
-aşamalarını başlatır. Sonuçlar `~/.local/state/mirmir/unreal/preparation.json`
-ve aşama günlüklerinde tutulur. İndirme/kurulum tamamlanana kadar motor
-çalıştı veya yürüyüş düzeldi denmez.
+Bu çalışan ilk Unreal dilimidir. Nihai fotogerçekçilik, kapsamlı oyun içeriği
+ve kullanıcı tarafından doğal yürüyüş kabulü tamamlandı diye sunulmaz. Model
+kişisel/ticari olmayan kullanım için CC BY-NC4.0; sesler CC0 lisanslıdır.
+Kullanıcı verileri korunur; otomatik oturum başlangıcı kurulmadı.
 
-Unreal sahne yakalamasıyla yalnız kedinin kendi RGBA karesini üreten bir
-aktarış katmanı ve bu gerçek görüntüyü şeffaf Qt penceresinde gösteren yerel
-kabuk hazırlandı. 3B model ve animasyonlar Unreal'a aittir; Godot yedeği
-yoktur. Şu an bu kaynakların gerçek motorla derlenip çizildiği doğrulanmadı.
+## Bağımsız sürüm son kontrolü
 
-Motor erişimi sonrası sıra: arşivi açma → uyumlu SDK/derleme → UE projesini
-açma → animasyonlu kediyi içe aktarma → gerçek yürüyüş kabulü → Unreal
-masaüstü katmanı → kürk ve görsel cilalama. Bunlar henüz tamamlanmadı.
+Final Shipping örneğinde 26 saniyede381 kare, 14.63FPS gözlendi; motor kare
+sınırı15 olarak doğrulandı. On yavaş hareket örneği dahil animasyon
+hızının gerçek hız/68 oranından en büyük farkı2.81e-8 oldu. Dururken yürüyüş
+oynatımı kapalıdır. Kısa başlangıç örneğinde yaklaşık440MiB RSS ve tek
+çekirdeğe göre%66 CPU görüldü; uzun süreli enerji ölçümü yapılmadı.
+
+İlk Shipping koşusunda Mesa ACO shader ön hazırlık havuzunda çöktü. Yalnız
+projenin PSO ön hazırlığı kapatıldı; gerçek çizilen kedi için gereken
+pipeline'lar çalışıyor. Sistem sürücüleri ve oturum ayarları değiştirilmedi.
+
+Normal kapatma, kaydetme ve tekrar açma gerçek paketle sınandı: bağ değeri
+aynı kaldı, son kapanışta bekleyen komut sayısı0 oldu. İki kez gönderilen
+kapat komutunun sonraki açılışı bitirmesi giderildi. Uygulama menüsü kuruldu
+ve gerçek Shipping sürümü kullanıcının mevcut masaüstünde açık bırakıldı.

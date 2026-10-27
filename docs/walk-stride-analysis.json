@@ -1,0 +1,970 @@
+{
+  "method": "World-space glTF TRS hierarchy evaluation of authored keys; constant forward actor speed cancels backward foot velocity during low-height stance proxies.",
+  "source_file": "assets/provenance/cat-walk-personal/original/scene.gltf",
+  "source_gltf_sha256": "5cf868003b816af9a01ad36aab946245b429049be5600c32d8792a6283f2b772",
+  "source_binary_sha256": "4ac3c5e51c615b19263c2dfe9c55ba784d82620106d044fa5ee519afb419e7e4",
+  "animation_name": "GltfAnimation 0",
+  "key_samples": 24,
+  "duration_s": 0.7666666507720947,
+  "key_rate_hz": 30.00000178813945,
+  "target_full_model_body_length_cm": 70.0,
+  "source_full_model_longitudinal_aabb_units": 69.0270767211914,
+  "scale_cm_per_source_unit": 1.014094806343,
+  "gltf_world_up_axis": "+Y",
+  "forward_axis_world": [
+    0.0013650767754780724,
+    0.0,
+    0.9999990682822644
+  ],
+  "contact_rule": "Interior keys only; distal proxy height <= per-paw minimum + max(0.35 cm, 20% vertical excursion); backward horizontal velocity >1 cm/s. No sole-surface inference.",
+  "per_paw": {
+    "front_left": {
+      "distal_contact_proxy_bones": [
+        "cat_bip-L-Finger01_34",
+        "cat_bip-L-Finger11_36"
+      ],
+      "requested_wrist_or_hock_bone": "cat_bip-L-Hand_32",
+      "height_range_cm": [
+        0.608279911435235,
+        4.108131039738399
+      ],
+      "contact_height_max_cm": 1.308250137095868,
+      "contact_key_indices": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22
+      ],
+      "contact_sample_count": 12,
+      "stance_backward_speed_median_cm_s": 67.71185666040634,
+      "stance_backward_speed_range_cm_s": [
+        38.061968377118546,
+        98.88222225124878
+      ],
+      "same_phase_wrist_or_hock_backward_speed_median_cm_s": 51.182770149894566,
+      "forward_excursion_cm": 35.673991779790896,
+      "loop_endpoint_contact_proxy_distance_cm": 2.342045656659156
+    },
+    "front_right": {
+      "distal_contact_proxy_bones": [
+        "cat_bip-R-Finger01_42",
+        "cat_bip-R-Finger11_44"
+      ],
+      "requested_wrist_or_hock_bone": "cat_bip-R-Hand_40",
+      "height_range_cm": [
+        0.6095791696267482,
+        4.0777098106787
+      ],
+      "contact_height_max_cm": 1.3032052978371387,
+      "contact_key_indices": [
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18
+      ],
+      "contact_sample_count": 15,
+      "stance_backward_speed_median_cm_s": 67.53015647218177,
+      "stance_backward_speed_range_cm_s": [
+        39.85865964389711,
+        88.06911857312909
+      ],
+      "same_phase_wrist_or_hock_backward_speed_median_cm_s": 50.178700356911975,
+      "forward_excursion_cm": 34.74553072786706,
+      "loop_endpoint_contact_proxy_distance_cm": 8.841142416133604
+    },
+    "hind_left": {
+      "distal_contact_proxy_bones": [
+        "cat_bip-L-Toe01_49"
+      ],
+      "requested_wrist_or_hock_bone": "cat_bip-L-Foot_47",
+      "height_range_cm": [
+        0.3592816982707173,
+        5.362193503005483
+      ],
+      "contact_height_max_cm": 1.3598640592176707,
+      "contact_key_indices": [
+        1,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22
+      ],
+      "contact_sample_count": 12,
+      "stance_backward_speed_median_cm_s": 68.23584228665055,
+      "stance_backward_speed_range_cm_s": [
+        45.327480397605,
+        107.879052341842
+      ],
+      "same_phase_wrist_or_hock_backward_speed_median_cm_s": 44.3229234813129,
+      "forward_excursion_cm": 36.193552416257816,
+      "loop_endpoint_contact_proxy_distance_cm": 2.3217274645221884
+    },
+    "hind_right": {
+      "distal_contact_proxy_bones": [
+        "cat_bip-R-Toe01_54"
+      ],
+      "requested_wrist_or_hock_bone": "cat_bip-R-Foot_52",
+      "height_range_cm": [
+        0.6544498838555041,
+        5.508288774204636
+      ],
+      "contact_height_max_cm": 1.6252176619253305,
+      "contact_key_indices": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13
+      ],
+      "contact_sample_count": 13,
+      "stance_backward_speed_median_cm_s": 66.23289987461342,
+      "stance_backward_speed_range_cm_s": [
+        61.844620718102775,
+        126.05465174578285
+      ],
+      "same_phase_wrist_or_hock_backward_speed_median_cm_s": 42.858070298287515,
+      "forward_excursion_cm": 34.98598990503962,
+      "loop_endpoint_contact_proxy_distance_cm": 2.0785578312252477
+    }
+  },
+  "pooled_contact_samples": 52,
+  "estimated_speed_median_cm_s": 67.64339117753221,
+  "candidate_authored_walk_speed_cm_s": 68.0,
+  "candidate_rounded_to_five_cm_s": 70.0,
+  "sample_count_divided_by_rate_loop_period_s": 0.7999999523162842,
+  "stance_speed_percentiles_cm_s": {
+    "10": 63.72748782615904,
+    "25": 66.1998949239615,
+    "50": 67.64339117753221,
+    "75": 68.58714271667357,
+    "90": 81.28524200987758
+  },
+  "contact_height_sensitivity_median_cm_s": {
+    "0.1": 67.64339117753221,
+    "0.2": 67.64339117753221,
+    "0.3": 67.64339117753221
+  },
+  "previous_guess_cm_s": 35.0,
+  "previous_guess_ratio_to_estimated_speed": 0.5174193574674782,
+  "stride_distance_at_estimated_speed_cm": 51.85993216094528,
+  "uncertainty": [
+    "Bone tips approximate contact points, not paw pads or a solved contact plane.",
+    "Different paws and contact-window definitions imply different speeds; the median is a calibration start, not a biomechanical guarantee.",
+    "Scale depends on a 70 cm full longitudinal AABB including tail; recalibrate if import applies a different scale or orientation.",
+    "The last authored key is not a duplicate first key; inspect final-to-first interpolation in the importer. A 24-key 30 Hz full period may be 0.8 s although the key span is 0.7667 s.",
+    "No game-world floor contact, Unreal importer scale/root-motion handling, or actual Unreal playback has been verified.",
+    "No claim that the walking complaint is fixed; verify side-on contact and scene displacement in Unreal."
+  ],
+  "samples": {
+    "front_left": [
+      {
+        "time_s": 0.0,
+        "forward_cm": 31.292750415568342,
+        "height_cm": 0.6931397732917683,
+        "forward_velocity_cm_s": -65.81315895844328,
+        "vertical_velocity_cm_s": -0.674367438987662,
+        "contact": false
+      },
+      {
+        "time_s": 0.03333333507180214,
+        "forward_cm": 29.098978335872776,
+        "height_cm": 0.6706608574864795,
+        "forward_velocity_cm_s": -65.8071773359888,
+        "vertical_velocity_cm_s": 0.25770846511446166,
+        "contact": true
+      },
+      {
+        "time_s": 0.06666667014360428,
+        "forward_cm": 26.905605031028305,
+        "height_cm": 0.7103203385287686,
+        "forward_velocity_cm_s": -66.54388156690982,
+        "vertical_velocity_cm_s": 0.10853347174880845,
+        "contact": true
+      },
+      {
+        "time_s": 0.10000000149011612,
+        "forward_cm": 24.662719586805245,
+        "height_cm": 0.6778964302987254,
+        "forward_velocity_cm_s": -68.14319567729285,
+        "vertical_velocity_cm_s": -0.7983386371718453,
+        "contact": true
+      },
+      {
+        "time_s": 0.13333334028720856,
+        "forward_cm": 22.362725069514383,
+        "height_cm": 0.6570977625399835,
+        "forward_velocity_cm_s": -82.21514329165035,
+        "vertical_velocity_cm_s": -0.1545162415075989,
+        "contact": true
+      },
+      {
+        "time_s": 0.1666666716337204,
+        "forward_cm": 19.18170994509521,
+        "height_cm": 0.6675953399990535,
+        "forward_velocity_cm_s": -98.88222225124878,
+        "vertical_velocity_cm_s": 15.130169898704242,
+        "contact": true
+      },
+      {
+        "time_s": 0.20000000298023224,
+        "forward_cm": 15.77057731235378,
+        "height_cm": 1.6657756956650396,
+        "forward_velocity_cm_s": -73.25922765608703,
+        "vertical_velocity_cm_s": 35.279877005842096,
+        "contact": false
+      },
+      {
+        "time_s": 0.23333333432674408,
+        "forward_cm": 14.297761725795425,
+        "height_cm": 3.0195870001988907,
+        "forward_velocity_cm_s": -19.382408127606766,
+        "vertical_velocity_cm_s": 32.92338562190875,
+        "contact": false
+      },
+      {
+        "time_s": 0.2666666805744171,
+        "forward_cm": 14.478417297870926,
+        "height_cm": 3.8606682010214524,
+        "forward_velocity_cm_s": 27.565391625572175,
+        "vertical_velocity_cm_s": 16.32815393618062,
+        "contact": false
+      },
+      {
+        "time_s": 0.30000001192092896,
+        "forward_cm": 16.135454142060954,
+        "height_cm": 4.108131039738399,
+        "forward_velocity_cm_s": 85.84331035404944,
+        "vertical_velocity_cm_s": -7.0963835884856294,
+        "contact": false
+      },
+      {
+        "time_s": 0.3333333432674408,
+        "forward_cm": 20.201304313696888,
+        "height_cm": 3.387575989987572,
+        "forward_velocity_cm_s": 185.3530475588142,
+        "vertical_velocity_cm_s": -24.60128542486899,
+        "contact": false
+      },
+      {
+        "time_s": 0.36666667461395264,
+        "forward_cm": 28.492323242788398,
+        "height_cm": 2.4680454425038585,
+        "forward_velocity_cm_s": 248.02507425832613,
+        "vertical_velocity_cm_s": -0.5282094152366312,
+        "contact": false
+      },
+      {
+        "time_s": 0.4000000059604645,
+        "forward_cm": 36.73630827868887,
+        "height_cm": 3.3523620310707125,
+        "forward_velocity_cm_s": 230.11287838616994,
+        "vertical_velocity_cm_s": -0.5060350892352687,
+        "contact": false
+      },
+      {
+        "time_s": 0.4333333373069763,
+        "forward_cm": 43.83318088747997,
+        "height_cm": 2.434309771898977,
+        "forward_velocity_cm_s": 180.04782107568292,
+        "vertical_velocity_cm_s": -6.921187752152257,
+        "contact": false
+      },
+      {
+        "time_s": 0.46666666865348816,
+        "forward_cm": 48.7394956349553,
+        "height_cm": 2.890949541762891,
+        "forward_velocity_cm_s": 92.07859475990722,
+        "vertical_velocity_cm_s": -3.7116724383148636,
+        "contact": false
+      },
+      {
+        "time_s": 0.5,
+        "forward_cm": 49.97175350558632,
+        "height_cm": 2.186864957426847,
+        "forward_velocity_cm_s": 9.483913134817385,
+        "vertical_velocity_cm_s": -28.878557445280563,
+        "contact": false
+      },
+      {
+        "time_s": 0.5333333611488342,
+        "forward_cm": 49.37175511740238,
+        "height_cm": 0.9657111705542418,
+        "forward_velocity_cm_s": -38.061968377118546,
+        "vertical_velocity_cm_s": -22.228878065788763,
+        "contact": true
+      },
+      {
+        "time_s": 0.5666666626930237,
+        "forward_cm": 47.434291489934836,
+        "height_cm": 0.7049381240782354,
+        "forward_velocity_cm_s": -67.00109833329941,
+        "vertical_velocity_cm_s": -1.3519456972696808,
+        "contact": true
+      },
+      {
+        "time_s": 0.6000000238418579,
+        "forward_cm": 44.9050144365164,
+        "height_cm": 0.8755822342092604,
+        "forward_velocity_cm_s": -71.42337826970356,
+        "vertical_velocity_cm_s": 2.3063884116260294,
+        "contact": true
+      },
+      {
+        "time_s": 0.6333333253860474,
+        "forward_cm": 42.672732691370854,
+        "height_cm": 0.8586976776823676,
+        "forward_velocity_cm_s": -67.5050612095863,
+        "vertical_velocity_cm_s": -1.1475537242463734,
+        "contact": true
+      },
+      {
+        "time_s": 0.6666666865348816,
+        "forward_cm": 40.40467722682379,
+        "height_cm": 0.799078580737609,
+        "forward_velocity_cm_s": -67.80514938246677,
+        "vertical_velocity_cm_s": -1.9817425623671845,
+        "contact": true
+      },
+      {
+        "time_s": 0.699999988079071,
+        "forward_cm": 38.152389640451915,
+        "height_cm": 0.7265815377604007,
+        "forward_velocity_cm_s": -67.61856393834591,
+        "vertical_velocity_cm_s": -1.9626224441922346,
+        "contact": true
+      },
+      {
+        "time_s": 0.7333333492279053,
+        "forward_cm": 35.89677322701423,
+        "height_cm": 0.6682371175639598,
+        "forward_velocity_cm_s": -67.87473938311763,
+        "vertical_velocity_cm_s": -1.7745245439085195,
+        "contact": true
+      },
+      {
+        "time_s": 0.7666666507720947,
+        "forward_cm": 33.62740730921399,
+        "height_cm": 0.608279911435235,
+        "forward_velocity_cm_s": -68.08104246114873,
+        "vertical_velocity_cm_s": -1.7987178992528068,
+        "contact": false
+      }
+    ],
+    "front_right": [
+      {
+        "time_s": 0.0,
+        "forward_cm": 37.00150574415259,
+        "height_cm": 3.1299213134910993,
+        "forward_velocity_cm_s": 174.36848394211415,
+        "vertical_velocity_cm_s": -49.44539635555211,
+        "contact": false
+      },
+      {
+        "time_s": 0.03333333507180214,
+        "forward_cm": 42.81378884535723,
+        "height_cm": 1.4817413490134164,
+        "forward_velocity_cm_s": 176.8786517242943,
+        "vertical_velocity_cm_s": -7.417065143207971,
+        "contact": false
+      },
+      {
+        "time_s": 0.06666667014360428,
+        "forward_cm": 48.793416474101576,
+        "height_cm": 2.6354502781552287,
+        "forward_velocity_cm_s": 106.4800782869745,
+        "vertical_velocity_cm_s": 7.529216955243335,
+        "contact": false
+      },
+      {
+        "time_s": 0.10000000149011612,
+        "forward_cm": 49.91246124792334,
+        "height_cm": 1.9836893459367158,
+        "forward_velocity_cm_s": 6.3984572771037165,
+        "vertical_velocity_cm_s": -27.358797253037864,
+        "contact": false
+      },
+      {
+        "time_s": 0.13333334028720856,
+        "forward_cm": 49.219979909914564,
+        "height_cm": 0.8115302498432045,
+        "forward_velocity_cm_s": -39.85865964389711,
+        "vertical_velocity_cm_s": -20.61164831679311,
+        "contact": true
+      },
+      {
+        "time_s": 0.1666666716337204,
+        "forward_cm": 47.25521741745451,
+        "height_cm": 0.6095791696267482,
+        "forward_velocity_cm_s": -67.46651540632445,
+        "vertical_velocity_cm_s": 0.21667097469320318,
+        "contact": true
+      },
+      {
+        "time_s": 0.20000000298023224,
+        "forward_cm": 44.72221248424744,
+        "height_cm": 0.825974980628445,
+        "forward_velocity_cm_s": -71.80451432572715,
+        "vertical_velocity_cm_s": 3.005437929670702,
+        "contact": true
+      },
+      {
+        "time_s": 0.23333333432674408,
+        "forward_cm": 42.46825008106487,
+        "height_cm": 0.8099416863289243,
+        "forward_velocity_cm_s": -68.09181860396211,
+        "vertical_velocity_cm_s": -1.112558314469963,
+        "contact": true
+      },
+      {
+        "time_s": 0.2666666805744171,
+        "forward_cm": 40.1827571524806,
+        "height_cm": 0.7518043953510034,
+        "forward_velocity_cm_s": -67.68401204001987,
+        "vertical_velocity_cm_s": -1.5072201020439948,
+        "contact": true
+      },
+      {
+        "time_s": 0.30000001192092896,
+        "forward_cm": 37.955981845863576,
+        "height_cm": 0.7094603226623752,
+        "forward_velocity_cm_s": -66.70196238763992,
+        "vertical_velocity_cm_s": -1.0988168951609012,
+        "contact": true
+      },
+      {
+        "time_s": 0.3333333432674408,
+        "forward_cm": 35.73595992502105,
+        "height_cm": 0.678549940039916,
+        "forward_velocity_cm_s": -66.70458361506434,
+        "vertical_velocity_cm_s": -0.49019492643891915,
+        "contact": true
+      },
+      {
+        "time_s": 0.36666667461395264,
+        "forward_cm": 33.50900986991949,
+        "height_cm": 0.6767806628476402,
+        "forward_velocity_cm_s": -67.14625100357358,
+        "vertical_velocity_cm_s": 0.2211701927352525,
+        "contact": true
+      },
+      {
+        "time_s": 0.4000000059604645,
+        "forward_cm": 31.25954345826471,
+        "height_cm": 0.6932946186767481,
+        "forward_velocity_cm_s": -67.92656037253164,
+        "vertical_velocity_cm_s": 0.9044461786242977,
+        "contact": true
+      },
+      {
+        "time_s": 0.4333333373069763,
+        "forward_cm": 28.980572781666613,
+        "height_cm": 0.7370770711619805,
+        "forward_velocity_cm_s": -67.53015647218177,
+        "vertical_velocity_cm_s": 1.2205463932949794,
+        "contact": true
+      },
+      {
+        "time_s": 0.46666666865348816,
+        "forward_cm": 26.757533295126656,
+        "height_cm": 0.7746643733797312,
+        "forward_velocity_cm_s": -65.18984308878714,
+        "vertical_velocity_cm_s": 1.4523061247027158,
+        "contact": true
+      },
+      {
+        "time_s": 0.5,
+        "forward_cm": 24.6345835014553,
+        "height_cm": 0.8338974737045488,
+        "forward_velocity_cm_s": -63.070552231663385,
+        "vertical_velocity_cm_s": 1.0386092401660587,
+        "contact": true
+      },
+      {
+        "time_s": 0.5333333611488342,
+        "forward_cm": 22.552828220819123,
+        "height_cm": 0.8439049722055786,
+        "forward_velocity_cm_s": -72.91613047392275,
+        "vertical_velocity_cm_s": -2.8739947922896842,
+        "contact": true
+      },
+      {
+        "time_s": 0.5666666626930237,
+        "forward_cm": 19.773509673617955,
+        "height_cm": 0.6422982107015786,
+        "forward_velocity_cm_s": -88.06911857312909,
+        "vertical_velocity_cm_s": 6.201155893291009,
+        "contact": true
+      },
+      {
+        "time_s": 0.6000000238418579,
+        "forward_cm": 16.681553440202027,
+        "height_cm": 1.2573168006898119,
+        "forward_velocity_cm_s": -69.05026336325568,
+        "vertical_velocity_cm_s": 26.451962607132312,
+        "contact": true
+      },
+      {
+        "time_s": 0.6333333253860474,
+        "forward_cm": 15.170156230862753,
+        "height_cm": 2.4057613255569668,
+        "forward_velocity_cm_s": -22.719385608717857,
+        "vertical_velocity_cm_s": 30.601873227341077,
+        "contact": false
+      },
+      {
+        "time_s": 0.6666666865348816,
+        "forward_cm": 15.166930520056273,
+        "height_cm": 3.297441101777194,
+        "forward_velocity_cm_s": 21.52294248743965,
+        "vertical_velocity_cm_s": 25.07922578342656,
+        "contact": false
+      },
+      {
+        "time_s": 0.699999988079071,
+        "forward_cm": 16.60501640056583,
+        "height_cm": 4.0777098106787,
+        "forward_velocity_cm_s": 80.70567148837483,
+        "vertical_velocity_cm_s": 8.625066295286373,
+        "contact": false
+      },
+      {
+        "time_s": 0.7333333492279053,
+        "forward_cm": 20.54731277645471,
+        "height_cm": 3.8724437249154526,
+        "forward_velocity_cm_s": 174.31530563329224,
+        "vertical_velocity_cm_s": -29.503517372594896,
+        "contact": false
+      },
+      {
+        "time_s": 0.7666666507720947,
+        "forward_cm": 28.226029402192825,
+        "height_cm": 2.110811552744894,
+        "forward_velocity_cm_s": 230.36171846219784,
+        "vertical_velocity_cm_s": -52.84901556586556,
+        "contact": false
+      }
+    ],
+    "hind_left": [
+      {
+        "time_s": 0.0,
+        "forward_cm": -12.64614049711399,
+        "height_cm": 0.41689814675392034,
+        "forward_velocity_cm_s": -108.8699330816229,
+        "vertical_velocity_cm_s": 11.139090382999582,
+        "contact": false
+      },
+      {
+        "time_s": 0.03333333507180214,
+        "forward_cm": -16.275138455768403,
+        "height_cm": 0.7882011788855342,
+        "forward_velocity_cm_s": -107.879052341842,
+        "vertical_velocity_cm_s": 46.058446133657405,
+        "contact": true
+      },
+      {
+        "time_s": 0.06666667014360428,
+        "forward_cm": -19.83807769499219,
+        "height_cm": 3.4874613824734246,
+        "forward_velocity_cm_s": -66.97452290218902,
+        "vertical_velocity_cm_s": 65.10566827297068,
+        "contact": false
+      },
+      {
+        "time_s": 0.10000000149011612,
+        "forward_cm": -20.74010692999421,
+        "height_cm": 5.128579165837682,
+        "forward_velocity_cm_s": 2.4610782004638168,
+        "vertical_velocity_cm_s": 28.120985060380725,
+        "contact": false
+      },
+      {
+        "time_s": 0.13333334028720856,
+        "forward_cm": -19.674005366492764,
+        "height_cm": 5.362193503005483,
+        "forward_velocity_cm_s": 86.48070895225874,
+        "vertical_velocity_cm_s": -13.618307330690726,
+        "contact": false
+      },
+      {
+        "time_s": 0.1666666716337204,
+        "forward_cm": -14.974726844567366,
+        "height_cm": 4.220692270470583,
+        "forward_velocity_cm_s": 167.49936274217987,
+        "vertical_velocity_cm_s": -31.00594062505796,
+        "contact": false
+      },
+      {
+        "time_s": 0.20000000298023224,
+        "forward_cm": -8.50738184926344,
+        "height_cm": 3.295130917874824,
+        "forward_velocity_cm_s": 207.33411147518208,
+        "vertical_velocity_cm_s": -22.311797944497435,
+        "contact": false
+      },
+      {
+        "time_s": 0.23333333432674408,
+        "forward_cm": -1.1524535700936305,
+        "height_cm": 2.733239162829874,
+        "forward_velocity_cm_s": 212.2284537974504,
+        "vertical_velocity_cm_s": 1.3034916837568957,
+        "contact": false
+      },
+      {
+        "time_s": 0.2666666805744171,
+        "forward_cm": 5.641183805445588,
+        "height_cm": 3.3820309189201536,
+        "forward_velocity_cm_s": 179.64388413260303,
+        "vertical_velocity_cm_s": 19.855581493882042,
+        "contact": false
+      },
+      {
+        "time_s": 0.30000001192092896,
+        "forward_cm": 10.823808055319393,
+        "height_cm": 4.056944801049941,
+        "forward_velocity_cm_s": 128.179431983109,
+        "vertical_velocity_cm_s": 11.139491033975197,
+        "contact": false
+      },
+      {
+        "time_s": 0.3333333432674408,
+        "forward_cm": 14.186478761646885,
+        "height_cm": 4.12466361025414,
+        "forward_velocity_cm_s": 69.44456560338185,
+        "vertical_velocity_cm_s": -25.13417479570392,
+        "contact": false
+      },
+      {
+        "time_s": 0.36666667461395264,
+        "forward_cm": 15.453445486263604,
+        "height_cm": 2.38133324787725,
+        "forward_velocity_cm_s": 4.915908593209309,
+        "vertical_velocity_cm_s": -50.293546849797025,
+        "contact": false
+      },
+      {
+        "time_s": 0.4000000059604645,
+        "forward_cm": 14.514205981660108,
+        "height_cm": 0.7717606867829373,
+        "forward_velocity_cm_s": -45.327480397605,
+        "vertical_velocity_cm_s": -29.311938148966973,
+        "contact": true
+      },
+      {
+        "time_s": 0.4333333373069763,
+        "forward_cm": 12.431613639871829,
+        "height_cm": 0.42720415442129595,
+        "forward_velocity_cm_s": -67.6682184167185,
+        "vertical_velocity_cm_s": -0.07340767692927841,
+        "contact": true
+      },
+      {
+        "time_s": 0.46666666865348816,
+        "forward_cm": 10.002991689434882,
+        "height_cm": 0.7668668419460146,
+        "forward_velocity_cm_s": -69.39403225429784,
+        "vertical_velocity_cm_s": 4.274716711657433,
+        "contact": true
+      },
+      {
+        "time_s": 0.5,
+        "forward_cm": 7.805345098665749,
+        "height_cm": 0.7121852515455934,
+        "forward_velocity_cm_s": -66.048674461845,
+        "vertical_velocity_cm_s": -2.068936460579172,
+        "contact": true
+      },
+      {
+        "time_s": 0.5333333611488342,
+        "forward_cm": 5.59974501225263,
+        "height_cm": 0.6289376655962481,
+        "forward_velocity_cm_s": -66.70933219496268,
+        "vertical_velocity_cm_s": -1.8265537492463846,
+        "contact": true
+      },
+      {
+        "time_s": 0.5666666626930237,
+        "forward_cm": 3.3580566152853484,
+        "height_cm": 0.5904149288798343,
+        "forward_velocity_cm_s": -67.77580205693154,
+        "vertical_velocity_cm_s": -1.1834210399002476,
+        "contact": true
+      },
+      {
+        "time_s": 0.6000000238418579,
+        "forward_cm": 1.0813584151788485,
+        "height_cm": 0.5500429309987803,
+        "forward_velocity_cm_s": -68.17898443594797,
+        "vertical_velocity_cm_s": -1.2355882068163195,
+        "contact": true
+      },
+      {
+        "time_s": 0.6333333253860474,
+        "forward_cm": -1.1872087573910508,
+        "height_cm": 0.5080423895807273,
+        "forward_velocity_cm_s": -68.29270013735314,
+        "vertical_velocity_cm_s": -1.2200567140471685,
+        "contact": true
+      },
+      {
+        "time_s": 0.6666666865348816,
+        "forward_cm": -3.47148801736201,
+        "height_cm": 0.4687058263407334,
+        "forward_velocity_cm_s": -68.57130322438886,
+        "vertical_velocity_cm_s": -0.7034156337986319,
+        "contact": true
+      },
+      {
+        "time_s": 0.699999988079071,
+        "forward_cm": -5.7586286947485075,
+        "height_cm": 0.4611479599646079,
+        "forward_velocity_cm_s": -68.63466119352769,
+        "vertical_velocity_cm_s": -0.2261829605900907,
+        "contact": true
+      },
+      {
+        "time_s": 0.7333333492279053,
+        "forward_cm": -8.047131826629826,
+        "height_cm": 0.4536269632661165,
+        "forward_velocity_cm_s": -68.72973636498034,
+        "vertical_velocity_cm_s": -1.5279963452949703,
+        "contact": true
+      },
+      {
+        "time_s": 0.7666666507720947,
+        "forward_cm": -10.340610837068205,
+        "height_cm": 0.3592816982707173,
+        "forward_velocity_cm_s": -68.80443593017476,
+        "vertical_velocity_cm_s": -2.830360649104233,
+        "contact": false
+      }
+    ],
+    "hind_right": [
+      {
+        "time_s": 0.0,
+        "forward_cm": 17.010278907312113,
+        "height_cm": 0.7504283701421207,
+        "forward_velocity_cm_s": -67.55808207823839,
+        "vertical_velocity_cm_s": -1.2427698457541028,
+        "contact": false
+      },
+      {
+        "time_s": 0.03333333507180214,
+        "forward_cm": 14.758342720589882,
+        "height_cm": 0.7090027064564673,
+        "forward_velocity_cm_s": -67.40212697566946,
+        "vertical_velocity_cm_s": 0.9676427752681622,
+        "contact": true
+      },
+      {
+        "time_s": 0.06666667014360428,
+        "forward_cm": 12.516803541247825,
+        "height_cm": 0.8149378918577651,
+        "forward_velocity_cm_s": -68.30791723411375,
+        "vertical_velocity_cm_s": 1.709778443971521,
+        "contact": true
+      },
+      {
+        "time_s": 0.10000000149011612,
+        "forward_cm": 10.204481596524039,
+        "height_cm": 0.8229879465694558,
+        "forward_velocity_cm_s": -68.34520263818823,
+        "vertical_velocity_cm_s": 0.20305766700367123,
+        "contact": true
+      },
+      {
+        "time_s": 0.13333334028720856,
+        "forward_cm": 7.96045647633558,
+        "height_cm": 0.8284750697911686,
+        "forward_velocity_cm_s": -64.57143648986205,
+        "vertical_velocity_cm_s": 0.432503543466062,
+        "contact": true
+      },
+      {
+        "time_s": 0.1666666716337204,
+        "forward_cm": 5.899718898387864,
+        "height_cm": 0.8518215136457781,
+        "forward_velocity_cm_s": -61.844620718102775,
+        "vertical_velocity_cm_s": 0.10990759599227573,
+        "contact": true
+      },
+      {
+        "time_s": 0.20000000298023224,
+        "forward_cm": 3.8374820075438376,
+        "height_cm": 0.8358022424205868,
+        "forward_velocity_cm_s": -63.69839884546094,
+        "vertical_velocity_cm_s": -0.5963020747762364,
+        "contact": true
+      },
+      {
+        "time_s": 0.23333333432674408,
+        "forward_cm": 1.6531592284718293,
+        "height_cm": 0.8120680443635205,
+        "forward_velocity_cm_s": -66.23289987461342,
+        "vertical_velocity_cm_s": -0.7669276084086043,
+        "contact": true
+      },
+      {
+        "time_s": 0.2666666805744171,
+        "forward_cm": -0.5780453954823169,
+        "height_cm": 0.7846737251765348,
+        "forward_velocity_cm_s": -66.5837470962601,
+        "vertical_velocity_cm_s": -0.7939446434259025,
+        "contact": true
+      },
+      {
+        "time_s": 0.30000001192092896,
+        "forward_cm": -2.7857579827085996,
+        "height_cm": 0.7591383919615897,
+        "forward_velocity_cm_s": -66.10088007200571,
+        "vertical_velocity_cm_s": -0.43292260724991394,
+        "contact": true
+      },
+      {
+        "time_s": 0.3333333432674408,
+        "forward_cm": -4.984770470954732,
+        "height_cm": 0.7558122197468203,
+        "forward_velocity_cm_s": -63.98928865244194,
+        "vertical_velocity_cm_s": -1.5703277151901105,
+        "contact": true
+      },
+      {
+        "time_s": 0.36666667461395264,
+        "forward_cm": -7.051710305267474,
+        "height_cm": 0.6544498838555041,
+        "forward_velocity_cm_s": -65.70855883823305,
+        "vertical_velocity_cm_s": 2.276867377124262,
+        "contact": true
+      },
+      {
+        "time_s": 0.4000000059604645,
+        "forward_cm": -9.365340799067914,
+        "height_cm": 0.9076033691743131,
+        "forward_velocity_cm_s": -98.84139826348989,
+        "vertical_velocity_cm_s": 2.666030585553351,
+        "contact": true
+      },
+      {
+        "time_s": 0.4333333373069763,
+        "forward_cm": -13.641136463406372,
+        "height_cm": 0.8321852456318737,
+        "forward_velocity_cm_s": -126.05465174578285,
+        "vertical_velocity_cm_s": 32.08743570728929,
+        "contact": true
+      },
+      {
+        "time_s": 0.46666666865348816,
+        "forward_cm": -17.768983747890587,
+        "height_cm": 3.0467656221562516,
+        "forward_velocity_cm_s": -65.01862189022884,
+        "vertical_velocity_cm_s": 61.09814064815162,
+        "contact": false
+      },
+      {
+        "time_s": 0.5,
+        "forward_cm": -17.975710997727504,
+        "height_cm": 4.905394379393117,
+        "forward_velocity_cm_s": 27.11923295596401,
+        "vertical_velocity_cm_s": 36.92284981641736,
+        "contact": false
+      },
+      {
+        "time_s": 0.5333333611488342,
+        "forward_cm": -15.961032197615399,
+        "height_cm": 5.508288774204636,
+        "forward_velocity_cm_s": 104.7897528650413,
+        "vertical_velocity_cm_s": -8.384935632142287,
+        "contact": false
+      },
+      {
+        "time_s": 0.5666666626930237,
+        "forward_cm": -10.989733176648908,
+        "height_cm": 4.346401859578346,
+        "forward_velocity_cm_s": 168.56977352102433,
+        "vertical_velocity_cm_s": -30.998402199445152,
+        "contact": false
+      },
+      {
+        "time_s": 0.6000000238418579,
+        "forward_cm": -4.72304564973255,
+        "height_cm": 3.4417292106898216,
+        "forward_velocity_cm_s": 189.65319551526477,
+        "vertical_velocity_cm_s": -20.1702373683558,
+        "contact": false
+      },
+      {
+        "time_s": 0.6333333253860474,
+        "forward_cm": 1.6538122404011335,
+        "height_cm": 3.001718617625545,
+        "forward_velocity_cm_s": 181.7497006184944,
+        "vertical_velocity_cm_s": 1.2996660078099254,
+        "contact": false
+      },
+      {
+        "time_s": 0.6666666865348816,
+        "forward_cm": 7.393599196767613,
+        "height_cm": 3.528375334581888,
+        "forward_velocity_cm_s": 157.92929208037606,
+        "vertical_velocity_cm_s": 19.719352856953535,
+        "contact": false
+      },
+      {
+        "time_s": 0.699999988079071,
+        "forward_cm": 12.18243278529198,
+        "height_cm": 4.316341595804772,
+        "forward_velocity_cm_s": 121.41870220834234,
+        "vertical_velocity_cm_s": 14.521731807143638,
+        "contact": false
+      },
+      {
+        "time_s": 0.7333333492279053,
+        "forward_cm": 15.48817620953089,
+        "height_cm": 4.496489643822013,
+        "forward_velocity_cm_s": 71.30114078888644,
+        "vertical_velocity_cm_s": -22.85643281030078,
+        "contact": false
+      },
+      {
+        "time_s": 0.7666666507720947,
+        "forward_cm": 16.935845210381043,
+        "height_cm": 2.792582868229883,
+        "forward_velocity_cm_s": 43.430111443686435,
+        "vertical_velocity_cm_s": -51.11725201697428,
+        "contact": false
+      }
+    ]
+  }
+}

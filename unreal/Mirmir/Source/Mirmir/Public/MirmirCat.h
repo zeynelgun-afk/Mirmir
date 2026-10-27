@@ -32,6 +32,10 @@ public:
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Mirmir|Visual")
     TObjectPtr<USkeletalMesh> CatSkeletalMesh;
+    // Imported skinned details (eyes, mouth, etc.) sharing the primary mesh's
+    // skeleton and local coordinates. They inherit its normalization transform.
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Mirmir|Visual")
+    TArray<TObjectPtr<USkeletalMesh>> AdditionalSkeletalMeshes;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Mirmir|Visual")
     bool bNormalizeImportedMesh = true;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Mirmir|Visual", meta=(ClampMin="20.0", ClampMax="150.0"))
@@ -42,7 +46,7 @@ public:
     TObjectPtr<UAnimSequence> IdleAnimation;
     // Centimeters per second matching the authored clip at play rate 1.0.
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Mirmir|Animation", meta=(ClampMin="1.0"))
-    float AuthoredWalkSpeed = 35.0f;
+    float AuthoredWalkSpeed = 68.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Mirmir|Movement", meta=(ClampMin="0.0"))
     float WanderRadius = 120.0f;
@@ -58,6 +62,8 @@ public:
     TObjectPtr<USoundBase> PlaySound;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Mirmir|Sound")
     bool bMuted = false;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Mirmir|Sound", meta=(ClampMin="0.0", ClampMax="1.0"))
+    float SoundVolume = 0.35f;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Mirmir|State")
     EMirmirActivity Activity = EMirmirActivity::Idle;
@@ -104,13 +110,16 @@ private:
     FRandomStream MovementRandom;
     float VoiceCooldown = 3.0f;
     bool bWelcomed = false;
+    bool bPurring = false;
     bool bCanSave = true;
     UPROPERTY(Transient) TObjectPtr<UAudioComponent> ActiveSound;
     UPROPERTY(Transient) TObjectPtr<UAnimSequence> ActiveSequence;
+    UPROPERTY(Transient) TArray<TObjectPtr<USkeletalMeshComponent>> AdditionalMeshComponents;
 
     void RefreshState();
     void UpdateAuthoredAnimation();
     void NormalizeMesh();
+    void AssembleAdditionalMeshes();
     void Meow();
     void PollDesktopCommands();
     void WriteDesktopStatus();

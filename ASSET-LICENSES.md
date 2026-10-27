@@ -61,6 +61,12 @@ provenance, original hashes, derived-file hash, and review limits are recorded
 separately in `assets/personal-use/sources.json`; it is not part of the
 commercial-use-compatible asset manifest in `assets/sources.json`.
 
+The optional `cat-walk-loop.glb` is a further CC BY-NC 4.0 derivative: the
+existing 24 authored key samples are preserved and the exact first pose is
+appended at 0.8 seconds. It introduces no new leg poses. Keep the same author,
+original-work and license credits; see `assets/personal-use/loop-variant.json`
+and `scripts/close-walk-loop.py` for the change and its verification limits.
+
 ## Recorded cat sounds
 
 The following recordings are by **Joseph SARDIN / BigSoundBank** and released

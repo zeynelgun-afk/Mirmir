@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-27",
+  "engine": "Unreal Engine 5.8.4",
+  "configuration": "Linux Shipping",
+  "rendering": "Real Vulkan SceneCapture2D RGBA, native PyQt6 XWayland shell",
+  "packaging": {
+    "build_cook_stage_pak_archive_succeeded": true,
+    "editor_required_at_runtime": false
+  },
+  "runtime_samples": {
+    "producer_pid": 590793,
+    "frames_observed": 381,
+    "frame_seq_delta": 380,
+    "seconds": 25.96599557599984,
+    "fps": 14.634524560700108,
+    "engine_fps_limits": [
+      15
+    ],
+    "alpha_range": [
+      0,
+      255
+    ],
+    "moving_samples": 176,
+    "slow_moving_samples": 10,
+    "max_rate_error": 2.80492445936531e-08,
+    "stopped_animation_playing": false,
+    "activities": [
+      "Groom",
+      "Play",
+      "SeekAttention",
+      "Sleep"
+    ]
+  },
+  "sound_output": {
+    "samples": 196608,
+    "rms": 0.011373853899223565,
+    "peak": 0.097808837890625,
+    "source": "Only the owned Unreal sink-input; no microphone or other application stream"
+  },
+  "normal_stop": {
+    "stop_exit": 0,
+    "stopped_metadata": true,
+    "frame_removed": true,
+    "bond_before": 0.19500000774860382,
+    "bond_saved": 0.19500000774860382,
+    "saved_at": 1793126342
+  },
+  "restart": {
+    "engine_kind": "shipping",
+    "producer_pid": 593423,
+    "bond_saved": 0.19500000774860382,
+    "bond_restored": 0.19500000774860382,
+    "bond_equal": true,
+    "ready": true,
+    "frame_seq": 268
+  },
+  "user_menu_entry_installed": true,
+  "user_desktop_running_verified": true,
+  "raw_evidence": {
+    ".local/shipping-compat/runtime-samples.json": "433762835c598c1853b4964c464629baa5396a4faffe3dc9fcd72c8ef4c264d4",
+    ".local/shipping-compat/audio-result.json": "256824ab8b0c5ac85eacfb2915ae1efa9ee34f15511e60451d90136e7a2dfe0e",
+    ".local/shipping-compat/restart-result.json": "6e0115ad18db7e5c24b2a7689c4810b29db31489406f09e167aafbffa0ecbc13"
+  },
+  "fixes": [
+    "Authored speed calibrated to68cm/s, rate floor0.01 preserves slow turning sync.",
+    "Heading-aligned movement replaces sideways target interpolation.",
+    "Capture deadline preserves15fps clock phase; Shipping cap applied in C++ because ExecCmds is excluded.",
+    "Project-only r.PSOPrecaching=0 avoids target Mesa ACO crash during unused-pipeline prewarm.",
+    "Child-only SDL real audio selection plus project unfocused volume allows background sound.",
+    "Shutdown sends one quit; transient UUID command leftovers are discarded before a new engine starts."
+  ],
+  "limits": [
+    "26-second measured movement window and short launch/restart checks do not prove long-term thermal/energy stability.",
+    "Distal paw bone proxies are not measured locked pads; residual slip and pivot/stop transitions remain.",
+    "Held walk pose is not a genuine idle/sleep/groom animation.",
+    "No Groom/final photorealism, dedicated sit/sleep/run clips, physical speaker listening or user gait acceptance.",
+    "Native X11 mask/focus flags checked; real click routing, fullscreen and multimonitor user experience remain to be reviewed."
+  ]
+}

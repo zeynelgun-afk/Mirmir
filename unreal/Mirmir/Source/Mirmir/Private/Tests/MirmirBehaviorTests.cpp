@@ -4,7 +4,7 @@
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FMirmirAbsenceTest,
     "Mirmir.Behavior.AbsencePreservesBondAndFood",
-    EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::EngineFilter)
+    EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::EngineFilter)
 
 bool FMirmirAbsenceTest::RunTest(const FString& Parameters)
 {
@@ -22,7 +22,7 @@ bool FMirmirAbsenceTest::RunTest(const FString& Parameters)
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FMirmirInteractionTest,
     "Mirmir.Behavior.PettingAndTiredPlay",
-    EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::EngineFilter)
+    EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::EngineFilter)
 
 bool FMirmirInteractionTest::RunTest(const FString& Parameters)
 {

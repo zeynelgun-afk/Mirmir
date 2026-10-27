@@ -42,3 +42,13 @@ if optional.exists():
     if count != 6:
         raise SystemExit(f"Expected one personal-use GLB and five original source files, found {count}")
     print("MIRMIR_ASSETS personal-use GLB + 5 original sources SHA256 verified")
+loop_manifest = root / "assets/personal-use/loop-variant.json"
+if loop_manifest.exists():
+    entry = json.loads(loop_manifest.read_text())
+    for kind in ("source", "variant"):
+        path = (root / entry[kind + "_file"]).resolve()
+        if root not in path.parents or hashlib.sha256(path.read_bytes()).hexdigest() != entry[kind + "_sha256"]:
+            raise SystemExit(f"Loop {kind} hash mismatch")
+    if not entry["all_original_authored_samples_bit_preserved"] or not entry["all_first_final_sample_blocks_bit_identical"]:
+        raise SystemExit("Loop variant has no recorded sample-preservation verification")
+    print("MIRMIR_ASSETS optional loop variant and preserved source SHA256 verified")

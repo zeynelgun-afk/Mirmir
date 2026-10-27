@@ -1,192 +1,121 @@
-# Mırmır — Unreal kaynak başlangıcı
+# Mırmır — Unreal Engine 5.8.4
 
-Bu dizin Unreal Engine 5 ana ürününün **kaynak başlangıcıdır**. Motor bu
-makinede kurulu bulunmadı; UE modülü, UHT, editör açılışı, Groom, ses ve grafik
-performansı **derlenmedi/çalıştırılmadı**. Ana ürün yalnızca Unreal Engine
-**5.8 stable** hedefler. Eski `desktop-lab/` çalışması durduruldu/donduruldu;
-ürünün motoru veya yürüyüş doğrulama yolu değildir.
+Gerçek Unreal C++ modülü derlendi, varlıklar içe aktarıldı ve kedi hem editör
+çalıştırıcısıyla hem bağımsız Linux Shipping paketiyle yerel masaüstü kabuğunda
+görüntülendi. Bu, geliştirilen ilk çalışan Unreal dilimidir; nihai fotogerçekçi
+kürk ve bütün doğal davranış animasyonları tamamlanmış değildir. Eski
+`desktop-lab/` kapalıdır ve ürünün çalışma yolu değildir.
 
-## Şu anda ne var?
+## Doğrulanan durum
 
-- UE 5.8 hedefleyen `.uproject`, oyun/editör target'ları ve C++ modülü.
-- Motor bağımsız ihtiyaç/aktivite çekirdeği: tokluk, enerji, bağ ve merak;
-  dinlenme, dolaşma, temizlenme, ilgi isteme, oyun, yemek ve sevilme.
-- Blueprint'e açık kedi aktörü, iskeletli model bileşeni, animasyon durumu,
-  hareket hızı, aktivite/etkileşim/görsel güncelleme olayları ve isteğe bağlı
-  lisanslı ses yuvaları. Oyun davranışı henüz top/olta fiziği değildir.
-- `P` sevme, `F` mama, `B` oyun, `M` sessiz, `Esc` çıkış. Modelin fizik varlığı
-  visibility trace kabul ediyorsa modele tıklama da sever.
-- 30 saniyede ve normal kapanışta sürümlü JSON kaydı. PRNG durumu saklanır.
-  Çevrimdışı dinlenme en fazla 8 saat işlenir; ayrılık tokluk, bağ veya merakı
-  azaltmaz. Bozuk kayıt korunur ve açık `ResetCat` eylemine kadar kayıt kapatılır.
+- Resmî Unreal Engine **5.8.4**, `/home/zeynel/Applications/UnrealEngine-5.8.4`
+  altında kurulu. Paket içindeki v26 Clang 20.1.8 ile UHT ve Linux C++ editör
+  derlemesi geçti; iki Unreal davranış otomasyon testi başarılı.
+- Gerçek iskeletli kedi, **dört mesh parçası**, Unreal'da **0.8 saniyelik yürüyüş
+  döngüsü** ve üç gerçek kedi SoundWave'i içe aktarıldı. Blueprint ve
+  `/Game/Mirmir/Preview/MirmirPreview` haritası editör API'siyle oluşturuldu.
+  Yerel yapılandırma denetimi [preview.json](../../.local/preview.json) içindedir.
+- Editör tabanlı gerçek native-shell koşusunda yaklaşık **21 saniyede 307 kare,
+  14.61 FPS** gözlendi. Alpha aralığı 0–255'ti; üretici PID'si, oturum, kare
+  sırası, boyut ve CRC ile aynı Unreal süreci doğrulandı. Play, Pet, Rest, Mute
+  ve Feed IPC komutlarının motor durumundaki etkileri kaydedildi.
+- Shipping build/cook/stage/pak/package/archive tamamlandı. İlk bağımsız açılış,
+  Radeon 890M/Mesa ACO tarafındaki PSO ön hazırlığında çöktü. Projede
+  `r.PSOPrecaching=0` uygulanarak yeniden paketlenen sürüm gerçek Qt masaüstü
+  kabuğunda **35 saniyeden uzun** çalıştı; `engine_kind=shipping`, hazır kareler
+  ve alpha 0–255 gözlendi. Bu yerel uyumluluk çözümüdür; uzun süreli dayanıklılık
+  veya bütün sürücülerin uyumu kanıtı değildir.
+- Gerçek PulseAudio çıkışında oyunun kendi PID'sine ait, sessize alınmamış ve
+  duraklatılmamış akış görüldü. Yalnız bu akışın dört saniyelik mırlama
+  monitöründe RMS **0.01137**, tepe **0.09781** ölçüldü. Mikrofon veya başka
+  uygulamaların sesi kaydedilmedi. Bu, çıkış sinyali kanıtıdır; fiziksel
+  hoparlör veya kullanıcının duyma deneyimi ayrıca doğrulanmış sayılmaz.
 
-Paylaşılan kaynak varlıklar projede zaten var: [Cat Walk GLB](../../assets/personal-use/cat-walk.glb)
-LostBoyz2078 tarafından hazırlanmış, gerçek in-place yürüyüş klibi içeren kedi
-modelidir. **CC BY-NC 4.0: yalnızca yerel kişisel, ticari olmayan prototip**;
-[ayrı lisans ve kaynak kaydını](../../assets/personal-use/sources.json) koruyun.
-Bu varlık ticari ürün/dağıtım varlığı olarak kabul edilmez.
-Yedek [Fripouille GLB](../../desktop-lab/assets/cat/fripouille.glb), guillaume bolis
-tarafından hazırlanmış rig'li modeldir (CC BY 4.0), fakat authored yürüyüş içermez.
-[Gerçek kedi kayıtları](../../desktop-lab/assets/audio/) Joseph SARDIN /
-BigSoundBank kaynaklıdır (CC0). [Lisans kaydını](../../ASSET-LICENSES.md) koruyun.
-Bu dosyalar henüz Unreal `.uasset` biçimine içe aktarılmadı ve C++ aktörüne
-atanmadı. Cat Walk kaynağında yaklaşık 0.767 saniyelik tek yürüyüş klibi var;
-ayrı idle/run/sit animasyonları ve Groom yoktur. Unreal'da import, iskelet
-uyumu, ayak teması ve hareket hızı hâlâ test gerektirir. Eski laboratuvarın
-prosedürel bacak hareketleri kullanılmaz.
-Varsayılan sahne başlangıcı kamerayı, ışığı ve durum yazılarını açar;
-**varlıkları atayana kadar kedi görünmez**.
-Masaüstü şeffaflığı, KWin katmanı ve uygulamalar arası tıklama geçişi bu Unreal
-modülünde uygulanmış değildir.
+Güncel genel durum [current-status.md](../../docs/current-status.md), hareket
+ölçüm yöntemi [unreal-motion-verification.json](../../docs/unreal-motion-verification.json)
+içindedir. Kısa kontrollü örnekleme sürekli kullanım performansının yerine geçmez.
 
-## Motoru edinme ve çalıştırma
+## Çalıştırma
 
-[Resmî Linux indirmesi](https://www.unrealengine.com/en-US/linux) Epic hesabına
-giriş gerektirir. Hesap girişi/lisans kabulü yapılmadı. Resmî ZIP erişimi
-olmadan otomatik motor kurulumu yapılamadı. Kaynak koddan motor derlemesi de
-Epic'in GitHub erişimini gerektirir.
-
-Motor resmî kaynaktan açıldıktan sonra, kendi dizininize göre:
+Proje kökünden:
 
 ```bash
-export MIRMIR_UE_ROOT=/absolute/path/to/UnrealEngine
-./scripts/build.sh
-"$MIRMIR_UE_ROOT/Engine/Binaries/Linux/UnrealEditor" "$PWD/Mirmir.uproject"
-./scripts/run.sh
+./run.sh
+./run.sh --stop
+./run.sh --preview
+./run.sh --editor
+```
+
+Varsayılan yol gerçek Unreal görüntülerini kullanan [yerel masaüstü
+kabuğudur](../../native-shell/README.md). Geçerli `.local/package.json` varsa
+Shipping ikilisi doğrudan başlatılır; yoksa kurulu editör kullanılır.
+`--preview` normal oyun penceresi açar; `--editor` geliştirme editörüdür.
+Masaüstü katmanı kullanıcı Wayland oturumunu değiştirmeden Qt/XWayland kullanır.
+Godot veya sabit kedi görüntüsü yedeği bulunmaz.
+
+Normal önizleme kısayolları `P` sevme, `F` mama, `B` oyun, `M` sessiz,
+`Esc` çıkıştır. Masaüstü tepsisi aynı eylemleri IPC ile iletir. IPC durum
+doğrulaması, bütün gerçek fare etkileşimlerinin kullanıcı tarafından kabul
+edildiği anlamına gelmez. Kedi dışı bölge ve odak davranışı için yerel kabuk
+belgesindeki doğrulama sınırlarını koruyun.
+
+## Varlıklar, yürüyüş ve mevcut eksikler
+
+Kedi kaynağı LostBoyz2078'in **Cat Walk** modelidir: **CC BY-NC 4.0, yalnızca
+kişisel ve ticari olmayan yerel prototip**. [Kaynak/lisans
+kaydı](../../assets/personal-use/sources.json), [döngü
+varyantı](../../assets/personal-use/loop-variant.json) ve [genel
+lisanslar](../../ASSET-LICENSES.md) korunmalıdır. Model ticari ürün varlığı
+olarak kabul edilmez. Miyavlama ve mırlama kayıtları Joseph SARDIN /
+BigSoundBank kaynaklıdır ve CC0 lisanslıdır.
+
+Dört mesh, aynı iskeletin pozunu izleyerek birlikte görüntülenir. Hareket gerçek
+bakış yönünde uygulanır ve dönüşte yavaşlar. Yürüyüş oynatma hızı gerçek cm/s
+hızına bağlanır; yaklaşık **68 cm/s** authored hız referansı kaynak eklem
+verilerinden çıkarılmış başlangıç değeridir. Gerçek Unreal örneklemesinde düz
+ilerleme bakış yönüyle eşleşti. Düşük yükseklikli distal kemik örnekleri pati
+tabanı kilidi değildir; sıfır kayma veya doğal yürüyüşün kullanıcı kabulü
+iddia edilmez. Yavaş dönüşlerde eski 0.1 oynatma alt sınırı son kaynakta 0.01'e
+indirildi; önceki ölçüm raporu bu düzeltmeden önceki koşuyu açıkça belirtir.
+
+Ayrı idle, oturma, uyuma, temizlenme veya koşma klipleri yoktur. Hareket durunca
+mevcut yürüyüşün **1/30 saniyedeki pozu tutulur**; bu bir idle veya uyku
+animasyonu değildir. Oyun/dinlenme ihtiyaç durumları vardır, fakat henüz tam
+oyuncak fiziği ve bütün durumlara özel görsel klipler yoktur. Groom, fotogerçekçi
+kürk, pati sabitleme/IK ve bağımsız yüz/kulak animasyonları uygulanmadı.
+
+Mırlama ve miyavlama SoundWave'leri atanmıştır. Ayrı yeme veya oyuncak sesi
+uydurulmaz; `FeedSound` henüz boş olabilir. Alt süreçte
+`SDL_AUDIODRIVER=pulseaudio` ve `SDL_AUDIO_DRIVER=pulseaudio` varsayılanları,
+projede `UnfocusedVolumeMultiplier=1.0` kullanılır. Kullanıcının genel ses veya
+masaüstü ayarları değiştirilmez.
+
+## Geliştirme ve yeniden üretim
+
+Bu dizinden:
+
+```bash
+./scripts/build.sh -MaxParallelActions=2
+./scripts/test-core.sh
 ./scripts/test-engine.sh
 ```
 
-`run.sh` normal pencere açar ve 30 FPS **hedefi** koyar; bu bir ölçülmüş
-performans değeri değildir. İşletim sistemi oturumunu veya KWin ayarını
-değiştirmez. Editör başlangıç haritası `/Engine/Maps/Entry`; kalıcı ürün
-haritası oluşturulup test edildikten sonra proje ayarına yazılmalıdır.
+Motor yolu `MIRMIR_UE_ROOT` veya proje `.local/engine.json` kaydından çözülür.
+Çekirdek testi ASan/UBSan altında motor bağımsız ihtiyaç/etkileşim davranışlarını
+sınar; tek başına Unreal modülü veya JSON dosya I/O kanıtı değildir.
 
-Veri: `${XDG_DATA_HOME:-$HOME/.local/share}/mirmir/unreal/cat-v1.json`.
-Başlatıcı günlüğü: `${XDG_STATE_HOME:-$HOME/.local/state}/mirmir/unreal/session.log`.
-Motor kendi editör/önbellek dosyalarını ayrıca proje `Saved/` ve
-`DerivedDataCache/` dizinlerinde oluşturabilir; ürün kaydı bunlardan ayrıdır.
-Bozuk kaydı sıfırlamadan önce kopyalamak mümkündür. `ResetCat`, açık bir kayıt
-sıfırlama eylemidir; kendi kendine tetiklenmez.
+`scripts/import-assets.py` mevcut lisanslı GLB ve ses kaynaklarını içe aktarır;
+`scripts/bootstrap-preview.py` gerçek mesh/animasyon/ses atamalarıyla Blueprint
+ve haritayı oluşturur. Bu adımlar bu makinede çalıştırılmıştır. Mevcut Shared
+varlıkları veya yabancı Blueprint'ler körlemesine üzerine yazılmaz; importu
+tekrarlamadan önce mevcut içeriği inceleyin. Bootstrap yürüyüş, idle veya Groom
+üretmez. Yerel Shipping üretimi `scripts/package-game.sh` ile yeni bir arşiv
+klasörüne yapılır; önceki paketler korunur.
 
-## Gerçek kedi varlığı ekleme
-
-Yeniden model/ses indirmenize gerek yok. İlk içe aktarma için proje içindeki
-`../../assets/personal-use/cat-walk.glb` ve üç `.ogg` kaydını kullanın.
-`scripts/import-assets.py` bu yerel dosyalara `unreal.AssetImportTask` uygular,
-oluşan nesne yollarını, SkeletalMesh/Skeleton/PhysicsAsset durumunu ve
-AnimSequence yolları/sürelerini günlüğe yazar. Cat Walk varsa onu önceliklendirir;
-yoksa yürüyüş klibi bulunmayan Fripouille'e açık uyarıyla döner. Cat Walk importu
-animasyon üretmediyse başarısız sayar. Mevcut `/Game/Mirmir/Shared` içeriği varsa
-üzerine yazmadan durur.
-
-Projede Python Editor Script Plugin (`PythonScriptPlugin`) etkin olarak
-tanımlandı. Editörde Interchange Editor ve Interchange Framework eklentilerini
-kontrol edin; Epic bunların varsayılan olarak etkin olduğunu belgeliyor.
-Motor sürümündeki glTF/GLB desteğini doğrulayın. Helper, özel bir importer
-veya eklenti indirmez ve kurulu pipeline'ı geçersiz kılmaz.
-
-Motor kurulduktan ve C++ modülü derlendikten sonra, bu dizinden:
-
-```bash
-"$MIRMIR_UE_ROOT/Engine/Binaries/Linux/UnrealEditor-Cmd" \
-  "$PWD/Mirmir.uproject" -run=pythonscript \
-  -script="$PWD/scripts/import-assets.py" -unattended -nop4
-```
-
-Alternatif: açık editörde Tools → Execute Python Script ile helper'ı seçin.
-Bu yalnızca editör içe aktarmasıdır; helper motor olmadığı için **henüz
-çalıştırılmadı**. GLB'nin UE'de rig, malzeme ve ölçek bakımından doğru çıktığı
-varsayılmaz. Hatalı/kısmi içe aktarma açık hata verir; oluşmuş varlıklar
-incelenir, kendiliğinden silinmez. `.ogg` UE'nin desteklediği içe aktarma
-biçimlerindendir; sesler yeniden indirilmez veya kayıplı dönüştürülmez.
-
-1. [Lisanslar](../../ASSET-LICENSES.md), `assets/sources.json` ve yaratıcı
-   kredisini Unreal dağıtımına taşıyın. CC BY 4.0 model değişikliklerini belirtin.
-2. İçe aktarılan iskeletli model, dokular, fizik varlığı ve ölçeği denetleyin:
-   Unreal santimetre kullanır. Cat Walk'ta tek in-place yürüyüş klibi vardır;
-   Fripouille yedeğinde authored klip yoktur. Animasyonlar **in-place** olmalı;
-   kök hareketini kapatın çünkü
-   konum hareketi şimdilik aktör tarafından uygulanır.
-3. `AMirmirCat` tabanlı `BP_MirmirCat` oluşturun. Class Defaults içinde
-   `CatSkeletalMesh` alanına import edilmiş mesh'i, `WalkAnimation` alanına
-   aynı skeleton'a ait authored walk AnimSequence'ini atayın. Ayrı idle varsa
-   `IdleAnimation` alanına atayın. Fizik varlığını, ölçeği ve +X ileri yönünü
-   denetleyin; gerekirse mesh'in yerel dönüşünü düzeltin. `AuthoredWalkSpeed`
-   klibin 1.0 oynatma hızındaki cm/s değeridir: `WalkSpeed` ile eşleştirin ve
-   gerçek ayak temasını izleyerek ölçün. Değer henüz varlıkla kalibre edilmedi.
-   Animation Blueprint seçilmemişse C++ tek-klip yürütücü yalnızca hareket
-   sırasında walk çalar, oynatma hızını gerçek hareket hızına uyarlar. Durunca
-   idle klibe geçer; idle yoksa referans pozunda bekler. Olduğu yerde yürüme
-   veya prosedürel bacak döndürme uygulanmaz. Tek yürüyüş klibi koşma/oturma
-   animasyonu sağlamaz.
-4. Daha zengin davranışlar için `UMirmirAnimInstance` tabanlı Animation
-   Blueprint oluşturun. Atanmış bir AnimBlueprint varsa C++ tek-klip yürütücü
-   karışmaz. `Activity`
-   için durum makinesi, `Speed` için yürüyüş geçişi bağlayın. Göz, nefes, kulak
-   ve kuyruk eklemlerini kendi rig'inize göre ayarlayın. Bu sanat çalışması
-   henüz yapılmadı. Hareket geçişleri kaymadan/yumuşakça sınanmalıdır.
-5. `AMirmirGameMode` tabanlı `BP_MirmirGameMode` içinde `CatClass` değerini
-   `BP_MirmirCat` yapın. Yeni bir ürün haritasında World Settings → GameMode
-   Override alanına bu sınıfı verin; proje başlangıç haritasını bu haritaya
-   ayarlayın. Varsayılan C++ sınıfı otomatik olarak bu Blueprint'i bulmaz.
-6. İçe aktarılan `purr` SoundWave'ini `PurrSound` alanına atayın. İki gerçek
-   miyav kaydı gerektiğinde Blueprint olaylarında kullanılabilir; yemek veya
-   oyuncak sesi gibi yanlış adlandırılmamalıdır. `FeedSound` ve `PlaySound`
-   için uygun ayrı kayıtlar henüz yoktur. Seviyeyi gerçek dinlemede ayarlayın.
-
-Resmî API dayanakları: [AssetImportTask](https://dev.epicgames.com/documentation/en-us/unreal-engine/python-api/class/AssetImportTask),
-[Python editör kurulumu](https://dev.epicgames.com/documentation/unreal-engine/scripting-the-unreal-editor-using-python),
-[Interchange](https://dev.epicgames.com/documentation/unreal-engine/importing-assets-using-interchange-in-unreal-engine),
-[ses biçimleri](https://dev.epicgames.com/documentation/unreal-engine/importing-audio-files).
-
-Eski laboratuvar kayıt dosyaları/enum değerleri Unreal'ın taşınabilir formatı
-olarak kabul edilmez; otomatik kayıt göçü doğrulanmadı. Ürün geliştirmesi yalnız
-Unreal üzerinde sürer.
-
-## İsteğe bağlı Groom
-
-Groom başlangıç bağımlılığı değildir; düşük maliyetli baseline'ı korur.
-Gerekirse editörde Hair Strands/Groom ve Alembic Groom Importer eklentilerini
-açın. Project Settings → Rendering → Support Compute Skin Cache ayarını açıp
-editörü yeniden başlatın. İçe aktarılan Groom için doğru iskelete Groom
-Binding oluşturun ve Blueprint'e GroomComponent olarak ekleyin.
-
-Kürk tel sayısı, gölge, simülasyon, LOD ve kürk kartı seçeneklerini AMD entegre
-GPU üzerinde ölçmeden ürün varsayımı yapmayın. Yakın görünüm ve masaüstü
-profillerinin kalite düzeyleri ayrı ölçülmelidir. [Epic Groom platform
-desteği](https://dev.epicgames.com/documentation/unreal-engine/groom-platform-support-in-unreal-engine).
-
-## Doğrulama
-
-Motor gerektirmeyen anlamlı çekirdek testi:
-
-```bash
-./scripts/test-core.sh
-```
-
-Bu test gerçek C++ derleyici ile ASan/UBSan altında etkileşimlerin etkisini,
-giriş tekrar sınırlamasını, düşük enerjide dinlenmeyi, uzun ayrılıkta cezasız
-dönüşü, çevrimdışı üst sınırı, kayıt durumu geri yüklemesinin deterministik
-olmasını, geçersiz sayılara dayanıklılığı ve uzun simülasyonda sınırları sınar.
-JSON dosya I/O testini veya UE modülünün derlenmesini kanıtlamaz.
-
-UE kurulduktan sonra kabul kontrolü:
-
-- [ ] `build.sh` UHT ve Linux C++ derlemesini tamamladı.
-- [ ] `test-engine.sh` iki `Mirmir.Behavior` testiyle geçti; JSON bozuk kayıt,
-      disk yazma hatası ve yeniden açılış ayrıca gerçek dosya sistemiyle sınandı.
-- [ ] Lisanslı model/rig/animasyonlar atandı; gerçek grafik oturumunda göründü.
-- [ ] Sevme, mama, oyun, sessiz ve Esc çıkışı gerçek girişle çalıştı.
-- [ ] Normal kapanış ve tekrar açılışta bağ ve durum korundu; gelecek tarihli
-      kayıt ceza oluşturmadı; bozuk dosya kendi kendine üzerine yazılmadı.
-- [ ] Görüntü gerçekçiliği; adım kayması, gözler, nefes, kulak, kuyruk ve
-      animasyon geçişleri gözle değerlendirildi.
-- [ ] Ayrı masaüstü adaptörü: şeffaflık, üstte kalma, odak çalmama, kedi dışı
-      tıklama geçişi, DPI, çoklu ekran ve tam ekran uygulama davranışı doğrulandı.
-- [ ] Sürekli kullanımda GPU/CPU/bellek, enerji, sıcaklık ve kare süreleri
-      ölçüldü. UE editörü ölçümü ile paketlenmiş uygulama ölçümü ayrıldı.
-
-Saf Wayland desteği varsayılmamalıdır. Epic, editörde saf Wayland giriş
-sorunlarını ve oyun hedeflerinin henüz test edilmediğini bildiriyor;
-[SDL3/Linux belgesi](https://dev.epicgames.com/documentation/unreal-engine/updating-unreal-engine-on-linux-to-sdl3).
-Bu başlangıç şeffaf masaüstü entegrasyonunu çözmüş gibi sunulmaz.
+Kayıt: `${XDG_DATA_HOME:-$HOME/.local/share}/mirmir/unreal/cat-v1.json`.
+Masaüstü durum/komutları aynı veri kökünde `desktop-status.json` ve `commands/`
+altındadır. Kareler, runtime ve kabuk günlükleri
+`${XDG_STATE_HOME:-$HOME/.local/state}/mirmir/unreal/` içindedir. Unreal editör
+önbelleği ve `Saved/` dosyaları ürün kaydından ayrıdır. Bozuk kayıt üzerine
+kendiliğinden yazılmaz; `ResetCat` açık sıfırlama eylemidir. Eski Godot
+kayıtları otomatik olarak taşınmış sayılmaz.

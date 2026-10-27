@@ -1,0 +1,353 @@
+{
+  "schema_version": 1,
+  "evidence": "Actual Unreal Engine 5.8.4 native-shell controlled run telemetry. No source motion was modified by this analysis.",
+  "source_file": ".local/native-check/runtime-samples.json",
+  "source_sha256": "722af6a4f54c5606f7ce749ebb3f08d2abf208e3e11206042cdef0d859848a7d",
+  "producer": "unreal-scene-capture",
+  "session_ids": [
+    "01A17E9F-D4DD-72FB-B294-9B03C6D4F2DA"
+  ],
+  "samples": 307,
+  "first_frame_seq": 369,
+  "last_frame_seq": 675,
+  "unique_frame_sequences": 307,
+  "elapsed_export_sample_s": 20.9699066510002,
+  "elapsed_observer_s": 20.947445181001967,
+  "delivered_frames_per_s_export_clock": 14.592339636638522,
+  "delivered_frames_per_s_observer_clock": 14.607986671211009,
+  "sample_interval_s": {
+    "count": 306,
+    "median": 0.06675178350269562,
+    "p10": 0.061889103999419603,
+    "p90": 0.0743997235003917,
+    "p95": 0.08225224374837126,
+    "max": 0.13673902799928328
+  },
+  "all_frames_ready": true,
+  "all_frames_have_transparent_and_opaque_pixels": true,
+  "activity_sample_counts": {
+    "Eat": 44,
+    "Petted": 58,
+    "Play": 114,
+    "Sleep": 88,
+    "Wander": 3
+  },
+  "heading": {
+    "method": "Adjacent position difference / exporter monotonic dt, compared with normalized mean of endpoint actor-facing vectors. Averages reduce yaw sampling lag; not motion capture.",
+    "moving_interval_count": 93,
+    "moving_travel_vs_facing_angle_deg": {
+      "count": 93,
+      "median": 0.0,
+      "p10": 0.0,
+      "p90": 3.0000141620636214,
+      "p95": 3.0000156879425974,
+      "max": 3.12942941126982
+    },
+    "straight_travel_vs_facing_angle_deg": {
+      "count": 60,
+      "median": 0.0,
+      "p10": 0.0,
+      "p90": 0.0,
+      "p95": 0.0,
+      "max": 8.537736462515939e-07
+    },
+    "authored_head_axis_vs_actor_facing_deg": {
+      "count": 307,
+      "median": 0.10626861919473711,
+      "p10": 0.10626861919473711,
+      "p90": 0.787025402846435,
+      "p95": 1.011563971401273,
+      "max": 1.4151091807539622
+    }
+  },
+  "straight_contact_proxy_analysis": {
+    "rule": "Both endpoint frames playing and movement speed >5 cm/s, yaw rate <5 deg/s, playrate change <0.05; both proxy heights <= per-paw observed minimum +20% playing-height range; body-relative forward velocity negative. No derivatives across stopped/playing transitions.",
+    "eligible_straight_intervals": 60,
+    "eligible_straight_duration_s": 4.218230364996998,
+    "straight_body_speed_cm_s": {
+      "count": 60,
+      "median": 55.56463781323441,
+      "p10": 50.9717119354536,
+      "p90": 61.42357643873501,
+      "p95": 66.05320807345947,
+      "max": 105.41121443347329
+    },
+    "per_paw": {
+      "front_left": {
+        "contact_proxy_interval_count": 34,
+        "low_height_threshold_cm_above_actor_origin": 1.845895365688592,
+        "observed_height_range_cm_above_actor_origin": [
+          1.1283755421735138,
+          4.715974659748904
+        ],
+        "world_horizontal_speed_cm_s": {
+          "count": 34,
+          "median": 1.9126481745876858,
+          "p10": 0.8776892878453233,
+          "p90": 4.0154651669335335,
+          "p95": 9.151401016772505,
+          "max": 13.929262060989522
+        },
+        "world_forward_drift_cm_s": {
+          "count": 34,
+          "median": -0.9168644921924465,
+          "p10": -3.708266526865889,
+          "p90": 0.1935678014254062,
+          "p95": 0.4166041157367913,
+          "max": 0.6602642992168224
+        },
+        "backward_body_relative_speed_cm_s": {
+          "count": 34,
+          "median": 56.74318780092533,
+          "p10": 49.96238774910334,
+          "p90": 63.9468391977068,
+          "p95": 65.67330404203204,
+          "max": 118.59633339377177
+        },
+        "inferred_authored_backward_speed_cm_s_at_rate_1": {
+          "count": 34,
+          "median": 68.90244144964385,
+          "p10": 60.668612920454535,
+          "p90": 77.64973231972581,
+          "p95": 79.7461538896301,
+          "max": 144.00982635586377
+        }
+      },
+      "front_right": {
+        "contact_proxy_interval_count": 29,
+        "low_height_threshold_cm_above_actor_origin": 1.8828148942277088,
+        "observed_height_range_cm_above_actor_origin": [
+          1.1755253291971273,
+          4.7119731543500345
+        ],
+        "world_horizontal_speed_cm_s": {
+          "count": 29,
+          "median": 2.2963900489662405,
+          "p10": 1.370719367357652,
+          "p90": 11.402876588070386,
+          "p95": 17.640005003352286,
+          "max": 19.934669733136975
+        },
+        "world_forward_drift_cm_s": {
+          "count": 29,
+          "median": -0.8751849293347971,
+          "p10": -11.28474827325753,
+          "p90": 1.4227320773313172,
+          "p95": 2.6864683000100316,
+          "max": 2.849661059244346
+        },
+        "backward_body_relative_speed_cm_s": {
+          "count": 29,
+          "median": 57.2493189330315,
+          "p10": 54.05210675962282,
+          "p90": 70.040764474208,
+          "p95": 73.76858928240871,
+          "max": 75.90056148982079
+        },
+        "inferred_authored_backward_speed_cm_s_at_rate_1": {
+          "count": 29,
+          "median": 69.51702924506586,
+          "p10": 65.63470022694207,
+          "p90": 85.04949618698319,
+          "p95": 89.57614298453468,
+          "max": 92.1649663461838
+        }
+      },
+      "hind_left": {
+        "contact_proxy_interval_count": 36,
+        "low_height_threshold_cm_above_actor_origin": 1.9058953199312856,
+        "observed_height_range_cm_above_actor_origin": [
+          0.9136236623584904,
+          5.981604752764958
+        ],
+        "world_horizontal_speed_cm_s": {
+          "count": 36,
+          "median": 1.7020525729416733,
+          "p10": 1.347311579081203,
+          "p90": 4.575854530948746,
+          "p95": 13.228837476414412,
+          "max": 28.238643781115247
+        },
+        "world_forward_drift_cm_s": {
+          "count": 36,
+          "median": -1.451657753760883,
+          "p10": -2.726568382084288,
+          "p90": 0.17536855319434938,
+          "p95": 0.4914373828639826,
+          "max": 0.5301115829022638
+        },
+        "backward_body_relative_speed_cm_s": {
+          "count": 36,
+          "median": 56.96404039005937,
+          "p10": 53.20929014018991,
+          "p90": 64.22662594511257,
+          "p95": 68.19464155149328,
+          "max": 84.2595230836176
+        },
+        "inferred_authored_backward_speed_cm_s_at_rate_1": {
+          "count": 36,
+          "median": 69.17061959016704,
+          "p10": 64.61128005927367,
+          "p90": 77.98947336580778,
+          "p95": 82.80777796915721,
+          "max": 102.31513386615197
+        }
+      },
+      "hind_right": {
+        "contact_proxy_interval_count": 24,
+        "low_height_threshold_cm_above_actor_origin": 2.20379422425843,
+        "observed_height_range_cm_above_actor_origin": [
+          1.2380795825754067,
+          6.066652790990523
+        ],
+        "world_horizontal_speed_cm_s": {
+          "count": 24,
+          "median": 2.3049370302980536,
+          "p10": 0.8052864707870074,
+          "p90": 10.213936665318627,
+          "p95": 23.77072416306562,
+          "max": 31.709999789103033
+        },
+        "world_forward_drift_cm_s": {
+          "count": 24,
+          "median": 0.7014216769549374,
+          "p10": -6.390190502813876,
+          "p90": 3.6637684890911753,
+          "p95": 4.285882988749588,
+          "max": 10.914762407457168
+        },
+        "backward_body_relative_speed_cm_s": {
+          "count": 24,
+          "median": 54.62486419131799,
+          "p10": 47.03057548210716,
+          "p90": 79.2444731603396,
+          "p95": 85.27130513917905,
+          "max": 104.387186340997
+        },
+        "inferred_authored_backward_speed_cm_s_at_rate_1": {
+          "count": 24,
+          "median": 66.33019138511739,
+          "p10": 57.108555213144015,
+          "p90": 96.2254304656661,
+          "p95": 103.54372634649877,
+          "max": 126.755862922265
+        }
+      }
+    },
+    "pooled_contact_proxy_horizontal_speed_cm_s": {
+      "count": 123,
+      "median": 2.058520803105825,
+      "p10": 0.980581229418506,
+      "p90": 8.554843237012648,
+      "p95": 17.075099606714595,
+      "max": 31.709999789103033
+    }
+  },
+  "animation_rate": {
+    "authored_speed_setting_cm_s": 68,
+    "playing_samples": 98,
+    "max_error_vs_actual_clamp_rule": 2.80492445936531e-08,
+    "low_speed_floor_mismatch_samples": 4,
+    "affected_speed_range_cm_s": [
+      2.2949018478393555,
+      5.645839691162109
+    ],
+    "max_rate_excess_vs_unclamped_speed_ratio": 0.06625144490424324,
+    "finding": "Current 0.1 rate floor forces excess foot motion at body speeds between1 and6.8 cm/s. Lowering floor to0.01 is appropriate for subsequent build because moving threshold already exceeds1 cm/s. This run predates that correction."
+  },
+  "stopped_pose": {
+    "not_playing_sample_count": 209,
+    "movement_at_or_below_1_cm_s_sample_count": 209,
+    "held_animation_times_s": [
+      0.03333333507180214
+    ],
+    "all_stopped_samples_at_authored_one_thirtieth_phase": true,
+    "interpretation": "Actual playback stopped at one authored walking pose, not an authored idle, sleep, grooming, eating, or sitting animation."
+  },
+  "remaining_turn_limitation": {
+    "stationary_turn_intervals": 17,
+    "stationary_turn_duration_s": 1.2018494700023439,
+    "stationary_turn_yaw_rate_deg_s": {
+      "count": 17,
+      "median": 90.48484095206273,
+      "p10": 81.43605228898497,
+      "p90": 97.25695793938162,
+      "p95": 98.83125919212624,
+      "max": 104.09411076842399
+    },
+    "finding": "A held pose can rotate during heading alignment. This is not foot locking and there is no separately authored turn-in-place clip."
+  },
+  "limits": [
+    "Distal bone points are proxies, not measured paw-pad surface contacts; nonzero low-height world speed is residual proxy drift, not a formal contact-lock test.",
+    "Only approximately21 seconds of one controlled native-shell session were observed, including play/pet/rest/mute/feed steering.",
+    "Straight contact samples exclude turning and cannot establish complete gait quality.",
+    "The current timing captures roughly14.6frames/s, so fast foot motion and brief boundary artifacts may be undersampled.",
+    "Alpha0..255 metadata establishes mixed alpha, not final edge-color/visual quality or physical desktop click-through.",
+    "No claim of perfect paw locking, fully realistic motion, or completed sleep/groom/idle animation set."
+  ],
+  "final_packaged_verification": {
+    "evidence": "Actual packaged Unreal Engine 5.8.4 Shipping run after lowering the animation-rate floor to0.01. This supplements the preserved earlier editor/native-shell snapshot.",
+    "source_result_file": ".local/shipping-compat/result.json",
+    "source_result_sha256": "8cdf7d0a3e568cdd1bed7dcf4754d2b09d9e412dac495d7e62f7785394be586a",
+    "source_runtime_samples_file": ".local/shipping-compat/runtime-samples.json",
+    "source_runtime_samples_sha256": "433762835c598c1853b4964c464629baa5396a4faffe3dc9fcd72c8ef4c264d4",
+    "producer_pid": 590793,
+    "session_ids": [
+      "01A17EA7-0A75-7352-9166-F6E5EB5C0F5E"
+    ],
+    "first_frame_seq": 482,
+    "last_frame_seq": 862,
+    "first_updated_at_utc": "2026-10-27T18:37:51.816Z",
+    "last_updated_at_utc": "2026-10-27T18:38:17.832Z",
+    "frames_observed": 381,
+    "frame_seq_delta": 380,
+    "elapsed_observer_seconds": 25.96599557599984,
+    "delivered_fps": 14.634524560700108,
+    "configured_capture_fps_limits": [
+      15
+    ],
+    "all_frames_ready": true,
+    "all_frames_mixed_alpha": true,
+    "activities": [
+      "Groom",
+      "Play",
+      "SeekAttention",
+      "Sleep"
+    ],
+    "animation_rate_floor_verification": {
+      "formula": "clamp(actual MovementSpeed /68 cm/s,0.01,3.0)",
+      "moving_samples": 176,
+      "slow_samples_below_previous_6_8_cm_s_boundary": 10,
+      "slow_speed_range_cm_s": [
+        1.7438799142837524,
+        5.841441631317139
+      ],
+      "max_absolute_rate_error": 2.80492445936531e-08,
+      "old_floor_mismatch_corrected_in_this_snapshot": true
+    },
+    "stopped_pose_verification": {
+      "sample_count": 205,
+      "all_animation_playing_false": true,
+      "held_times_seconds": [
+        0.03333333507180214
+      ],
+      "all_at_held_authored_one_thirtieth_pose": true,
+      "interpretation": "A stopped authored walking sample; this does not add idle, sleep, sitting, eating, or grooming clips."
+    },
+    "raw_frame_artifact": {
+      "file": "docs/images/unreal-shipping-cat.png",
+      "source_file": ".local/shipping-compat/real-frame.png",
+      "sha256": "966c93d025eda34f97560fc31281b3226de44dcfc336ea49f53abcbb521da443",
+      "copy_byte_identical": true,
+      "changes": "None; copied as the original PNG without cropping, compositing, color adjustment, or alpha alteration."
+    },
+    "scope_limits": [
+      "This approximately26second Shipping snapshot verifies actual delivered frames, mixed alpha, the corrected playrate formula including10 slow-moving samples, and stopped playback.",
+      "Earlier contact-proxy methods and limitations above remain applicable; no elaborate foot-contact recalculation was performed for this snapshot.",
+      "Body heading code is unchanged from the earlier verified snapshot; straight/turning angle distributions above belong to that earlier run.",
+      "A held-pose turn can still rotate the feet; no authored turn-in-place or complete idle/sleep/groom animation set is present.",
+      "Bone-tip telemetry does not establish exact paw-pad contact locking or final photorealistic quality.",
+      "Controlled packaged-run evidence is separate from subsequent user-session launch/restart observations."
+    ]
+  }
+}
