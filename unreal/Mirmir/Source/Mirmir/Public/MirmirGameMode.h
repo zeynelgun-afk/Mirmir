@@ -49,4 +49,8 @@ public:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Mirmir|Home") TObjectPtr<AMirmirHabitat> Habitat;
     UPROPERTY(EditDefaultsOnly, Category="Mirmir|Lighting") TObjectPtr<UTextureCube> AmbientCubemap;
     UPROPERTY(EditDefaultsOnly, Category="Mirmir|Lighting") float AmbientIntensity = 0.65f;
+    // Non-zero only in generated review modes. This lets async Groom resources
+    // settle before evidence is captured; shipping/desktop modes remain off.
+    UPROPERTY(EditDefaultsOnly, Category="Mirmir|Review", meta=(ClampMin="0.0", ClampMax="30.0"))
+    float ReviewScreenshotDelaySeconds = 0.0f;
 };

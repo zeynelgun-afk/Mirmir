@@ -8,6 +8,6 @@ public class Mirmir : ModuleRules
         PublicDependencyModuleNames.AddRange(new string[] {
             "Core", "CoreUObject", "Engine", "InputCore"
         });
-        PrivateDependencyModuleNames.AddRange(new string[] { "Json", "ImageWrapper", "ImageCore", "RenderCore", "RHI", "AnimGraphRuntime", "AnimationCore", "BlendStack", "PhysicsCore" });
+        PrivateDependencyModuleNames.AddRange(new string[] { "Json", "ImageWrapper", "ImageCore", "RenderCore", "Renderer", "RHI", "AnimGraphRuntime", "AnimationCore", "BlendStack", "PhysicsCore", "HairStrandsCore" });
     }
 }

@@ -7,6 +7,10 @@
 - [Native desktop shell](../native-shell/README.md): controls, placement and frame protocol.
 - [Package recipes](../packaging/README.md): reproducible installer tooling.
 - [Preview media](media/README.md): actual Unreal captures and provenance.
+- [Behavior and rig calibration](research/behavior-rig-2026-10-28.md): feeding,
+  seated rest, evaluated paw impulses and the limits of numerical pose checks.
+- [Zero-cost cat asset selection](research/zero-cost-cat-asset-selection-2026-10-28.md):
+  free rigged replacement, license boundary and authored-animation acceptance gate.
 - [Asset licenses](../ASSET-LICENSES.md): authors, source links and modifications.
 
 ## Historical records

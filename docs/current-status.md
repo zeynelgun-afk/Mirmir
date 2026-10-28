@@ -1,87 +1,150 @@
 # Current status — 2026-10-28
 
-Mırmır uses **Unreal Engine 5.8.4**. The repository is public; its README,
-installation guides, current development docs and release descriptions are in
-English. The application interface remains Turkish. The Godot feasibility
-experiment is an archived, separate project.
+Mırmır uses **Unreal Engine 5.8.4**. The repository and current documentation
+are in English; the application interface remains Turkish. The Godot
+feasibility experiment is an archived, separate project.
+
+## Presentation reset
+
+The user rejected the current procedural feeding and seated-rest presentation
+as visually unrealistic. Those captures remain historical engineering evidence
+only; they are **not accepted product quality** and are not being released as a
+new version. Development has pivoted to a zero-cost licensed rigged cat and an
+original authored behavior set. [Blendkit Domestic Cat is the first integration
+candidate](research/zero-cost-cat-asset-selection-2026-10-28.md), subject to
+Blender structure/export, Unreal fur and raw-clip review gates before any
+desktop integration.
+
+The reviewed free Blendkit source is now present only in the ignored local
+asset boundary. Blender 4.5.15 LTS verified its 32-bone rig and five particle
+hair systems, exported a 1.2 MiB skeletal FBX, and Unreal 5.8.4 imported one
+SkeletalMesh, one Skeleton and three material slots under the isolated
+`/Game/Animals/BlendkitDomesticCat` path. A generated PhysicsAsset is present.
+The candidate Groom now contains 79,854 curves, 724,166 curve vertices and
+7,985 generated guides. Its Alembic-to-FBX axis conversion is explicitly
+`X=-90°, Z=180°`; the resulting binding passed Unreal's asset, mesh and Groom
+compatibility checks and a delayed Vulkan frame confirmed that it follows the
+cat instead of appearing rotated or displaced.
+
+The current short-coat profile reduces the dense body layer from about 1.65 cm
+mean strand length to 0.58 cm, while preserving the shorter face/underfur and
+whisker layers. A real black Hair-shaded render was inspected, but the free
+source's particle coverage remains visibly regional and clumpy. It is therefore
+still a candidate: visual acceptance is false, the product Blueprint was not
+changed, and no release was produced. The source also contains no usable
+authored feeding, lying, sleeping or play animation library.
 
 ## Version 0.5.0
 
-The new version adds independent bed/bowl dragging, saved furniture positions,
-swept collision and obstacle-aware curved routes. Invalid overlap and occupied
-bed moves are rejected with engine acknowledgements. The bed now has two
-visible openings for forward entry and exit. Furniture and cat share real
-Unreal depth ordering; hidden cat pixels are removed from the native input
-region. Owned windows request no taskbar or pager entry and no keyboard focus;
-the tray remains the control surface.
+The source adds independent bed/bowl dragging, saved furniture positions,
+swept collision and curved routes around obstacles. Invalid overlap and
+occupied-bed moves are rejected with engine acknowledgements. The bed has
+openings for forward entry and exit. The feeding bowl now sits on a raised,
+movable stand; its floor-root placement remains compatible with saved layouts.
+Furniture and cat share Unreal depth ordering, and hidden cat pixels are
+removed from the native input region. The system tray remains the control
+surface; owned windows request no taskbar/pager entry or keyboard focus.
 
-The final Linux Shipping game has been built and started with the existing
-user save and Van appearance preserved. In an unlocked session, all three
-owned windows mapped successfully with taskbar/pager exclusion and keyboard
-input disabled. The main image, per-item furniture images and visible-cat
-input mask passed PID/session/CRC checks. Actual manual clicks and the user's
-assessment of visual naturalness remain separate from these checks.
+Feeding approaches the bowl, settles, lowers the head, cycles the existing jaw
+and tongue rig, then raises the head before travel. The rest base uses the
+credited authored **SitDown → IdleSit → StandUp** clips, with procedural
+head, eyelid, breathing and tail layers. The internal `Sleeping` state denotes
+seated rest; it is not an authored lying-down or sleep animation.
 
-Source checks pass: ASan/UBSan behavior, locomotion and navigation tests,
-native placement/ACK/rollback/persistence tests, frame pairing, alpha/DPI,
-asset provenance hashes and Python compilation. All three real Unreal
-automation tests pass. An isolated actual Shipping test moved both stations,
-verified the sibling stayed fixed, restarted to restore both positions and
-reached the moved bed with full rest pose. That earlier test ran while the
-session was locked; the final unlocked mapping check is recorded separately.
+Play uses an evaluated front-paw position and velocity to request an impulse
+on a Chaos rigid-body ball. Requested animation targets alone cannot hit the
+ball. Counter resets and retained impulse records are separated when counting
+new hits in each play session.
 
-The final Editor/RHI probe reached the bed in 22.18 seconds, exited and reached
-the bowl in 7.70 seconds, then observed 453.77 cm of movement during 35 seconds
-of Play with no blocked samples. The sampled bowl/body separation remained
-positive; normal bed movement stayed outside the obstacle proxy, with the
-explicitly permitted bed corridor measured separately. Occluded cat pixels
-were observed in 162 samples, and input-mask sequences matched the main
-frames. These are controlled-run results, not guarantees for every layout.
+## Evidence and build identity
 
-Installer packaging and release verification are being completed separately.
+The final behavior proof uses Linux Shipping archive
+`package-20261028T074553Z-1412355`, with binary SHA256
+`648617a616c3f144cc60c5a8a77a40d293f8bd55257da5a72d44b7a19a20d52a`.
+It ran without the editor and exited normally with code **0**. The
+[public behavior record](media/behavior-provenance.json) identifies the
+producer sessions, image hashes, frame/layout identities and measurements.
 
-## Available behavior
+The full **Feed → Play → Rest → Feed → Play** run contains 2,220 metadata
+samples. All 444 archived main PNGs passed their recorded byte-count,
+dimensions and CRC checks. It observed 13 `SitDown`, 97 `Sitting` and
+24 `StandUp` samples. A separate stationary-rest run of the same binary
+exited with code 0; its front-profile frame shows closed eyelids in the
+seated pose. Its 89 archived main frames also passed CRC checks. These are
+Shipping observations, separate from the earlier Development/RHI calibration.
 
-- Authored walk, idle and tail clips with blended transitions, speed-dependent
-  playback and limited four-paw IK.
-- Van, British Shorthair and black-and-white appearance profiles on the same
-  base geometry, short fur shells and float-HDR color conversion.
-- Real meow/purr recordings, petting head response, saved bond, needs and
-  occasional cursor interest without a stored pointer history.
-- A Chaos toy ball; walking to the bowl and lowering the head to eat; entering
-  the bed and settling into a procedural crouched resting pose.
-- Moving/still target rates of 30/8 frames per second. Actual performance
-  depends on the machine; a target rate is not a measured sustained rate.
+Two new evaluated-paw impulses occurred in the first Play session and one
+in the second. Their paired ball-velocity changes were approximately
+27.61, 23.26 and 20.84 cm/s. Previous-session records were excluded by paw
+sample identity. During active play the minimum sampled ball-center height
+was about 2.50 cm. This demonstrates the controlled run's measured paw and
+ball response; it does not prove every layout or every future strike.
 
-## Distribution and verification boundaries
+The two feeding phases had median upper-lip-to-near-rim-target distances of
+about 2.05 and 1.13 cm. Those distances describe a rig landmark and an aiming
+target. They do **not** establish tongue-to-kibble collision or resolved
+food contact. See the [actual frames and composition details](media/README.md).
+
+An earlier 0.5 desktop integration check preserved the user's Van appearance
+and save. In an unlocked session, all three owned windows mapped with
+keyboard input disabled and taskbar/pager exclusion. Main, per-item furniture
+and visible-cat input-mask PNGs passed PID/session/CRC checks. Native
+placement tests moved each station independently, rejected invalid drops and
+restored the layout after restart. These earlier integration checks do not
+replace verification of a later behavior cook or package.
+
+Core and native checks cover behavior/navigation, frame pairing, alpha/DPI,
+placement acknowledgements, persistence, asset provenance and shutdown.
+Unreal automation, actual RHI behavior, native window mapping and fresh
+package installation are distinct checks. None establishes the user's
+acceptance of visual naturalness.
+
+## Available presentation
+
+- Van, British Shorthair and black-and-white appearance profiles share one
+  base model; they are not separate scanned breeds.
+- Authored walk, idle, tail and sit/stand clips blend with limited skeletal
+  control and paw-contact adjustment.
+- Real meow/purr recordings, petting response, saved bond, needs and occasional
+  cursor interest are available without a stored pointer history.
+- Short fur shells and float-HDR color conversion are implemented. Moving and
+  idle target rates are 30/8 frames per second; sustained performance depends
+  on the machine.
+
+## Distribution boundaries
 
 The earlier [0.4 preview](https://github.com/zeynelgun-afk/Mirmir/releases/tag/v0.4.0)
-contains Debian, RPM, Arch, AppImage, portable archive and direct Flatpak
-bundles. Its [verification record](release-0.4-verification.json) separates real
-Shipping rendering, sandbox IPC, package creation and desktop visibility. The
-final 0.4 session was locked, so its final desktop mapping was not verified.
-That historical limitation is not reused as a claim about a newer run.
+provides Debian, RPM, Arch, AppImage, portable archive and direct Flatpak
+bundles. Its [verification record](release-0.4-verification.json) retains that
+version's exact scope. The final 0.4 session was locked, so its final desktop
+mapping was not verified. That historical limit is not reused for a newer run.
 
 The 0.4 Debian package installed in a clean Ubuntu 22.04 container and passed
-Qt XCB linking and offscreen shell checks. That was not an independent GPU
-or desktop test. Fresh Fedora/openSUSE/Arch installations remain unverified.
+Qt XCB linking and offscreen shell checks. This was not an independent GPU or
+desktop test. Fresh Fedora/openSUSE/Arch installations remain unverified.
 Windows build and Inno Setup sources exist; a Windows game or installer EXE
 has not been built or tested on this Linux workstation. Direct Flatpak
-bundles are not listed on Flathub.
+bundles are not listed on Flathub. New 0.5 installers require fresh staging
+and verification from the final behavior cook.
 
-## Remaining work
+## Limits
 
-Rest is procedural; there is no authored closed-eye sleep clip or separate
-closed-eye geometry. Groom fur and finished photorealism are not complete.
-The cat uses constrained kinematic movement and IK, not a full muscle,
-paw-force or pad-contact simulation. Remaining foot sliding, rapid toy
-contacts, crowded layouts and long sessions need further observation. Automated
-checks do not establish the user's acceptance of visual naturalness.
+There is no authored lying/sleep clip or finished photorealism. A locally
+licensed Groom candidate now imports and binds correctly, but its coverage is
+not accepted and it is not configured in the product Blueprint.
+The cat uses constrained kinematic movement and skeletal control, not a full
+muscle, paw-force or paw-pad contact simulation. Jaw/tongue animation and a
+source-calibrated surface landmark do not constitute resolved tongue-to-food
+collision or food-fluid simulation. A small target error or stable distal
+bone point can coexist with an unnatural pose; actual frames must be reviewed.
+Foot sliding, crowded layouts, repeated interactions and long sessions need
+further observation. These controlled tests do not guarantee every layout.
 
 [Installation](INSTALL.md) · [Unreal development](../unreal/Mirmir/README.md) ·
-[Desktop shell](../native-shell/README.md) · [Motion research](research/locomotion-2026-10-27.md) ·
-[Flatpak status](FLATPAK.md)
+[Desktop shell](../native-shell/README.md) ·
+[Behavior and rig calibration](research/behavior-rig-2026-10-28.md) ·
+[Motion research](research/locomotion-2026-10-27.md) · [Flatpak status](FLATPAK.md)
 
 Original code is MIT, the separate PyQt shell is GPLv3, Cat Walk derivatives
 are CC BY-NC 4.0, additional motion is CC BY 4.0 and sounds are CC0.
-[Sources and licenses](../ASSET-LICENSES.md) apply to the media as well.
+[Sources and licenses](../ASSET-LICENSES.md) also apply to the media.

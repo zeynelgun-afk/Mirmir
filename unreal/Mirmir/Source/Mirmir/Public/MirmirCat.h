@@ -18,6 +18,9 @@ class AMirmirHabitat;
 class UBoxComponent;
 class UMaterialInterface;
 class UMaterialInstanceDynamic;
+class UGroomAsset;
+class UGroomBindingAsset;
+class UGroomComponent;
 
 UENUM(BlueprintType)
 enum class EMirmirActivity : uint8
@@ -43,6 +46,16 @@ public:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Mirmir|Home") float RestPoseAlpha = 0.0f;
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Mirmir|Home") float EatingPoseStrength = 0.0f;
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Mirmir|Home") float RestBreathing = 0.0f;
+    FVector MuzzleWorldLocation = FVector::ZeroVector;
+    FVector FeedingTargetWorld = FVector::ZeroVector;
+    FVector PawTargetWorld = FVector::ZeroVector;
+    FName FeedingPhase = TEXT("None"), RestPhase = TEXT("Standing"), PlayPhase = TEXT("None");
+    float FeedingJawAlpha = 0.0f, PlayPawAlpha = 0.0f;
+    bool bPawStrikeWindow = false;
+    int32 PlayPawIndex = 0;
+    // Calibrated upper lip marker in the imported Head bone's local units.
+    FVector MuzzleBoneLocal = FVector::ZeroVector;
+    void MeasureEvaluatedPose(float DeltaSeconds);
     uint64 InteractionSerial = 0;
     FName LastInteractionAction = NAME_None;
     bool bLastInteractionAccepted = false;
@@ -53,6 +66,18 @@ public:
 
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Mirmir|Visual")
     TObjectPtr<USkeletalMesh> CatSkeletalMesh;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Mirmir|Visual")
+    TObjectPtr<UGroomComponent> CatGroom;
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Mirmir|Visual")
+    TObjectPtr<UGroomAsset> CatGroomAsset;
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Mirmir|Visual")
+    TObjectPtr<UGroomBindingAsset> CatGroomBinding;
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Mirmir|Visual")
+    TObjectPtr<UMaterialInterface> CatGroomMaterial;
+    // Zero preserves per-group widths authored in the Groom Alembic. A
+    // positive value is an explicit runtime override for diagnostics/skins.
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Mirmir|Visual", meta=(ClampMin="0.0", ClampMax="0.5"))
+    float GroomHairWidthCm = 0.0f;
     // Imported skinned details (eyes, mouth, etc.) sharing the primary mesh's
     // skeleton and local coordinates. They inherit its normalization transform.
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Mirmir|Visual")
@@ -230,6 +255,7 @@ private:
     bool bNeedBowlExit = false;
     bool bWaitingAtBlockedToy = false;
     bool bLeavingBedTraversal = false;
+    float BedForwardSign = 1.0f;
     FVector BowlApproachOutward = -FVector::ForwardVector;
     bool bHasDesktopBounds = false;
     FVector DesktopOrigin, DesktopRight, DesktopUp;
@@ -237,6 +263,16 @@ private:
     FVector2D DesktopMinimum, DesktopMaximum;
     UPROPERTY() TObjectPtr<UBoxComponent> CollisionBody;
     double PoseSeconds = 0.0;
+    float FeedingSeconds = 0.0f;
+    float RestSettleSeconds = 0.0f;
+    float PlayPhaseSeconds = 0.0f;
+    FVector StrikeBallWorld = FVector::ZeroVector;
+    FVector PreviousPawWorld = FVector::ZeroVector;
+    bool bHasPreviousPaw = false;
+    float PoseMeasurementDelta = 1.0f/30.0f;
+    void HandleBonesFinalized();
+    FName PawTipNames[2];
+    void UpdatePlayPose(float DeltaSeconds, bool bChasingToy);
     float VoiceCooldown = 3.0f;
     bool bWelcomed = false;
     bool bPurring = false;

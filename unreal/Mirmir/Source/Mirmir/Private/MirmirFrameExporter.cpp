@@ -65,6 +65,12 @@ TArray<TSharedPtr<FJsonValue>> VectorJSON(const FVector& Value)
     return { MakeShared<FJsonValueNumber>(Value.X),
         MakeShared<FJsonValueNumber>(Value.Y), MakeShared<FJsonValueNumber>(Value.Z) };
 }
+
+TArray<TSharedPtr<FJsonValue>> QuaternionJSON(const FQuat& Value)
+{
+    return { MakeShared<FJsonValueNumber>(Value.X), MakeShared<FJsonValueNumber>(Value.Y),
+        MakeShared<FJsonValueNumber>(Value.Z), MakeShared<FJsonValueNumber>(Value.W) };
+}
 }
 
 AMirmirFrameExporter::AMirmirFrameExporter()
@@ -559,6 +565,20 @@ bool AMirmirFrameExporter::PublishRuntime(const TCHAR* Status, bool bReady, int6
             ToyState->SetNumberField(TEXT("playing_seconds"), Toy->PlayingSeconds);
             ToyState->SetStringField(TEXT("stop_reason"), Toy->LastStopReason.ToString());
             ToyState->SetBoolField(TEXT("cat_waiting"), Cat->bWaitingAtToy);
+            ToyState->SetNumberField(TEXT("paw_swipe_count"), Toy->PawSwipeCount);
+            ToyState->SetNumberField(TEXT("physics_contact_count"), Toy->PhysicsContactCount);
+            ToyState->SetNumberField(TEXT("last_swipe_time_s"), Toy->LastSwipeTimeSeconds);
+            ToyState->SetArrayField(TEXT("last_swipe_impulse"), VectorJSON(Toy->LastSwipeImpulse));
+            ToyState->SetArrayField(TEXT("last_swipe_velocity_before_cm_s"), VectorJSON(Toy->LastSwipeVelocityBefore));
+            ToyState->SetArrayField(TEXT("last_swipe_velocity_after_cm_s"), VectorJSON(Toy->LastSwipeVelocityAfter));
+            ToyState->SetArrayField(TEXT("last_swipe_contact_world_cm"), VectorJSON(Toy->LastSwipeContactWorld));
+            ToyState->SetArrayField(TEXT("last_swipe_paw_world_cm"), VectorJSON(Toy->LastSwipePawWorld));
+            ToyState->SetArrayField(TEXT("last_swipe_paw_velocity_cm_s"), VectorJSON(Toy->LastSwipePawVelocity));
+            ToyState->SetNumberField(TEXT("last_swipe_paw_sample_frame"), double(Toy->LastSwipePawSampleFrame));
+            ToyState->SetBoolField(TEXT("swipe_velocity_sample_ready"), Toy->bSwipeVelocitySampleReady);
+            ToyState->SetStringField(TEXT("last_swipe_reject_reason"), Toy->LastSwipeRejectReason.ToString());
+            ToyState->SetArrayField(TEXT("last_physics_contact_world_cm"), VectorJSON(Toy->LastPhysicsContactWorld));
+            ToyState->SetNumberField(TEXT("last_physics_contact_impulse"), Toy->LastPhysicsContactImpulse);
             JSON->SetObjectField(TEXT("toy"), ToyState);
         }
         const FVector Location = Cat->GetActorLocation();
@@ -579,6 +599,7 @@ bool AMirmirFrameExporter::PublishRuntime(const TCHAR* Status, bool bReady, int6
         JSON->SetObjectField(TEXT("needs"), Needs);
         TSharedRef<FJsonObject> Motion = MakeShared<FJsonObject>();
         Motion->SetNumberField(TEXT("sample_monotonic_s"), FPlatformTime::Seconds());
+        Motion->SetNumberField(TEXT("sample_engine_frame"), double(GFrameCounter));
         Motion->SetNumberField(TEXT("movement_speed_cm_s"), Cat->MovementSpeed);
         Motion->SetBoolField(TEXT("walking_backwards"), Cat->bWalkingBackwards);
         Motion->SetBoolField(TEXT("movement_blocked"), Cat->bMovementBlocked);
@@ -589,6 +610,17 @@ bool AMirmirFrameExporter::PublishRuntime(const TCHAR* Status, bool bReady, int6
         Motion->SetNumberField(TEXT("curiosity_head_pitch_deg"), Cat->CuriosityHeadPitch);
         Motion->SetNumberField(TEXT("actor_yaw_deg"), Cat->GetActorRotation().Yaw);
         Motion->SetArrayField(TEXT("actor_forward_world"), VectorJSON(Cat->GetActorForwardVector()));
+        TSharedRef<FJsonObject> BehaviorPose = MakeShared<FJsonObject>();
+        BehaviorPose->SetStringField(TEXT("feeding_phase"), Cat->FeedingPhase.ToString());
+        BehaviorPose->SetStringField(TEXT("rest_phase"), Cat->RestPhase.ToString());
+        BehaviorPose->SetStringField(TEXT("play_phase"), Cat->PlayPhase.ToString());
+        BehaviorPose->SetArrayField(TEXT("muzzle_world_cm"), VectorJSON(Cat->MuzzleWorldLocation));
+        BehaviorPose->SetArrayField(TEXT("feeding_target_world_cm"), VectorJSON(Cat->FeedingTargetWorld));
+        BehaviorPose->SetArrayField(TEXT("paw_target_world_cm"), VectorJSON(Cat->PawTargetWorld));
+        BehaviorPose->SetNumberField(TEXT("feeding_jaw_alpha"), Cat->FeedingJawAlpha);
+        BehaviorPose->SetNumberField(TEXT("play_paw_alpha"), Cat->PlayPawAlpha);
+        BehaviorPose->SetBoolField(TEXT("paw_strike_window"), Cat->bPawStrikeWindow);
+        JSON->SetObjectField(TEXT("behavior_pose"), BehaviorPose);
         if (const USkeletalMeshComponent* Mesh = Cat->CatMesh.Get())
         {
             Motion->SetArrayField(TEXT("mesh_relative_scale"), VectorJSON(Mesh->GetRelativeScale3D()));
@@ -609,6 +641,45 @@ bool AMirmirFrameExporter::PublishRuntime(const TCHAR* Status, bool bReady, int6
                 }
                 return false;
             };
+            auto BoneTransform = [Mesh](const TCHAR* Fragment, FTransform& Out)
+            {
+                for (int32 Index = 0; Index < Mesh->GetNumBones(); ++Index)
+                {
+                    const FName Bone = Mesh->GetBoneName(Index);
+                    const FString Name = Bone.ToString().Replace(TEXT("-"), TEXT("_"));
+                    if (Name.Contains(Fragment))
+                    {
+                        Out = Mesh->GetSocketTransform(Bone, RTS_World);
+                        return true;
+                    }
+                }
+                return false;
+            };
+            FVector Landmark;
+            if (BonePosition(TEXT("cat_bip_Head"), Landmark))
+                Motion->SetArrayField(TEXT("head_world_cm"), VectorJSON(Landmark));
+            if (BonePosition(TEXT("cat_bip_Neck_"), Landmark))
+                Motion->SetArrayField(TEXT("neck_world_cm"), VectorJSON(Landmark));
+            if (BonePosition(TEXT("fst_Xtra01"), Landmark))
+                Motion->SetArrayField(TEXT("jaw_world_cm"), VectorJSON(Landmark));
+            if (BonePosition(TEXT("tongue_bone12"), Landmark))
+                Motion->SetArrayField(TEXT("tongue_tip_world_cm"), VectorJSON(Landmark));
+            FTransform TongueSurfaceTransform;
+            if (BoneTransform(TEXT("tongue_bone12"), TongueSurfaceTransform))
+            {
+                // Skin-derived cap landmark (vertices 601/606) in tongue-bone12
+                // local space. Unlike the bone origin, this tracks the visible
+                // tongue surface that can actually cross the lower lip.
+                const FVector TongueSurfaceLocal(67.32962, -0.06810, 4.53156);
+                Motion->SetArrayField(TEXT("tongue_surface_world_cm"),
+                    VectorJSON(TongueSurfaceTransform.TransformPosition(TongueSurfaceLocal)));
+            }
+            TSharedRef<FJsonObject> ContactBones = MakeShared<FJsonObject>();
+            if (BonePosition(TEXT("cat_bip_L_Finger01"), Landmark))
+                ContactBones->SetArrayField(TEXT("front_left"), VectorJSON(Landmark));
+            if (BonePosition(TEXT("cat_bip_R_Finger01"), Landmark))
+                ContactBones->SetArrayField(TEXT("front_right"), VectorJSON(Landmark));
+            Motion->SetObjectField(TEXT("paw_contact_bones_world_cm"), ContactBones);
             TSharedRef<FJsonObject> Paws = MakeShared<FJsonObject>();
             const TCHAR* Labels[] = { TEXT("front_left"), TEXT("front_right"), TEXT("hind_left"), TEXT("hind_right") };
             const TCHAR* First[] = { TEXT("cat_bip_L_Finger01"), TEXT("cat_bip_R_Finger01"),
@@ -627,7 +698,36 @@ bool AMirmirFrameExporter::PublishRuntime(const TCHAR* Status, bool bReady, int6
             }
             Motion->SetObjectField(TEXT("paw_proxies_world_cm"), Paws);
             Motion->SetStringField(TEXT("paw_proxy_note"), TEXT("Distal authored bone points; not measured paw-pad contacts."));
+            TSharedRef<FJsonObject> LegJoints = MakeShared<FJsonObject>();
+            const TCHAR* JointLabels[] = { TEXT("front_left"), TEXT("front_right"), TEXT("hind_left"), TEXT("hind_right") };
+            const TCHAR* UpperJoints[] = { TEXT("cat_bip_L_UpperArm"), TEXT("cat_bip_R_UpperArm"),
+                TEXT("cat_bip_L_Thigh"), TEXT("cat_bip_R_Thigh") };
+            const TCHAR* MiddleJoints[] = { TEXT("cat_bip_L_Forearm"), TEXT("cat_bip_R_Forearm"),
+                TEXT("cat_bip_L_Calf"), TEXT("cat_bip_R_Calf") };
+            const TCHAR* HockJoints[] = { TEXT("cat_bip_L_Hand"), TEXT("cat_bip_R_Hand"),
+                TEXT("cat_bip_L_Foot"), TEXT("cat_bip_R_Foot") };
+            // The trailing underscore distinguishes Finger0_/Toe0_ from their
+            // Finger01_/Toe01_ children after importer suffix normalization.
+            const TCHAR* PawBaseJoints[] = { TEXT("cat_bip_L_Finger0_"), TEXT("cat_bip_R_Finger0_"),
+                TEXT("cat_bip_L_Toe0_"), TEXT("cat_bip_R_Toe0_") };
+            for (int32 Leg = 0; Leg < 4; ++Leg)
+            {
+                TSharedRef<FJsonObject> Joints = MakeShared<FJsonObject>();
+                if (BonePosition(UpperJoints[Leg], Landmark)) Joints->SetArrayField(TEXT("upper"), VectorJSON(Landmark));
+                if (BonePosition(MiddleJoints[Leg], Landmark)) Joints->SetArrayField(TEXT("middle"), VectorJSON(Landmark));
+                if (BonePosition(HockJoints[Leg], Landmark)) Joints->SetArrayField(TEXT("hock"), VectorJSON(Landmark));
+                if (BonePosition(PawBaseJoints[Leg], Landmark)) Joints->SetArrayField(TEXT("paw_base"), VectorJSON(Landmark));
+                FTransform PawBaseTransform;
+                if (BoneTransform(PawBaseJoints[Leg], PawBaseTransform))
+                    Joints->SetArrayField(TEXT("paw_base_rotation_xyzw"), QuaternionJSON(PawBaseTransform.GetRotation()));
+                if (BonePosition(First[Leg], Landmark)) Joints->SetArrayField(TEXT("tip"), VectorJSON(Landmark));
+                LegJoints->SetObjectField(JointLabels[Leg], Joints);
+            }
+            Motion->SetObjectField(TEXT("leg_joints_world_cm"), LegJoints);
+            Motion->SetStringField(TEXT("leg_joints_note"), TEXT("Evaluated authored bone origins; hind Foot is the elevated hock, Toe0 is the paw base and Toe01 is the distal ground anchor."));
             FVector Head, Pelvis;
+            if (BonePosition(TEXT("cat_bip_Pelvis"), Pelvis))
+                Motion->SetArrayField(TEXT("pelvis_world_cm"), VectorJSON(Pelvis));
             if (BonePosition(TEXT("cat_bip_Head"), Head) && BonePosition(TEXT("cat_bip_Pelvis"), Pelvis))
                 Motion->SetArrayField(TEXT("head_forward_world"), VectorJSON((Head - Pelvis).GetSafeNormal2D()));
             if (const UMirmirAnimInstance* Instance = Cast<UMirmirAnimInstance>(Mesh->GetAnimInstance()))
@@ -651,8 +751,16 @@ bool AMirmirFrameExporter::PublishRuntime(const TCHAR* Status, bool bReady, int6
                 Motion->SetArrayField(TEXT("stance_residual_cm"), FloatArray(Instance->StanceResidualCm));
                 Motion->SetStringField(TEXT("stance_note"), TEXT("Bounded source-walk stance proxy IK; not paw collision sensing or full physical animal simulation."));
                 Motion->SetBoolField(TEXT("animation_transition_blocks_movement"), Instance->bTransitionBlocksMovement);
-                Motion->SetStringField(TEXT("rest_pose_note"), Instance->PlaybackState == TEXT("HeldWalk")
-                    ? TEXT("Frozen sample of the existing authored walk; no authored idle/sleep clip assigned.") : TEXT("Assigned compatible authored clip."));
+                FString PoseNote = TEXT("Compatible authored base clip; action layers are reported in behavior_pose.");
+                if (Instance->PlaybackState == TEXT("HeldWalk"))
+                    PoseNote = TEXT("Frozen source-walk sample; no compatible authored idle clip assigned.");
+                else if (Cat->RestPoseAlpha > .001f)
+                    PoseNote = TEXT("Procedural supported rest, head, eyelids and tail over the base clip; not an authored sleep clip.");
+                else if (Cat->EatingPoseStrength > .001f)
+                    PoseNote = TEXT("Procedural mouth-target aim, planted paws, jaw and tongue over the base clip; not an authored eating clip.");
+                else if (Cat->PlayPawAlpha > .001f)
+                    PoseNote = TEXT("Procedural paw reach over the base clip; ball impulses require evaluated paw contact.");
+                Motion->SetStringField(TEXT("rest_pose_note"), PoseNote);
             }
             else if (const UAnimSingleNodeInstance* SingleInstance = Mesh->GetSingleNodeInstance())
             {

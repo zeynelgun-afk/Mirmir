@@ -10,6 +10,9 @@
 namespace Mirmir::Navigation
 {
 constexpr double Pi = 3.1415926535897932384626433832795;
+// Six-centimetre route samples must look beyond the controller's 50 cm
+// minimum-radius denominator; a 36 cm chord systematically understeers.
+constexpr std::size_t SteeringLookAheadSamples = 10;
 struct Point2 { double X = 0.0, Y = 0.0; };
 struct Pose2 { Point2 Position; double YawRadians = 0.0; };
 struct CircleObstacle { Point2 Center; double Radius = 0.0; };

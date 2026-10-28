@@ -66,16 +66,25 @@ AMirmirHabitat::AMirmirHabitat()
     BedSphere->SetHiddenInGame(true);
     BedSphere->SetCanEverAffectNavigation(false);
     BedBlocker = BedSphere;
-    BowlBlocker = AddBarrier(TEXT("BowlNavigationBlocker"), BowlRoot, FVector(0, 0, 3.0), FVector(10.5, 10.5, 3.5), true);
+    // A raised feeding station matches a domestic cat's short neck without
+    // forcing an extreme play-bow. The root remains on the floor, so saved XY
+    // placement and native-window dragging keep their existing contract.
+    BowlBlocker = AddBarrier(TEXT("BowlNavigationBlocker"), BowlRoot, FVector(0, 0, 7.75), FVector(12.5, 12.5, 7.75), true);
     ToyBarriers.Add(AddBarrier(TEXT("BedCushionCollision"), BedRoot, FVector(0, 0, 3), FVector(28, 22, 2.5), false));
-    ToyBarriers.Add(AddBarrier(TEXT("BowlToyCollision"), BowlRoot, FVector(0, 0, 3), FVector(10, 10, 3), false));
+    ToyBarriers.Add(AddBarrier(TEXT("BowlToyCollision"), BowlRoot, FVector(0, 0, 7.5), FVector(12, 12, 7.5), false));
+    BowlStand.Add(AddShape(TEXT("BowlStandFoot"), BowlRoot, Cylinder.Object,
+        FVector(0, 0, 2.0), FVector(.22, .22, .04)));
+    BowlStand.Add(AddShape(TEXT("BowlStandStem"), BowlRoot, Cylinder.Object,
+        FVector(0, 0, 7.0), FVector(.075, .075, .10)));
+    BowlStand.Add(AddShape(TEXT("BowlStandTray"), BowlRoot, Cylinder.Object,
+        FVector(0, 0, 11.0), FVector(.205, .205, .02)));
     BowlCeramic.Add(AddShape(TEXT("BowlBase"), BowlRoot, Cylinder.Object,
-        FVector(0, 0, 1.0), FVector(.19, .19, .02)));
+        FVector(0, 0, 13.0), FVector(.19, .19, .02)));
     for (int32 I = 0; I < 16; ++I)
     {
         const double Angle = I * UE_TWO_PI / 16.0;
         BowlCeramic.Add(AddShape(*FString::Printf(TEXT("BowlRim%d"), I), BowlRoot,
-            Sphere.Object, FVector(8.0 * FMath::Cos(Angle), 8.0 * FMath::Sin(Angle), 3.0),
+            Sphere.Object, FVector(8.0 * FMath::Cos(Angle), 8.0 * FMath::Sin(Angle), 15.0),
             FVector(.047, .047, .065)));
     }
     FRandomStream Seed(49831);
@@ -84,7 +93,7 @@ AMirmirHabitat::AMirmirHabitat()
         const double Angle = I * 2.399963229728653;
         const double Radius = 6.0 * FMath::Sqrt((I + .5) / 22.0);
         Food.Add(AddShape(*FString::Printf(TEXT("Kibble%d"), I), BowlRoot, Sphere.Object,
-            FVector(Radius * FMath::Cos(Angle), Radius * FMath::Sin(Angle), 2.8 + Seed.FRandRange(-.25, .25)),
+            FVector(Radius * FMath::Cos(Angle), Radius * FMath::Sin(Angle), 14.8 + Seed.FRandRange(-.25, .25)),
             FVector(.021, .017, .013)));
     }
 }
@@ -120,6 +129,7 @@ void AMirmirHabitat::BeginPlay()
     LoadLayout();
     ColorShapes(BedFabric, FLinearColor(.11, .17, .16), .95f);
     ColorShapes(BedCushion, FLinearColor(.42, .34, .25), .95f);
+    ColorShapes(BowlStand, FLinearColor(.09, .10, .11), .62f);
     ColorShapes(BowlCeramic, FLinearColor(.07, .28, .30), .27f);
     ColorShapes(Food, FLinearColor(.20, .075, .025), .86f);
 }
@@ -131,7 +141,7 @@ FVector AMirmirHabitat::GetBedLocation() const
 
 FVector AMirmirHabitat::GetBowlLocation() const
 {
-    return BowlRoot->GetComponentLocation() + FVector(0, 0, 3.0);
+    return BowlRoot->GetComponentLocation() + FVector(0, 0, 15.0);
 }
 
 void AMirmirHabitat::SetFoodVisible(bool bVisible)

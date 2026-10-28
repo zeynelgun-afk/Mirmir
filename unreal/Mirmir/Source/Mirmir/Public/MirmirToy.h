@@ -8,11 +8,12 @@ class AMirmirCat;
 class UBoxComponent;
 class UMaterialInterface;
 class UPhysicalMaterial;
+class UPrimitiveComponent;
 class USceneComponent;
 class UStaticMeshComponent;
 
-// A real simulated ball in its own bounded collision arena. It deliberately
-// owns no cat animation, chase target, desktop input, or capture configuration.
+// A real simulated ball in its own bounded collision arena. The cat owns the
+// chase/animation; this actor accepts only contact-range, moving-paw impulses.
 UCLASS(Blueprintable)
 class MIRMIR_API AMirmirToy : public AActor
 {
@@ -27,6 +28,12 @@ public:
 
     UFUNCTION(BlueprintCallable, Category="Mirmir|Toy")
     void EndPlaySession();
+
+    // Call during the animated strike with a measured distal-paw position and
+    // velocity. A short swept contact segment avoids missing a fast paw between
+    // animation samples; it never pulls or teleports the ball toward the paw.
+    UFUNCTION(BlueprintCallable, Category="Mirmir|Toy")
+    bool TryPawSwipe(const FVector& PawWorldLocation, const FVector& PawWorldVelocity);
 
     UFUNCTION(BlueprintPure, Category="Mirmir|Toy")
     FVector GetBallLocation() const;
@@ -70,6 +77,35 @@ public:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Transient, Category="Mirmir|Toy")
     FName LastStopReason;
 
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Transient, Category="Mirmir|Toy")
+    int32 PawSwipeCount = 0;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Transient, Category="Mirmir|Toy")
+    int32 PhysicsContactCount = 0;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Transient, Category="Mirmir|Toy")
+    float LastSwipeTimeSeconds = -100.0f;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Transient, Category="Mirmir|Toy")
+    FVector LastSwipeImpulse = FVector::ZeroVector;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Transient, Category="Mirmir|Toy")
+    FVector LastSwipeVelocityBefore = FVector::ZeroVector;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Transient, Category="Mirmir|Toy")
+    FVector LastSwipeVelocityAfter = FVector::ZeroVector;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Transient, Category="Mirmir|Toy")
+    FVector LastSwipeContactWorld = FVector::ZeroVector;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Transient, Category="Mirmir|Toy")
+    FVector LastSwipePawWorld = FVector::ZeroVector;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Transient, Category="Mirmir|Toy")
+    FVector LastSwipePawVelocity = FVector::ZeroVector;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Transient, Category="Mirmir|Toy")
+    int64 LastSwipePawSampleFrame = -1;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Transient, Category="Mirmir|Toy")
+    bool bSwipeVelocitySampleReady = false;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Transient, Category="Mirmir|Toy")
+    FName LastSwipeRejectReason;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Transient, Category="Mirmir|Toy")
+    FVector LastPhysicsContactWorld = FVector::ZeroVector;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Transient, Category="Mirmir|Toy")
+    float LastPhysicsContactImpulse = 0.0f;
+
 protected:
     virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
@@ -94,7 +130,13 @@ private:
 
     FVector SessionOrigin = FVector::ZeroVector;
     FRandomStream TossRandom;
+    bool bSwipeVelocitySamplePending = false;
+    uint64 PendingSwipeFrame = 0;
 
     void StopSession(FName Reason);
     void ConfigureArena();
+    bool FindFreeSpawn(const AMirmirCat* Cat, FVector& Position) const;
+    UFUNCTION()
+    void OnBallHit(UPrimitiveComponent* HitComponent, AActor* OtherActor,
+        UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit);
 };

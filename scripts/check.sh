@@ -10,6 +10,7 @@ if [[ "${1:-}" == "--include-lab" ]]; then
   godot --headless --path "$task_root/desktop-lab" --script res://tests/test_state.gd
 fi
 python -m py_compile "$task_root"/scripts/*.py "$task_root"/native-shell/*.py "$task_root"/unreal/Mirmir/scripts/*.py
+python "$task_root/scripts/verify-proprietary-boundary.py"
 python "$task_root/native-shell/mirmir_shell.py" --self-test
 python "$task_root/scripts/verify_assets.py"
 bash -n "$task_root/run.sh"

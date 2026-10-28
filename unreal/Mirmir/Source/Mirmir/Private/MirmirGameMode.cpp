@@ -20,6 +20,8 @@
 #include "Misc/CommandLine.h"
 #include "Misc/Parse.h"
 #include "UObject/ConstructorHelpers.h"
+#include "TimerManager.h"
+#include "UnrealClient.h"
 
 namespace
 {
@@ -98,6 +100,18 @@ void AMirmirGameMode::BeginPlay()
     if (bDesktop && Cat && Camera)
         if (AMirmirFrameExporter* Exporter = GetWorld()->SpawnActor<AMirmirFrameExporter>())
             Exporter->Initialize(Cat, Camera->GetCameraComponent());
+    if (ReviewScreenshotDelaySeconds > 0.0f)
+    {
+        FTimerHandle ReviewTimer;
+        GetWorldTimerManager().SetTimer(ReviewTimer, [this]()
+        {
+            if (GEngine)
+            {
+                UE_LOG(LogTemp, Display, TEXT("Mirmir: capturing delayed Groom review screenshot."));
+                FScreenshotRequest::RequestScreenshot(false);
+            }
+        }, ReviewScreenshotDelaySeconds, false);
+    }
 }
 
 void AMirmirPlayerController::BeginPlay()

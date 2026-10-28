@@ -8,6 +8,10 @@ unreal/**/Binaries/
 unreal/**/DerivedDataCache/
 unreal/**/Intermediate/
 unreal/**/Saved/
+# Licensed third-party cat source content is installed locally from its official
+# provider. It may be cooked into an application under its license, but editable
+# model files and derived asset sources must never be published in this open repo.
+unreal/Mirmir/Content/Animals/
 artifacts/
 .local/
 .venv/

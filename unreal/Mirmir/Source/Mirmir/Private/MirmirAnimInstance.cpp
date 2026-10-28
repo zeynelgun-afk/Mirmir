@@ -1,5 +1,6 @@
 #include "MirmirAnimInstance.h"
 #include "MirmirHabitat.h"
+#include "MirmirToy.h"
 #include "Animation/AnimInstanceProxy.h"
 #include "Animation/AnimSequence.h"
 #include "Animation/AnimNodeSpaceConversions.h"
@@ -38,15 +39,21 @@ struct FCatStanceNode final : FAnimNode_SkeletalControlBase
 {
     struct FLeg
     {
-        FBoneReference Upper, Knee, End, Tip, OtherTip;
+        FBoneReference Upper, Knee, End, Tip, OtherTip, ToeBase;
         bool bHasOtherTip = false;
+        bool bHasToeBase = false;
         bool bValid = false;
         bool bPlanted = false;
         FVector Anchor = FVector::ZeroVector;
         FVector AppliedDelta = FVector::ZeroVector;
+        bool bActionAnchored = false;
+        FVector ActionTipWorld = FVector::ZeroVector;
+        FQuat ActionEndWorldRotation = FQuat::Identity;
+        FQuat ActionToeWorldRotation = FQuat::Identity;
     };
     FLeg Legs[4];
     bool bEnabled = false;
+    bool bApplyBody = true, bApplyFeet = true;
     float Phase = 0.0f;
     float MaximumCorrectionCm = 4.0f;
     FTransform ComponentToWorld = FTransform::Identity;
@@ -56,8 +63,14 @@ struct FCatStanceNode final : FAnimNode_SkeletalControlBase
     int32 ValidLegs = 0;
     FBoneReference Pelvis;
     FBoneReference Tail;
+    FBoneReference Spine[3];
     FVector RestTailAxis = FVector::RightVector;
     float RestAlpha = 0.0f;
+    float EatAlpha = 0.0f;
+    float PawAlpha = 0.0f;
+    int32 PawIndex = 0;
+    FVector PawTargetWorld = FVector::ZeroVector;
+    FVector ForwardWorld = FVector::ForwardVector;
     float BreathingCm = 0.0f;
     float DeltaSeconds = 1.0f / 30.0f;
 
@@ -79,6 +92,9 @@ struct FCatStanceNode final : FAnimNode_SkeletalControlBase
         };
         Pelvis.BoneName = Find(TEXT("cat_bip_Pelvis"));
         Tail.BoneName = Find(TEXT("cat_bip_Tail"));
+        Spine[0].BoneName=Find(TEXT("cat_bip_Spine_3"));
+        Spine[1].BoneName=Find(TEXT("cat_bip_Spine1_4"));
+        Spine[2].BoneName=Find(TEXT("cat_bip_Spine2_5"));
         for (int32 I = 0; I < 4; ++I)
         {
             Legs[I].Upper.BoneName = Find(Upper[I]);
@@ -87,6 +103,8 @@ struct FCatStanceNode final : FAnimNode_SkeletalControlBase
             Legs[I].Tip.BoneName = Find(Tip[I]);
             Legs[I].bHasOtherTip = I < 2;
             if (I < 2) Legs[I].OtherTip.BoneName = Find(Other[I]);
+            Legs[I].bHasToeBase=I>=2;
+            if (I>=2) Legs[I].ToeBase.BoneName=Find(I==2 ? TEXT("cat_bip_L_Toe0_48") : TEXT("cat_bip_R_Toe0_53"));
         }
     }
 
@@ -96,14 +114,17 @@ protected:
         ValidLegs = 0;
         Pelvis.Initialize(Bones);
         Tail.Initialize(Bones);
+        for (FBoneReference& S:Spine) S.Initialize(Bones);
         for (FLeg& Leg : Legs)
         {
             Leg.Upper.Initialize(Bones); Leg.Knee.Initialize(Bones);
             Leg.End.Initialize(Bones); Leg.Tip.Initialize(Bones);
             if (Leg.bHasOtherTip) Leg.OtherTip.Initialize(Bones);
+            if (Leg.bHasToeBase) Leg.ToeBase.Initialize(Bones);
             Leg.bValid = Leg.Upper.IsValidToEvaluate(Bones) && Leg.Knee.IsValidToEvaluate(Bones) &&
                 Leg.End.IsValidToEvaluate(Bones) && Leg.Tip.IsValidToEvaluate(Bones) &&
-                (!Leg.bHasOtherTip || Leg.OtherTip.IsValidToEvaluate(Bones));
+                (!Leg.bHasOtherTip || Leg.OtherTip.IsValidToEvaluate(Bones)) &&
+                (!Leg.bHasToeBase || Leg.ToeBase.IsValidToEvaluate(Bones));
             if (Leg.bValid)
             {
                 // Reject another rig with superficially similar bone names.
@@ -112,6 +133,7 @@ protected:
             }
             Leg.bPlanted = false;
             Leg.AppliedDelta = FVector::ZeroVector;
+            Leg.bActionAnchored = false;
             if (Leg.bValid) ++ValidLegs;
         }
     }
@@ -123,21 +145,41 @@ protected:
         const float Starts[] = { 0.70f, 0.17f, 0.54f, 0.00f };
         const float Lengths[] = { 0.51f, 0.53f, 0.48f, 0.52f };
         const FBoneContainer& Bones = Output.Pose.GetPose().GetBoneContainer();
-        const bool bRest = RestAlpha > 0.001f && Pelvis.IsValidToEvaluate(Bones);
-        const FVector RestDelta = ComponentToWorld.InverseTransformVector(FVector(0, 0, -12.0f * RestAlpha + BreathingCm));
-        if (bRest)
+        const bool bRest = (RestAlpha > 0.001f || EatAlpha > .001f || PawAlpha > .001f) && Pelvis.IsValidToEvaluate(Bones);
+        const FVector RestDelta = bApplyBody ? ComponentToWorld.InverseTransformVector(
+            FVector(0, 0, -4.0f * RestAlpha - 0.5f * EatAlpha - 2.5f * PawAlpha + BreathingCm)) : FVector::ZeroVector;
+        if (bRest && bApplyBody)
         {
             FTransform Root = Output.Pose.GetComponentSpaceTransform(Pelvis.GetCompactPoseIndex(Bones));
             Root.AddToTranslation(RestDelta);
             Transforms.Emplace(Pelvis.GetCompactPoseIndex(Bones), Root);
+            if (Spine[0].IsValidToEvaluate(Bones)&&Spine[1].IsValidToEvaluate(Bones)&&Spine[2].IsValidToEvaluate(Bones))
+            {
+                FTransform Flex[3];
+                for (int32 J=0;J<3;++J) {Flex[J]=Output.Pose.GetComponentSpaceTransform(Spine[J].GetCompactPoseIndex(Bones));Flex[J].AddToTranslation(RestDelta);}
+                // Feeding should read as a shoulder/back hinge, not a long
+                // horizontal neck. Spread the lowering through the thoracic
+                // chain while keeping the standing pelvis nearly unchanged.
+                const FQuat Bend(RestTailAxis.GetSafeNormal(),FMath::DegreesToRadians((10.0f*EatAlpha+12.0f*RestAlpha)/3.0f));
+                for (int32 J=0;J<3;++J)
+                {
+                    const FVector Pivot=Flex[J].GetLocation();
+                    for (int32 C=J;C<3;++C)
+                    {Flex[C].SetLocation(Pivot+Bend.RotateVector(Flex[C].GetLocation()-Pivot));Flex[C].SetRotation(Bend*Flex[C].GetRotation());}
+                }
+                for (int32 J=0;J<3;++J) Transforms.Emplace(Spine[J].GetCompactPoseIndex(Bones),Flex[J]);
+            }
             if (Tail.IsValidToEvaluate(Bones))
             {
                 FTransform RelaxedTail = Output.Pose.GetComponentSpaceTransform(Tail.GetCompactPoseIndex(Bones));
                 RelaxedTail.AddToTranslation(RestDelta);
-                RelaxedTail.SetRotation(FQuat(RestTailAxis.GetSafeNormal(), FMath::DegreesToRadians(-55.0f * RestAlpha)) * RelaxedTail.GetRotation());
+                RelaxedTail.SetRotation(FQuat(RestTailAxis.GetSafeNormal(),
+                    FMath::DegreesToRadians(-90.0f * RestAlpha - 18.0f * EatAlpha)) * RelaxedTail.GetRotation());
                 Transforms.Emplace(Tail.GetCompactPoseIndex(Bones), RelaxedTail);
             }
         }
+        if (!bApplyFeet)
+        {Transforms.Sort([](const FBoneTransform& A,const FBoneTransform& B){return A.BoneIndex<B.BoneIndex;});return;}
         for (int32 I = 0; I < 4; ++I)
         {
             FLeg& Leg = Legs[I];
@@ -147,14 +189,23 @@ protected:
             Weight = Weight * Weight * (3.0f - 2.0f * Weight);
             Weights[I] = Weight; Corrections[I] = 0.0f; Residuals[I] = 0.0f;
             if (Weight <= 0.001f || bRest) Leg.bPlanted = false;
-            if (!bEnabled && !bRest && Leg.AppliedDelta.IsNearlyZero(.001f)) continue;
             const FCompactPoseBoneIndex U = Leg.Upper.GetCompactPoseIndex(Bones), K = Leg.Knee.GetCompactPoseIndex(Bones), E = Leg.End.GetCompactPoseIndex(Bones);
             FTransform Upper = Output.Pose.GetComponentSpaceTransform(U);
             FTransform Knee = Output.Pose.GetComponentSpaceTransform(K);
             FTransform End = Output.Pose.GetComponentSpaceTransform(E);
+            FTransform ToeBase;
+            if (Leg.bHasToeBase) ToeBase=Output.Pose.GetComponentSpaceTransform(Leg.ToeBase.GetCompactPoseIndex(Bones));
             FVector Tip = Output.Pose.GetComponentSpaceTransform(Leg.Tip.GetCompactPoseIndex(Bones)).GetLocation();
             if (Leg.bHasOtherTip) Tip = (Tip + Output.Pose.GetComponentSpaceTransform(Leg.OtherTip.GetCompactPoseIndex(Bones)).GetLocation()) * 0.5;
             const FVector WorldTip = ComponentToWorld.TransformPosition(Tip);
+            if (!bRest || !Leg.bActionAnchored)
+            {
+                Leg.ActionTipWorld=WorldTip;
+                Leg.ActionEndWorldRotation=ComponentToWorld.GetRotation()*End.GetRotation();
+                if (Leg.bHasToeBase) Leg.ActionToeWorldRotation=ComponentToWorld.GetRotation()*ToeBase.GetRotation();
+                Leg.bActionAnchored=true;
+            }
+            if (!bEnabled && !bRest && Leg.AppliedDelta.IsNearlyZero(.001f)) continue;
             if (Weight > .001f && !bRest && !Leg.bPlanted)
             {
                 Leg.Anchor = WorldTip + Leg.AppliedDelta;
@@ -167,13 +218,55 @@ protected:
             Leg.AppliedDelta = FMath::VInterpConstantTo(Leg.AppliedDelta, DesiredDelta,
                 DeltaSeconds, Leg.bPlanted ? 16.0f : 8.0f).GetClampedToMaxSize(MaximumCorrectionCm);
             const FVector DeltaComponent = ComponentToWorld.InverseTransformVector(Leg.AppliedDelta);
-            const FVector DesiredEnd = End.GetLocation() + (bRest ? FVector::ZeroVector : DeltaComponent);
+            FVector DesiredEnd = End.GetLocation() + (bRest ? FVector::ZeroVector : DeltaComponent);
+            FQuat EndRotation=bRest ? ComponentToWorld.GetRotation().Inverse()*Leg.ActionEndWorldRotation : End.GetRotation();
+            FTransform DesiredToeBase;
+            bool bSolveHock=false;
+            if (bRest)
+            {
+                const FVector TipLocal=End.InverseTransformPosition(Tip);
+                DesiredEnd=ComponentToWorld.InverseTransformPosition(Leg.ActionTipWorld)-EndRotation.RotateVector(TipLocal*End.GetScale3D());
+            }
+            if (RestAlpha > .001f)
+                DesiredEnd += ComponentToWorld.InverseTransformVector(ForwardWorld * (I<2 ? -5.0f : 3.0f) * RestAlpha + FVector(0,0,I<2 ? 1.0f*RestAlpha : 0.0f));
+            // A raised bowl lets feeding retain the authored standing rear
+            // quarters. Tarsal folding is reserved for an actual procedural
+            // floor rest; authored sitting owns its own complete limb pose.
+            const float CrouchAlpha=RestAlpha;
+            if (Leg.bHasToeBase && CrouchAlpha>.001f)
+            {
+                const FQuat ToeRotation=ComponentToWorld.GetRotation().Inverse()*Leg.ActionToeWorldRotation;
+                const FVector TipRelative=ToeBase.InverseTransformPosition(Tip)*ToeBase.GetScale3D();
+                const FVector FootRelative=End.InverseTransformPosition(ToeBase.GetLocation())*End.GetScale3D();
+                FVector DesiredTip=ComponentToWorld.InverseTransformPosition(Leg.ActionTipWorld);
+                DesiredTip+=ComponentToWorld.InverseTransformVector(ForwardWorld*3.0f*RestAlpha);
+                const FVector ToePosition=DesiredTip-ToeRotation.RotateVector(TipRelative);
+                const FVector CurrentLever=EndRotation.RotateVector(FootRelative);
+                const FVector WorldLever=ComponentToWorld.TransformVector(CurrentLever);
+                const float Length=WorldLever.Size();
+                const float Drop=FMath::Lerp(FMath::Max(1.0f,-WorldLever.Z),EatAlpha>RestAlpha ? 3.0f : 2.0f,CrouchAlpha);
+                const FVector Right=FVector::CrossProduct(FVector::UpVector,ForwardWorld).GetSafeNormal();
+                const float Lateral=FMath::Clamp(FVector::DotProduct(WorldLever,Right),-1.5f,1.5f);
+                const float Ahead=FMath::Sqrt(FMath::Max(.01f,Length*Length-Drop*Drop-Lateral*Lateral));
+                const FVector DesiredWorldLever=ForwardWorld*Ahead+Right*Lateral-FVector::UpVector*Drop;
+                const FVector DesiredLever=ComponentToWorld.InverseTransformVector(DesiredWorldLever).GetSafeNormal()*CurrentLever.Size();
+                EndRotation=FQuat::FindBetweenNormals(CurrentLever.GetSafeNormal(),DesiredLever.GetSafeNormal())*EndRotation;
+                DesiredEnd=ToePosition-EndRotation.RotateVector(FootRelative);
+                DesiredToeBase=ToeBase;
+                DesiredToeBase.SetLocation(ToePosition);DesiredToeBase.SetRotation(ToeRotation);
+                bSolveHock=true;
+            }
+            if (PawAlpha > .001f && I == PawIndex)
+            {
+                const FVector TipLocal=End.InverseTransformPosition(Tip);
+                const FVector StrikeEnd=ComponentToWorld.InverseTransformPosition(PawTargetWorld)-EndRotation.RotateVector(TipLocal*End.GetScale3D());
+                DesiredEnd=FMath::Lerp(DesiredEnd,StrikeEnd,PawAlpha);
+            }
             if (bRest)
             {
                 Upper.AddToTranslation(RestDelta);
                 Knee.AddToTranslation(RestDelta);
             }
-            const FQuat EndRotation = End.GetRotation();
             const FVector OldEnd = End.GetLocation();
             // FK knee is the pole. No bone stretching, extra root offsets,
             // ankle twist or fabricated swing cycle is introduced.
@@ -183,8 +276,113 @@ protected:
             Corrections[I] = AchievedWorld.Size();
             Residuals[I] = Leg.bPlanted ? (Leg.Anchor - WorldTip - AchievedWorld).Size() : 0.0f;
             Transforms.Emplace(U, Upper); Transforms.Emplace(K, Knee); Transforms.Emplace(E, End);
+            if (bSolveHock)
+            {
+                // Follow any no-stretch reach residual so Toe0 never detaches
+                // from the metatarsal link while keeping the paw orientation.
+                DesiredToeBase.AddToTranslation(End.GetLocation()-DesiredEnd);
+                Transforms.Emplace(Leg.ToeBase.GetCompactPoseIndex(Bones),DesiredToeBase);
+            }
         }
         Transforms.Sort([](const FBoneTransform& A, const FBoneTransform& B) { return A.BoneIndex < B.BoneIndex; });
+    }
+};
+
+// A measured lip target, not a guessed Euler pitch. CCD rotates the three
+// existing neck/head joints without stretching or translating any bone.
+struct FCatActionNode final : FAnimNode_SkeletalControlBase
+{
+    FBoneReference Neck[3], Jaw, Tongue, Lids[4];
+    FVector MuzzleLocal = FVector(-34.39959,3.01320,729.48403);
+    FVector TargetWorld = FVector::ZeroVector;
+    FTransform ComponentToWorld;
+    float AimAlpha=0.0f, JawAlpha=0.0f, RestAlpha=0.0f;
+    bool bPlayGaze=false, bFeedingAim=false;
+
+    void Configure(const USkeletalMeshComponent* Mesh)
+    {
+        auto Find=[Mesh](const TCHAR* Fragment) -> FName
+        {
+            for (int32 I=0; I<Mesh->GetNumBones(); ++I)
+            { const FName N=Mesh->GetBoneName(I); if (N.ToString().Replace(TEXT("-"),TEXT("_")).Contains(Fragment)) return N; }
+            return NAME_None;
+        };
+        Neck[0].BoneName=Find(TEXT("cat_bip_Neck_7"));
+        Neck[1].BoneName=Find(TEXT("cat_bip_Neck1_8"));
+        Neck[2].BoneName=Find(TEXT("cat_bip_Head_9"));
+        Jaw.BoneName=Find(TEXT("fst_Xtra01_16"));
+        Tongue.BoneName=Find(TEXT("tongue_bone01_17"));
+        Lids[0].BoneName=Find(TEXT("Bone03_12")); Lids[1].BoneName=Find(TEXT("Bone02(mirrored)_14"));
+        Lids[2].BoneName=Find(TEXT("Bone04_13")); Lids[3].BoneName=Find(TEXT("Bone04(mirrored)_15"));
+    }
+    virtual void InitializeBoneReferences(const FBoneContainer& Bones) override
+    { for (FBoneReference& N:Neck) N.Initialize(Bones); Jaw.Initialize(Bones); Tongue.Initialize(Bones); for (FBoneReference& L:Lids) L.Initialize(Bones); }
+    virtual bool IsValidToEvaluate(const USkeleton*,const FBoneContainer& Bones) override
+    { return Neck[0].IsValidToEvaluate(Bones)&&Neck[1].IsValidToEvaluate(Bones)&&Neck[2].IsValidToEvaluate(Bones); }
+    virtual void EvaluateSkeletalControl_AnyThread(FComponentSpacePoseContext& Output,TArray<FBoneTransform>& Out) override
+    {
+        // Authored sitting keeps AimAlpha at zero so the clip owns the neck,
+        // but its procedural eyelids still have to evaluate.
+        if (AimAlpha<.001f && JawAlpha<.001f && RestAlpha<.001f) return;
+        const FBoneContainer& Bones=Output.Pose.GetPose().GetBoneContainer();
+        FTransform Original[3], Solved[3];
+        for (int32 I=0; I<3; ++I) Original[I]=Solved[I]=Output.Pose.GetComponentSpaceTransform(Neck[I].GetCompactPoseIndex(Bones));
+        const FVector Target=ComponentToWorld.InverseTransformPosition(TargetWorld);
+        // Neck_7 also parents both clavicles on this source rig. Moving it
+        // during feeding dragged both front legs forward and made the neck
+        // look telescopic. The thoracic bend now supplies the body lowering;
+        // feeding and ball gaze leave the shoulder girdle planted.
+        const float Limits[]={bPlayGaze || bFeedingAim ? 0.0f : 35.0f,
+            bPlayGaze ? 10.0f : bFeedingAim ? 36.0f : 40.0f,
+            bPlayGaze ? 30.0f : bFeedingAim ? 55.0f : 65.0f};
+        for (int32 Iteration=0; Iteration<8; ++Iteration)
+        for (int32 J=2; J>=0; --J)
+        {
+            const FVector Pivot=Solved[J].GetLocation();
+            const FVector A=Solved[2].TransformPosition(MuzzleLocal)-Pivot, B=Target-Pivot;
+            if (A.IsNearlyZero()||B.IsNearlyZero()) continue;
+            const FQuat Wanted=FQuat::FindBetweenNormals(A.GetSafeNormal(),B.GetSafeNormal())*Solved[J].GetRotation();
+            FQuat Difference=Wanted*Original[J].GetRotation().Inverse(); Difference.Normalize();
+            if (Difference.W<0) Difference=Difference*-1.0f;
+            FVector Axis; float Angle; Difference.ToAxisAndAngle(Axis,Angle);
+            const FQuat NewRotation=FQuat(Axis,FMath::Min(Angle,FMath::DegreesToRadians(Limits[J])))*Original[J].GetRotation();
+            const FQuat Delta=NewRotation*Solved[J].GetRotation().Inverse();
+            for (int32 Child=J; Child<3; ++Child)
+            {
+                Solved[Child].SetLocation(Pivot+Delta.RotateVector(Solved[Child].GetLocation()-Pivot));
+                Solved[Child].SetRotation((Delta*Solved[Child].GetRotation()).GetNormalized());
+            }
+        }
+        for (int32 I=0; I<3; ++I)
+        {
+            FTransform Blended; Blended.Blend(Original[I],Solved[I],AimAlpha);
+            Solved[I]=Blended; Out.Emplace(Neck[I].GetCompactPoseIndex(Bones),Blended);
+        }
+        if (Jaw.IsValidToEvaluate(Bones))
+        {
+            const FTransform OriginalJaw=Output.Pose.GetComponentSpaceTransform(Jaw.GetCompactPoseIndex(Bones));
+            FTransform LocalJaw=OriginalJaw.GetRelativeTransform(Original[2]);
+            // Source+Z lateral maps to UE-Y for opening under glTF handedness.
+            LocalJaw.SetRotation(LocalJaw.GetRotation()*FQuat(FVector(0,-1,0),FMath::DegreesToRadians(3.5f*JawAlpha)));
+            const FTransform NewJaw=LocalJaw*Solved[2]; Out.Emplace(Jaw.GetCompactPoseIndex(Bones),NewJaw);
+            if (Tongue.IsValidToEvaluate(Bones))
+            {
+                FTransform LocalTongue=Output.Pose.GetComponentSpaceTransform(Tongue.GetCompactPoseIndex(Bones)).GetRelativeTransform(OriginalJaw);
+                // A small extension of the existing tongue mesh; no new face
+                // geometry, jaw stretching, or fabricated contact is used.
+                const FVector Outward=(Solved[2].TransformPosition(MuzzleLocal)-NewJaw.GetLocation()).GetSafeNormal();
+                LocalTongue.AddToTranslation(NewJaw.InverseTransformVectorNoScale(Outward)*(80.0f*JawAlpha));
+                Out.Emplace(Tongue.GetCompactPoseIndex(Bones),LocalTongue*NewJaw);
+            }
+        }
+        const FVector LidAxis=Solved[2].GetRotation().RotateVector(FVector(0,-1,0));
+        for (int32 I=0; I<4; ++I) if (Lids[I].IsValidToEvaluate(Bones))
+        {
+            FTransform Lid=Output.Pose.GetComponentSpaceTransform(Lids[I].GetCompactPoseIndex(Bones)).GetRelativeTransform(Original[2])*Solved[2];
+            Lid.SetRotation(FQuat(LidAxis,FMath::DegreesToRadians((I<2 ? 20.0f : -10.0f)*RestAlpha))*Lid.GetRotation());
+            Out.Emplace(Lids[I].GetCompactPoseIndex(Bones),Lid);
+        }
+        Out.Sort([](const FBoneTransform& A,const FBoneTransform& B){return A.BoneIndex<B.BoneIndex;});
     }
 };
 
@@ -217,6 +415,10 @@ struct FCatAnimationInput
     float BreathingCm = 0.0f;
     FVector RestTailAxis = FVector::RightVector;
     bool bSuppressVariation = false;
+    float EatAlpha=0.0f, JawAlpha=0.0f, PawAlpha=0.0f, PlayAttention=0.0f;
+    int32 PawIndex=0;
+    FVector ActionTargetWorld, PawTargetWorld, ForwardWorld, FeedingLeanDirection;
+    bool bAuthoredRest=false;
 };
 
 class FMirmirAnimInstanceProxy final : public FAnimInstanceProxy
@@ -226,7 +428,11 @@ public:
     {
         Stack.SetMaxActiveBlends(3);
         ToComponent.LocalPose.SetLinkNode(&Stack);
-        Stance.ComponentPose.SetLinkNode(&ToComponent);
+        Body.ComponentPose.SetLinkNode(&ToComponent);
+        Body.bApplyFeet=false;
+        Action.ComponentPose.SetLinkNode(&Body);
+        Stance.ComponentPose.SetLinkNode(&Action);
+        Stance.bApplyBody=false;
         HeadShape.ComponentPose.SetLinkNode(&Stance);
         HeadShape.ScaleMode = BMM_Additive;
         HeadShape.ScaleSpace = BCS_BoneSpace;
@@ -244,6 +450,8 @@ protected:
         {
             HeadShape.BoneToModify.BoneName = Cat->AppearanceHeadBoneName;
             Stance.Configure(Cat->CatMesh);
+            Body.Configure(Cat->CatMesh);
+            Action.Configure(Cat->CatMesh);
         }
         HeadShape.Alpha = HeadShape.BoneToModify.BoneName.IsNone() ? 0.0f : 1.0f;
         FAnimInstanceProxy::Initialize(Instance);
@@ -253,6 +461,8 @@ protected:
     {
         Nodes.Add(&Stack);
         Nodes.Add(&ToComponent);
+        Nodes.Add(&Body);
+        Nodes.Add(&Action);
         Nodes.Add(&Stance);
         Nodes.Add(&HeadShape);
         Nodes.Add(&ToLocal);
@@ -284,27 +494,37 @@ protected:
         Input.ReferenceSpeed = FMath::Max(1.0f, Cat->AuthoredWalkSpeed);
         Input.BlendSeconds = FMath::Clamp(Cat->AnimationBlendSeconds, 0.05f, 1.0f);
         Input.bPreferSitting = Cat->bPreferSittingWhenResting;
+        Input.bAuthoredRest = Input.Activity == EMirmirActivity::Sleep && Input.bPreferSitting && Input.SitIdle;
         Input.bWaitingAtToy = Cat->bWaitingAtToy;
         Input.bHabitatTraveling = Cat->bHabitatTraveling;
         Input.bBackwards = Cat->bWalkingBackwards;
         Input.RestAlpha = Cat->RestPoseAlpha;
+        Input.EatAlpha = Cat->EatingPoseStrength;
+        Input.JawAlpha = Cat->FeedingJawAlpha;
+        Input.PawAlpha = Cat->PlayPawAlpha;
+        Input.PawIndex = Cat->PlayPawIndex;
+        Input.PawTargetWorld = Cat->PawTargetWorld;
+        Input.ForwardWorld = Cat->GetActorForwardVector();
+        Input.FeedingLeanDirection=(Cat->FeedingTargetWorld-Cat->GetActorLocation()).GetSafeNormal2D();
+        Input.ActionTargetWorld = Input.EatAlpha>.001f ? Cat->FeedingTargetWorld :
+            Cat->GetActorLocation()+Cat->GetActorForwardVector()*22.0f+FVector(0,0,9.0f);
+        if (Cat->Activity==EMirmirActivity::Play && Cat->Toy && Cat->Toy->IsPlaying() && Input.RestAlpha<.001f && Input.EatAlpha<.001f)
+        {
+            Input.ActionTargetWorld=Cat->Toy->GetBallLocation()+FVector(0,0,4.0f);
+            Input.PlayAttention=Cat->bWaitingAtToy ? .45f : .2f;
+        }
         Input.BreathingCm = Cat->RestBreathing;
         Input.bSuppressVariation = Cat->Activity == EMirmirActivity::Sleep || Cat->Activity == EMirmirActivity::Eat;
         Input.RestTailAxis = Cat->CatMesh->GetComponentQuat().Inverse().RotateVector(Cat->GetActorRightVector());
         Input.bEnableStance = Cat->bEnableStanceIK;
         Input.MaximumStanceCorrection = FMath::Clamp(Cat->MaximumStanceCorrectionCm, 0.0f, 6.0f);
         Input.ComponentToWorld = Cat->CatMesh->GetComponentTransform();
-        const float Pet = FMath::Clamp(Cat->PetReactionStrength, 0.0f, 1.0f);
+        float Pet = FMath::Clamp(Cat->PetReactionStrength, 0.0f, 1.0f);
         float HeadYaw = Cat->CuriosityHeadYaw;
-        float HeadPitch = Cat->CuriosityHeadPitch - Input.RestAlpha * 12.0f;
-        if (Cat->Habitat && Cat->EatingPoseStrength > 0.0f)
-        {
-            const FVector Head = Cat->CatMesh->GetBoneLocation(Cat->AppearanceHeadBoneName);
-            const FVector TowardBowl = Cat->GetActorQuat().UnrotateVector(Cat->Habitat->GetBowlLocation() - Head);
-            const float BowlYaw = FMath::Clamp(FMath::RadiansToDegrees(FMath::Atan2(TowardBowl.Y, TowardBowl.X)), -45.0f, 45.0f);
-            HeadYaw = FMath::Lerp(HeadYaw, BowlYaw, Cat->EatingPoseStrength);
-            HeadPitch = FMath::Lerp(HeadPitch, -34.0f + 2.5f * FMath::Sin(Cat->GetWorld()->GetTimeSeconds() * 10.0f), Cat->EatingPoseStrength);
-        }
+        float HeadPitch = Cat->CuriosityHeadPitch;
+        const float AttentionAlpha=1.0f-FMath::Max(Input.RestAlpha,Input.EatAlpha);
+        HeadYaw*=AttentionAlpha; HeadPitch*=AttentionAlpha;
+        Pet*=AttentionAlpha;
         const FQuat WorldLook = FQuat(FVector::UpVector, FMath::DegreesToRadians(HeadYaw + Pet * Cat->PetStrokeDirection * 3.0f)) *
             FQuat(Cat->GetActorRightVector(), FMath::DegreesToRadians(-HeadPitch - Pet * 4.0f)) *
             FQuat(Cat->GetActorForwardVector(), FMath::DegreesToRadians(Pet * (1.0f + Cat->PetStrokeDirection * 2.0f)));
@@ -321,14 +541,12 @@ protected:
 
     virtual void UpdateAnimationNode(const FAnimationUpdateContext& Context) override
     {
-        const bool bWantsMovement = Input.Activity == EMirmirActivity::Wander ||
-            (Input.Activity == EMirmirActivity::Play && !Input.bWaitingAtToy) || Input.bHabitatTraveling;
         ECatPose Goal;
-        if ((bWantsMovement || Input.Speed > 1.0f) && Input.Walk) Goal = ECatPose::Walk;
-        else if (Input.Activity == EMirmirActivity::Sleep && Input.Sleep) Goal = ECatPose::Sleep;
+        if (Input.Speed > 1.0f && Input.Walk) Goal = ECatPose::Walk;
+        else if (Input.Activity == EMirmirActivity::Sleep && !Input.bHabitatTraveling && Input.Sleep) Goal = ECatPose::Sleep;
         // Ordinary pauses use authored Idle. Sitting is an explicit rest
         // fallback when no actual sleep loop has been supplied.
-        else if (Input.Activity == EMirmirActivity::Sleep && Input.bPreferSitting && Input.SitIdle) Goal = ECatPose::Sitting;
+        else if (Input.Activity == EMirmirActivity::Sleep && !Input.bHabitatTraveling && Input.bPreferSitting && Input.SitIdle) Goal = ECatPose::Sitting;
         else Goal = Input.Idle ? ECatPose::Idle : (Input.Walk ? ECatPose::HeldWalk : ECatPose::None);
 
         ECatPose Next = Goal;
@@ -413,7 +631,34 @@ protected:
         HeadShape.Scale = FVector(Input.HeadScale);
         HeadShape.Rotation = Input.HeadRotation;
         Stance.ComponentToWorld = Input.ComponentToWorld;
-        Stance.RestAlpha = Input.RestAlpha;
+        // Authored sitting owns the supported body/limbs. Keep only the face,
+        // head, tail and breathing action layers; applying the old procedural
+        // crouch as well produced an unmistakable play-bow.
+        const float ProceduralRestAlpha=Input.bAuthoredRest ? 0.0f : Input.RestAlpha;
+        Stance.RestAlpha = ProceduralRestAlpha;
+        Stance.EatAlpha = Input.EatAlpha;
+        Stance.PawAlpha = Input.PawAlpha;
+        Stance.PawIndex = Input.PawIndex;
+        Stance.PawTargetWorld = Input.PawTargetWorld;
+        Stance.ForwardWorld = Input.ForwardWorld;
+        Body.ComponentToWorld=Input.ComponentToWorld;
+        Body.RestAlpha=ProceduralRestAlpha; Body.EatAlpha=Input.EatAlpha; Body.PawAlpha=Input.PawAlpha;
+        Body.ForwardWorld=Input.EatAlpha>.001f ? Input.FeedingLeanDirection : Input.ForwardWorld;
+        Body.BreathingCm=Input.BreathingCm;
+        Body.RestTailAxis=Input.RestTailAxis;
+        Action.ComponentToWorld=Input.ComponentToWorld;
+        Action.TargetWorld=Input.ActionTargetWorld;
+        Action.MuzzleLocal=FVector(-34.39959,3.01320,729.48403)*Input.HeadScale;
+        PlayAttention=FMath::FInterpConstantTo(PlayAttention,Input.PlayAttention,Delta,.8f);
+        // The authored sitting clip already owns a believable neck pose.
+        // Closing its eyelids must not also pull the complete neck chain toward
+        // the old floor-rest target (which stretched the neck vertically).
+        Action.AimAlpha=FMath::Max(FMath::Max(Input.EatAlpha,
+            Input.bAuthoredRest ? 0.0f : Input.RestAlpha),PlayAttention);
+        Action.JawAlpha=Input.JawAlpha;
+        Action.RestAlpha=Input.RestAlpha;
+        Action.bPlayGaze=Input.PlayAttention>0 && Input.EatAlpha<.001f && Input.RestAlpha<.001f;
+        Action.bFeedingAim=Input.EatAlpha>.001f;
         Stance.BreathingCm = Input.BreathingCm;
         Stance.RestTailAxis = Input.RestTailAxis;
         Stance.DeltaSeconds = Delta;
@@ -462,7 +707,9 @@ private:
 
     FAnimNode_BlendStack_Standalone Stack;
     FAnimNode_ConvertLocalToComponentSpace ToComponent;
+    FCatStanceNode Body;
     FCatStanceNode Stance;
+    FCatActionNode Action;
     FAnimNode_ModifyBone HeadShape;
     FAnimNode_ConvertComponentToLocalSpace ToLocal;
     FCatAnimationInput Input;
@@ -475,6 +722,7 @@ private:
     float PreviousBond = -1.0f;
     bool bWasPetted = false;
     bool bPendingVariationCue = false;
+    float PlayAttention=0.0f;
     FRandomStream VariationRandom{ 0x4d49524d };
 };
 }

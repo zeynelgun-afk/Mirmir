@@ -8,7 +8,16 @@ its furniture on your desktop.
 Mırmır is an early **noncommercial prototype**. Its interface is currently
 Turkish; the repository and installation guides are in English.
 
-![Actual Unreal Engine appearance preview](docs/media/appearance-preview.gif)
+> **Animation reset:** the current prototype feeding and seated-rest visuals
+> were rejected as unrealistic and are not release candidates. The replacement
+> uses a zero-cost licensed rigged cat and Mirmir-authored behavior clips; see
+> the [selection and acceptance gate](docs/research/zero-cost-cat-asset-selection-2026-10-28.md).
+
+![Actual Shipping renders of feeding, a paw impulse and seated rest](docs/media/behavior-contact-sheet.png)
+
+Actual Linux Shipping captures on an added preview background: a raised bowl,
+an evaluated paw impulse and seated rest with procedural eyelids.
+[Original RGBA frames and build identity](docs/media/README.md)
 
 <img src="docs/media/van.png" width="280" alt="Van appearance, actual Unreal render"> <img src="docs/media/british.png" width="280" alt="British Shorthair appearance, actual Unreal render"> <img src="docs/media/tuxedo.png" width="280" alt="Black-and-white appearance, actual Unreal render">
 
@@ -27,17 +36,22 @@ Actual Unreal game captures on an added neutral preview background.
   playback and procedural paw contact adjustments.
 - Real meow and purr recordings, petting reactions, hunger, energy and a
   saved bond with your cat.
-- A bouncing Unreal Chaos ball and short, occasional interest in your cursor.
-- A bed and feeding bowl you can move independently. Their positions survive
-  restarts. Unsafe placements are rejected with an explanation.
+- A Chaos rigid-body ball with impulses requested by the cat's evaluated paw
+  position and velocity, plus short, occasional interest in your cursor.
+- A bed and raised feeding bowl on a stand you can move independently. Their
+  positions survive restarts. Unsafe placements are rejected with an explanation.
 - Swept movement and curved paths around furniture, with an open bed entrance
   and exit. Depth-tested rendering lets furniture cover the cat correctly.
 - Transparent windows that avoid keyboard focus and the taskbar. Controls
   stay in the system tray beside your clock.
 
 The appearances share one base model; they are not separate scanned breeds.
-Resting uses a procedural crouched pose with breathing and a relaxed tail.
-Closed-eye sleep clips, Groom fur and finished photorealism are still in progress.
+Version 0.5 uses authored sit-down, seated-idle and stand-up clips as its
+rest base, with procedural eyelids, head motion, breathing and tail relaxation.
+This is seated rest; there is no authored lying-down or sleep clip. Feeding
+uses bounded neck/head, jaw and tongue controls at the raised bowl. Groom fur
+and finished photorealism are still in progress. See the
+[current status](docs/current-status.md) for the exact cooked-build evidence.
 
 ## Controls
 
@@ -121,7 +135,8 @@ installation are verified separately. Automated checks do not establish
 photorealism or the user's acceptance of the animation.
 
 [Current evidence and limits](docs/current-status.md) ·
-[Motion research](docs/research/locomotion-2026-10-27.md)
+[Motion research](docs/research/locomotion-2026-10-27.md) ·
+[Behavior and source-rig calibration](docs/research/behavior-rig-2026-10-28.md)
 
 ## Licenses and credits
 

@@ -43,6 +43,7 @@ private:
     UPROPERTY() TObjectPtr<UMaterialInterface> BaseMaterial;
     UPROPERTY() TArray<TObjectPtr<UStaticMeshComponent>> BedFabric;
     UPROPERTY() TArray<TObjectPtr<UStaticMeshComponent>> BedCushion;
+    UPROPERTY() TArray<TObjectPtr<UStaticMeshComponent>> BowlStand;
     UPROPERTY() TArray<TObjectPtr<UStaticMeshComponent>> BowlCeramic;
     UPROPERTY() TArray<TObjectPtr<UStaticMeshComponent>> Food;
     bool bFoodVisible = true;

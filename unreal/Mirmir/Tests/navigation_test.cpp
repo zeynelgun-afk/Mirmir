@@ -1,9 +1,41 @@
 #include "CatNavigation.h"
+#include "CatLocomotion.h"
 #include <cassert>
 #include <iostream>
 #include <random>
 
 using namespace Mirmir::Navigation;
+
+void FollowPlannedRoute(Pose2 Goal)
+{
+    const Pose2 Start{{0,0},0};
+    const auto Paths=BuildCSC(Start,Goal,50,6);
+    assert(!Paths.empty());
+    const auto& Samples=Paths.front().Samples;
+    Pose2 Actual=Start;
+    Mirmir::LocomotionState State;
+    std::size_t Index=0;
+    double MaximumDeviation=0;
+    for (int Tick=0; Tick<60*60; ++Tick)
+    {
+        std::size_t Best=Index;
+        double Nearest=std::numeric_limits<double>::infinity();
+        for (std::size_t I=Index; I<std::min(Index+16,Samples.size()); ++I)
+        {
+            const double D=Length(Samples[I].Position-Actual.Position);
+            if (D<Nearest) {Nearest=D;Best=I;}
+        }
+        Index=Best;MaximumDeviation=std::max(MaximumDeviation,Nearest);
+        if (Index+8>=Samples.size() && Length(Actual.Position-Goal.Position)<12)
+        { assert(MaximumDeviation<12); return; }
+        const Point2 Target=Samples[std::min(Index+SteeringLookAheadSamples,Samples.size()-1)].Position-Actual.Position;
+        const Point2 Forward=Direction(Actual.YawRadians);
+        const auto Step=Mirmir::AdvanceLocomotion(State,Dot(Target,Forward),Dot(Target,Left(Forward)),35,true,1.0/60);
+        Actual.Position=Actual.Position+Forward*Step.Forward+Left(Forward)*Step.Right;
+        Actual.YawRadians+=Step.Yaw;
+    }
+    assert(false && "Planned CSC route must arrive, not orbit its waypoints");
+}
 
 void Check(const Candidate& Path, Pose2 Start, Pose2 End, double Spacing)
 {
@@ -26,6 +58,9 @@ void Check(const Candidate& Path, Pose2 Start, Pose2 End, double Spacing)
 
 int main()
 {
+    FollowPlannedRoute({{50,50},Pi/2});
+    FollowPlannedRoute({{-180,45},0});
+    FollowPlannedRoute({{50,-50},-Pi/2});
     assert(std::abs(SegmentClearance({ 0, 0 }, { 10, 0 }, { { 5, 3 }, 2 }) - 1.0) < 1e-10);
     assert(std::abs(SegmentClearance({ 0, 0 }, { 10, 0 }, { { 5, 2 }, 2 })) < 1e-10);
     assert(SegmentClearance({ 0, 0 }, { 10, 0 }, { { 5, 0 }, 2 }) < 0.0);

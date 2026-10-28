@@ -22,6 +22,14 @@
     {
       "Name": "BlendStack",
       "Enabled": true
+    },
+    {
+      "Name": "HairStrands",
+      "Enabled": true
+    },
+    {
+      "Name": "AlembicHairImporter",
+      "Enabled": true
     }
   ]
 }

@@ -10,6 +10,9 @@
 #include "Animation/AnimSingleNodeInstance.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/SceneComponent.h"
+#include "GroomComponent.h"
+#include "HairStrandsInterface.h"
+#include "RHI.h"
 #include "Engine/Engine.h"
 #include "Engine/SkeletalMesh.h"
 #include "ReferenceSkeleton.h"
@@ -49,19 +52,81 @@ AMirmirCat::AMirmirCat()
     CatMesh->SetCollisionResponseToAllChannels(ECR_Ignore);
     CatMesh->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
     CatMesh->SetCollisionResponseToChannel(ECC_PhysicsBody, ECR_Block);
+    CatGroom = CreateDefaultSubobject<UGroomComponent>(TEXT("CatGroom"));
+    CatGroom->SetupAttachment(CatMesh);
+    CatGroom->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+    CatGroom->SetCastShadow(true);
+    CatGroom->SetVisibility(false, true);
 }
 
 void AMirmirCat::BeginPlay()
 {
     Super::BeginPlay();
+    // The reviewed CC-BY motion set already shipped with the project. Product
+    // Blueprint defaults intentionally left these transition fields empty
+    // while the old foot-contact implementation was being rejected. The
+    // current action IK can now review them in the real bed without mutating
+    // the Blueprint asset; incompatible or missing clips fail closed.
+    if (!SitDownAnimation)
+        SitDownAnimation = LoadObject<UAnimSequence>(nullptr,
+            TEXT("/Game/Mirmir/MotionReview/Retarget_3f65719d5a3f/SkeletalMeshes/cat-tuxedo-motion-candidateTuxedo_SitDown.cat-tuxedo-motion-candidateTuxedo_SitDown"));
+    if (!SitIdleAnimation)
+        SitIdleAnimation = LoadObject<UAnimSequence>(nullptr,
+            TEXT("/Game/Mirmir/MotionReview/Retarget_3f65719d5a3f/SkeletalMeshes/cat-tuxedo-motion-candidateTuxedo_IdleSit.cat-tuxedo-motion-candidateTuxedo_IdleSit"));
+    if (!StandUpAnimation)
+        StandUpAnimation = LoadObject<UAnimSequence>(nullptr,
+            TEXT("/Game/Mirmir/MotionReview/Retarget_3f65719d5a3f/SkeletalMeshes/cat-tuxedo-motion-candidateTuxedo_StandUp.cat-tuxedo-motion-candidateTuxedo_StandUp"));
+    bPreferSittingWhenResting = SitDownAnimation && SitIdleAnimation && StandUpAnimation;
     // Isolated contact calibration; never changes the saved cat profile.
     if (FParse::Param(FCommandLine::Get(), TEXT("MirmirNoStanceIK"))) bEnableStanceIK = false;
     if (CatSkeletalMesh) CatMesh->SetSkeletalMesh(CatSkeletalMesh);
+    if (CatGroomAsset)
+    {
+        CatGroom->SetGroomAsset(CatGroomAsset, CatGroomBinding, true);
+        if (CatGroomMaterial) CatGroom->SetMaterial(0, CatGroomMaterial);
+        CatGroom->PhysicsAsset = CatMesh->GetPhysicsAsset();
+        if (GroomHairWidthCm > 0.0f)
+            CatGroom->SetHairWidth(FMath::Clamp(GroomHairWidthCm, 0.01f, 0.5f));
+        CatGroom->SetStableRasterization(true);
+        CatGroom->SetScatterSceneLighting(true);
+        CatGroom->SetVisibility(true, true);
+        CatGroom->UpdateBounds();
+        const bool bBindingValid = CatGroomBinding &&
+            UGroomBindingAsset::IsBindingAssetValid(CatGroomBinding, false, true);
+        const bool bMeshCompatible = CatGroomBinding &&
+            UGroomBindingAsset::IsCompatible(CatMesh->GetSkeletalMeshAsset(), CatGroomBinding, true);
+        const bool bGroomCompatible = CatGroomBinding &&
+            UGroomBindingAsset::IsCompatible(CatGroomAsset, CatGroomBinding, true);
+        const bool bStrandsSupported =
+            IsHairStrandsSupported(EHairStrandsShaderType::Strands, GMaxRHIShaderPlatform);
+        UE_LOG(LogTemp, Display,
+            TEXT("Mirmir: Groom initialized asset=%s binding=%s material=%s visible=%d registered=%d valid=%d mesh_compatible=%d groom_compatible=%d strands_supported=%d bounds_extent=%s."),
+            *GetNameSafe(CatGroomAsset), *GetNameSafe(CatGroomBinding),
+            *GetNameSafe(CatGroom->GetMaterial(0)), CatGroom->IsVisible(), CatGroom->IsRegistered(), bBindingValid,
+            bMeshCompatible, bGroomCompatible, bStrandsSupported,
+            *CatGroom->Bounds.BoxExtent.ToString());
+        if (FParse::Param(FCommandLine::Get(), TEXT("MirmirGroomUnboundReview")))
+        {
+            CatGroom->SetGroomAsset(CatGroomAsset, nullptr, true);
+            CatMesh->SetVisibility(false, false);
+            UE_LOG(LogTemp, Display, TEXT("Mirmir: unbound Groom review enabled."));
+        }
+    }
     if (bNormalizeImportedMesh && CatMesh->GetSkeletalMeshAsset()) NormalizeMesh();
+    // GLTF ConvertVec3(X,Y,Z)=(X,Z,Y), import units *100. Atlas
+    // upper-lip landmark is 100% Head weighted (anatomy-calibration report).
+    MuzzleBoneLocal = FVector(-34.39959, 3.01320, 729.48403);
+    for (int32 Bone=0; Bone<CatMesh->GetNumBones(); ++Bone)
+    {
+        const FString Name=CatMesh->GetBoneName(Bone).ToString();
+        if (Name.Replace(TEXT("-"),TEXT("_")).Contains(TEXT("cat_bip_L_Finger01"))) PawTipNames[0]=CatMesh->GetBoneName(Bone);
+        if (Name.Replace(TEXT("-"),TEXT("_")).Contains(TEXT("cat_bip_R_Finger01"))) PawTipNames[1]=CatMesh->GetBoneName(Bone);
+    }
     CatMesh->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::AlwaysTickPoseAndRefreshBones;
     // Native graph input must see this frame's movement, not the previous
     // speed. Component ticks do not automatically wait for their owning actor.
     CatMesh->AddTickPrerequisiteActor(this);
+    CatMesh->RegisterOnBoneTransformsFinalizedDelegate(FOnBoneTransformsFinalizedMultiCast::FDelegate::CreateUObject(this, &AMirmirCat::HandleBonesFinalized));
     AssembleAdditionalMeshes();
     HomeLocation = GetActorLocation();
     WanderTarget = HomeLocation;
@@ -109,6 +174,7 @@ void AMirmirCat::BeginPlay()
 void AMirmirCat::Tick(float DeltaSeconds)
 {
     Super::Tick(DeltaSeconds);
+    PoseMeasurementDelta = DeltaSeconds;
     VoiceCooldown = FMath::Max(0.0f, VoiceCooldown - DeltaSeconds);
     if (!bWelcomed && VoiceCooldown <= 0)
     {
@@ -140,11 +206,17 @@ void AMirmirCat::Tick(float DeltaSeconds)
             (Animation->PlaybackState == TEXT("Sitting") || Animation->PlaybackState == TEXT("SitDown") ||
              Animation->PlaybackState == TEXT("Sleep"));
         bAnimationTransitionBlocksMovement = Animation->bTransitionBlocksMovement || bMustRise ||
-            (RestPoseAlpha > 0.02f && Activity != EMirmirActivity::Sleep);
+            (RestPoseAlpha > 0.02f && Activity != EMirmirActivity::Sleep) ||
+            (EatingPoseStrength > 0.02f && Activity != EMirmirActivity::Eat);
     }
-    if (bToyStartPending && !bAnimationTransitionBlocksMovement && Toy && Activity == EMirmirActivity::Play)
+    if (bToyStartPending && !bAnimationTransitionBlocksMovement && !bNeedBowlExit && !IsBedOccupied() && Toy && Activity == EMirmirActivity::Play)
     {
-        Toy->BeginPlayWithCat(this);
+        if (Toy->BeginPlayWithCat(this)) Behavior.RestartActivity(Toy->SessionDurationSeconds);
+        else
+        {
+            LastInteractionAction=TEXT("play"); bLastInteractionAccepted=false; ++InteractionSerial;
+            InteractionMessage=TEXT("Top için güvenli bir alan bulunamadı; Mırmır çevresine bakıyor.");
+        }
         bToyStartPending = false;
     }
     const bool bChasingToy = Activity == EMirmirActivity::Play && Toy && Toy->IsPlaying();
@@ -160,6 +232,7 @@ void AMirmirCat::Tick(float DeltaSeconds)
         else if (Distance > 46.0f) bWaitingAtToy = false;
         if (bNeedBowlExit) { bWaitingAtToy = false; bWaitingAtBlockedToy = false; }
     }
+    UpdatePlayPose(MovementDelta, bChasingToy);
     const ECollisionEnabled::Type DesiredCollision = bChasingToy
         ? ECollisionEnabled::QueryAndPhysics : ECollisionEnabled::QueryOnly;
     if (CatMesh->GetCollisionEnabled() != DesiredCollision) CatMesh->SetCollisionEnabled(DesiredCollision);
@@ -176,7 +249,7 @@ void AMirmirCat::Tick(float DeltaSeconds)
             const FVector Ball = Toy->GetBallLocation();
             const FVector ToBall = (Ball - Before).GetSafeNormal2D();
             Target = FVector(Ball.X, Ball.Y, Before.Z) - ToBall * 32.0f;
-            bTravel = !bWaitingAtToy;
+            bTravel = !bWaitingAtToy && PlayPhase != TEXT("Plant") && PlayPhase != TEXT("Strike") && PlayPhase != TEXT("Recover");
         }
         else if (bCuriosityVisit)
         {
@@ -195,29 +268,35 @@ void AMirmirCat::Tick(float DeltaSeconds)
     const bool WasBacking = bWalkingBackwards;
     bWalkingBackwards = false;
     bExitingBed = false;
-    bBedEntryPermission = false;
-    bBowlClearancePermission = false;
+    const FVector SupportedBed=Habitat ? Before-Habitat->GetStationFloorPosition(TEXT("bed")) : FVector::ZeroVector;
+    bBedEntryPermission = Habitat && Before.Z>HomeLocation.Z+.5f && FMath::Abs(SupportedBed.X)<65 && FMath::Abs(SupportedBed.Y)<13;
+    bBowlClearancePermission = (Activity==EMirmirActivity::Eat && bHabitatArrived) || bNeedBowlExit;
     if (Habitat && bTravel)
     {
         const FVector Bed = Habitat->GetStationFloorPosition(TEXT("bed"));
         const FVector Bowl = Habitat->GetStationFloorPosition(TEXT("bowl"));
         const FVector LocalBed = Before - Bed;
+        const float AlongBed=LocalBed.X*BedForwardSign;
         // The bed is open at both ends. The sleeping pose finishes facing +X,
         // allowing a forward exit instead of an in-place frozen rotation.
         if (Activity != EMirmirActivity::Sleep && FMath::Abs(LocalBed.Y) < 13.0 &&
-            LocalBed.X > -65.0 && LocalBed.X < 85.0 && Before.Z > HomeLocation.Z + .5) bLeavingBedTraversal = true;
-        if (LocalBed.X >= 95.0 || FMath::Abs(LocalBed.Y) > 18.0) bLeavingBedTraversal = false;
+            AlongBed > -65.0 && AlongBed < 85.0 && Before.Z > HomeLocation.Z + .5) bLeavingBedTraversal = true;
+        if (AlongBed >= 95.0 || FMath::Abs(LocalBed.Y) > 18.0) bLeavingBedTraversal = false;
         bExitingBed = bLeavingBedTraversal;
         const bool SupportedAtBed = FMath::Abs(LocalBed.X) < 65.0 && FMath::Abs(LocalBed.Y) < 13.0 && Before.Z > HomeLocation.Z + .5;
         const bool FinalBedLane = Activity == EMirmirActivity::Sleep && bHabitatTraveling &&
             !HabitatWaypoints.IsEmpty() && HabitatWaypointIndex >= HabitatWaypoints.Num() - 18;
         bBedEntryPermission = (SupportedAtBed || bExitingBed || FinalBedLane) &&
-            FMath::Abs(LocalBed.Y) < 13.0 && FMath::Abs(LocalBed.X) < 110.0 && GetActorForwardVector().X > .85;
-        if (bExitingBed) Target = Bed + FVector(105, 0, 0);
+            FMath::Abs(LocalBed.Y) < 13.0 && FMath::Abs(LocalBed.X) < 110.0 && GetActorForwardVector().X*BedForwardSign > .85;
+        if (bExitingBed) Target = Bed + FVector(105*BedForwardSign, 0, 0);
         // A real backwards playback of the walk clears the food bowl before
         // forward steering resumes. The stationary body is never spun through it.
         const FVector ToBowl = Bowl - Before;
-        if (ToBowl.Size2D() >= 105.0) bNeedBowlExit = false;
+        if (ToBowl.Size2D() >= 105.0 && bNeedBowlExit)
+        {
+            bNeedBowlExit=false;
+            if (bHabitatTraveling) BeginHabitatApproach();
+        }
         bWalkingBackwards = bNeedBowlExit && Activity != EMirmirActivity::Eat && !bExitingBed && ToBowl.Size2D() < 105.0 &&
             FVector::DotProduct(ToBowl.GetSafeNormal2D(), GetActorForwardVector()) > .35;
         if (bWalkingBackwards && !WasBacking && MovementSpeed > 1.0f)
@@ -230,7 +309,7 @@ void AMirmirCat::Tick(float DeltaSeconds)
             bWalkingBackwards = true;
             bTravel = false; // Brake in the existing direction before going forward.
         }
-        bBowlClearancePermission = bWalkingBackwards || (Activity == EMirmirActivity::Eat && bHabitatTraveling);
+        bBowlClearancePermission = bBowlClearancePermission || bWalkingBackwards || (Activity == EMirmirActivity::Eat && bHabitatTraveling);
         if (bWalkingBackwards) Target = Before - GetActorForwardVector() * 80.0;
         else if (!bExitingBed && !bHabitatTraveling) Target = NavigationSteeringTarget(Target);
     }
@@ -258,6 +337,11 @@ void AMirmirCat::Tick(float DeltaSeconds)
         const float FloorZ = bOnSupport ? Habitat->GetBedLocation().Z : HomeLocation.Z;
         Proposed.Z = FMath::FInterpConstantTo(Proposed.Z, FloorZ, MovementDelta, 12.0f);
         CollisionBody->IgnoreComponentWhenMoving(Habitat->GetBedCollision(), bBedEntryPermission || (bHabitatArrived && Activity == EMirmirActivity::Sleep));
+        // The analytically constrained food corridor owns the last 64 cm of
+        // the approach. Ignore only the bowl's coarse axis-aligned query box
+        // there; otherwise the rotated cat box can touch a corner before the
+        // visually calibrated 31 cm feeding pose.
+        CollisionBody->IgnoreComponentWhenMoving(Habitat->GetBowlCollision(), bBowlClearancePermission);
     }
     bMovementBlocked = !SegmentClear(Before, Proposed, bBedEntryPermission || (bHabitatArrived && Activity == EMirmirActivity::Sleep), bBowlClearancePermission);
     FHitResult Hit;
@@ -343,7 +427,9 @@ bool AMirmirCat::IsBedOccupied() const
 
 bool AMirmirCat::SegmentClear(FVector A, FVector B, bool BedCorridor, bool BowlCorridor, float Margin) const
 {
-    if (!IsInsideDesktop(A) || !IsInsideDesktop(B)) return false;
+    const bool bRouteDebug=FParse::Param(FCommandLine::Get(),TEXT("MirmirRouteDebug"));
+    if (!IsInsideDesktop(A) || !IsInsideDesktop(B))
+    { if (bRouteDebug) UE_LOG(LogTemp,Warning,TEXT("Mirmir segment outside A=%s B=%s"),*A.ToCompactString(),*B.ToCompactString()); return false; }
     if (!Habitat) return true;
     using namespace Mirmir::Navigation;
     const FVector Bed = Habitat->GetStationFloorPosition(TEXT("bed"));
@@ -353,17 +439,19 @@ bool AMirmirCat::SegmentClear(FVector A, FVector B, bool BedCorridor, bool BowlC
         return FMath::Abs(P.Y - Bed.Y) <= 13.0 && FMath::Abs(P.X - Bed.X) <= 115.0;
     };
     if (!(BedCorridor && InBedGate(A) && InBedGate(B)) &&
-        SegmentClearance({ A.X,A.Y }, { B.X,B.Y }, {{ Bed.X,Bed.Y }, 40.0 + 28.0 + Margin}) < 0.0) return false;
+        SegmentClearance({ A.X,A.Y }, { B.X,B.Y }, {{ Bed.X,Bed.Y }, 40.0 + 28.0 + Margin}) < 0.0)
+    { if (bRouteDebug) UE_LOG(LogTemp,Warning,TEXT("Mirmir segment bed A=%s B=%s margin=%.1f"),*A.ToCompactString(),*B.ToCompactString(),Margin); return false; }
     auto InFoodGate = [Bowl, this](FVector P)
     {
         const FVector Radial = BowlApproachOutward;
         const FVector D = P - Bowl;
-        return FVector::DotProduct(D, Radial) >= 35.0 && FMath::Abs(D.X * Radial.Y - D.Y * Radial.X) <= 13.0;
+        return FVector::DotProduct(D, Radial) >= 30.0 && FMath::Abs(D.X * Radial.Y - D.Y * Radial.X) <= 13.0;
     };
     const double FoodA = FVector::Dist2D(A, Bowl), FoodB = FVector::Dist2D(B, Bowl);
     const bool SafeBackoff = bWalkingBackwards && FoodA >= 35.0 && FoodB >= FoodA - .001;
     if (!(BowlCorridor && (SafeBackoff || (InFoodGate(A) && InFoodGate(B)))) &&
-        SegmentClearance({ A.X,A.Y }, { B.X,B.Y }, {{ Bowl.X,Bowl.Y }, 15.0 + 28.0 + Margin}) < 0.0) return false;
+        SegmentClearance({ A.X,A.Y }, { B.X,B.Y }, {{ Bowl.X,Bowl.Y }, 15.0 + 28.0 + Margin}) < 0.0)
+    { if (bRouteDebug) UE_LOG(LogTemp,Warning,TEXT("Mirmir segment bowl A=%s B=%s margin=%.1f"),*A.ToCompactString(),*B.ToCompactString(),Margin); return false; }
     return true;
 }
 
@@ -393,10 +481,14 @@ bool AMirmirCat::PlanCurvedRoute(FVector Goal, FVector EndForward, bool BedCorri
     // families. Search bounded staging poses; every chord is checked again.
     double BestLength = TNumericLimits<double>::Max();
     TArray<FVector> Best;
-    for (int32 I = 0; I < 12; ++I)
+    // A single 160 cm detour ring was insufficient when the user placed the
+    // bed between the cat and bowl near a screen edge. Search several bounded
+    // rings and headings; every generated chord still passes SegmentClear.
+    for (double DetourRadius : {80.0,110.0,150.0,200.0,260.0})
+    for (int32 I = 0; I < 24; ++I)
     {
-        const double Angle = I * UE_TWO_PI / 12.0;
-        const FVector Mid = (Start + Goal) * .5 + FVector(FMath::Cos(Angle), FMath::Sin(Angle), 0) * 160.0;
+        const double Angle = I * UE_TWO_PI / 24.0;
+        const FVector Mid = (Start + Goal) * .5 + FVector(FMath::Cos(Angle), FMath::Sin(Angle), 0) * DetourRadius;
         const FVector Toward = (Goal - Mid).GetSafeNormal2D();
         const Pose2 Middle{{ Mid.X,Mid.Y }, FMath::Atan2(Toward.Y,Toward.X)};
         for (const Candidate& First : BuildCSC(Initial, Middle, MinimumTurnRadius, 6.0))
@@ -470,7 +562,7 @@ FVector AMirmirCat::NavigationSteeringTarget(FVector Goal)
         if (D < Nearest) { Nearest = D; Best = I; }
     }
     NavigationWaypointIndex = Best;
-    return NavigationWaypoints[FMath::Min(Best + 8, NavigationWaypoints.Num() - 1)];
+    return NavigationWaypoints[FMath::Min(Best + int32(Mirmir::Navigation::SteeringLookAheadSamples), NavigationWaypoints.Num() - 1)];
 }
 
 void AMirmirCat::BeginHabitatApproach()
@@ -483,17 +575,66 @@ void AMirmirCat::BeginHabitatApproach()
     FVector Outward = (GetActorLocation() - Station).GetSafeNormal2D();
     if (Outward.IsNearlyZero()) Outward = -GetActorForwardVector();
     if (!Sleeping) BowlApproachOutward = Outward;
-    const FVector Heading = Sleeping ? FVector::ForwardVector : -Outward;
-    HabitatDestination = Sleeping ? Station : Station + Outward * 38.0f;
-    const FVector Staging = Sleeping ? Station - FVector(90,0,0) : HabitatDestination;
-    if (FVector::Dist2D(GetActorLocation(), HabitatDestination) < 10.0f &&
-        FVector::DotProduct(GetActorForwardVector(), Heading) > .9)
+    FVector Heading = Sleeping ? FVector::ForwardVector : -Outward;
+    HabitatDestination = Sleeping ? Station : Station + Outward * 31.0f;
+    FVector Staging = Sleeping ? Station - FVector(90,0,0) : Station + Outward * 100.0f;
+    const bool AlreadyOnBed=Sleeping && GetActorLocation().Z>HomeLocation.Z+.5f && FVector::Dist2D(GetActorLocation(),Station)<12;
+    if (AlreadyOnBed || (FVector::Dist2D(GetActorLocation(), HabitatDestination) < (Sleeping ? 10.0f : 4.5f) &&
+        FVector::DotProduct(GetActorForwardVector(), Heading) > .9))
     {
+        if (AlreadyOnBed) BedForwardSign=GetActorForwardVector().X>=0 ? 1.0f : -1.0f;
         bHabitatArrived = true;
-        Behavior.RestartActivity(Sleeping ? 30.0 : 6.0);
+        Behavior.RestartActivity(Sleeping ? 30.0 : 12.0);
+        FeedingSeconds = 0.0f;
         return;
     }
-    if (!PlanCurvedRoute(Staging, Heading, false, !Sleeping, HabitatWaypoints))
+    bool bPlanned=false;
+    if (Sleeping)
+    {
+        float BestDistance=TNumericLimits<float>::Max();
+        TArray<FVector> BestPath;
+        for (float Sign : {1.0f,-1.0f})
+        {
+            TArray<FVector> Candidate;
+            if (!PlanCurvedRoute(Station-FVector(90*Sign,0,0),FVector(Sign,0,0),false,false,Candidate)) continue;
+            float Distance=0; FVector Previous=GetActorLocation();
+            for (const FVector& Point:Candidate) {Distance+=FVector::Dist2D(Previous,Point);Previous=Point;}
+            if (Distance<BestDistance) {BestDistance=Distance;BedForwardSign=Sign;BestPath=MoveTemp(Candidate);}
+        }
+        bPlanned=!BestPath.IsEmpty(); HabitatWaypoints=MoveTemp(BestPath);
+        Staging=Station-FVector(90*BedForwardSign,0,0); Heading=FVector(BedForwardSign,0,0);
+    }
+    // A close bowl cannot always be approached on the initial radial line
+    // with the cat's finite turning radius. Try other real approach sides.
+    if (!Sleeping)
+    {
+        const FVector InitialOutward=Outward;
+        float BestDistance=TNumericLimits<float>::Max();
+        FVector BestOutward=Outward;
+        TArray<FVector> BestPath;
+        for (float Angle : {0.0f,30.0f,-30.0f,60.0f,-60.0f,90.0f,-90.0f,135.0f,-135.0f,180.0f})
+        {
+            Outward=InitialOutward.RotateAngleAxis(Angle,FVector::UpVector);
+            BowlApproachOutward=Outward;
+            Staging=Station+Outward*100.0f;
+            HabitatDestination=Station+Outward*31.0f;
+            Heading=-Outward;
+            TArray<FVector> Candidate;
+            const bool bLaneClear=SegmentClear(Staging,HabitatDestination,false,true);
+            const bool bRouteClear=bLaneClear && PlanCurvedRoute(Staging,Heading,false,true,Candidate);
+            if (FParse::Param(FCommandLine::Get(),TEXT("MirmirRouteDebug")))
+                UE_LOG(LogTemp,Warning,TEXT("Mirmir route angle=%.1f lane=%d route=%d stage=%s destination=%s"),
+                    Angle,bLaneClear,bRouteClear,*Staging.ToCompactString(),*HabitatDestination.ToCompactString());
+            if (!bRouteClear) continue;
+            float Distance=0; FVector Previous=GetActorLocation();
+            for (const FVector& Point:Candidate) { Distance+=FVector::Dist2D(Previous,Point); Previous=Point; }
+            if (Distance<BestDistance) { BestDistance=Distance; BestOutward=Outward; BestPath=MoveTemp(Candidate); }
+        }
+        bPlanned=!BestPath.IsEmpty(); HabitatWaypoints=MoveTemp(BestPath);
+        Outward=BestOutward; BowlApproachOutward=Outward; Heading=-Outward;
+        Staging=Station+Outward*100.0f; HabitatDestination=Station+Outward*31.0f;
+    }
+    if (!bPlanned)
     {
         InteractionMessage = TEXT("Mırmır güvenli bir yaklaşma yolu arıyor.");
         bHabitatTraveling = true;
@@ -505,7 +646,11 @@ void AMirmirCat::BeginHabitatApproach()
     for (int32 I = 1; I <= N; ++I)
     {
         const FVector Next = FMath::Lerp(Staging, HabitatDestination, double(I)/N);
-        if (!SegmentClear(Previous, Next, Sleeping, !Sleeping, 0.5f)) { HabitatWaypoints.Reset(); return; }
+        if (!SegmentClear(Previous, Next, Sleeping, !Sleeping, 0.5f))
+        {
+            HabitatWaypoints.Reset(); bHabitatTraveling=true; NavigationReplanSeconds=.5f;
+            InteractionMessage=TEXT("Mırmır güvenli bir yaklaşma yolu arıyor."); return;
+        }
         HabitatWaypoints.Add(Next); Previous = Next;
     }
     bHabitatTraveling = true;
@@ -525,7 +670,7 @@ FVector AMirmirCat::HabitatSteeringTarget()
         if (Distance < Closest) { Closest = Distance; Best = I; }
     }
     HabitatWaypointIndex = Best;
-    return HabitatWaypoints[FMath::Min(Best + 6, HabitatWaypoints.Num() - 1)];
+    return HabitatWaypoints[FMath::Min(Best + int32(Mirmir::Navigation::SteeringLookAheadSamples), HabitatWaypoints.Num() - 1)];
 }
 
 void AMirmirCat::UpdateHabitat(float DeltaSeconds)
@@ -536,11 +681,12 @@ void AMirmirCat::UpdateHabitat(float DeltaSeconds)
         Behavior.KeepActivityFor(30.0);
         if (HabitatWaypoints.IsEmpty() && NavigationReplanSeconds <= 0) BeginHabitatApproach();
         if (!HabitatWaypoints.IsEmpty() && HabitatWaypointIndex >= HabitatWaypoints.Num() - 8 &&
-            FVector::Dist2D(GetActorLocation(), HabitatDestination) <= 12.0f)
+            FVector::Dist2D(GetActorLocation(), HabitatDestination) <= (Activity == EMirmirActivity::Eat ? 4.5f : 12.0f))
         {
             bHabitatTraveling = false;
             bHabitatArrived = true;
-            Behavior.RestartActivity(Activity == EMirmirActivity::Eat ? 6.0 : 30.0);
+            Behavior.RestartActivity(Activity == EMirmirActivity::Eat ? 12.0 : 30.0);
+            FeedingSeconds = 0.0f;
             InteractionMessage = Activity == EMirmirActivity::Eat ? TEXT("Mırmır mamasını yiyor.") : TEXT("Mırmır yatağında dinleniyor.");
             LastInteractionAction = Activity == EMirmirActivity::Eat ? TEXT("feed") : TEXT("rest");
             bLastInteractionAccepted = true;
@@ -548,11 +694,107 @@ void AMirmirCat::UpdateHabitat(float DeltaSeconds)
         }
     }
     const bool bResting = Activity == EMirmirActivity::Sleep && bHabitatArrived && !bHabitatTraveling && MovementSpeed < 1.0f;
-    RestPoseAlpha = FMath::FInterpConstantTo(RestPoseAlpha, bResting ? 1.0f : 0.0f,
-        DeltaSeconds, bResting ? .65f : 1.1f);
+    RestSettleSeconds = bResting ? RestSettleSeconds+DeltaSeconds : 0.0f;
+    RestPoseAlpha = FMath::FInterpConstantTo(RestPoseAlpha, bResting && RestSettleSeconds>.45f ? 1.0f : 0.0f,
+        DeltaSeconds, bResting ? .45f : .65f);
+    RestPhase = bHabitatTraveling && Activity == EMirmirActivity::Sleep ? TEXT("Approach") :
+        bResting ? (RestPoseAlpha < .99f ? TEXT("Settle") : TEXT("Sleeping")) :
+        RestPoseAlpha > .01f ? TEXT("Rise") : TEXT("Standing");
     RestBreathing = RestPoseAlpha * FMath::Sin(PoseSeconds * UE_TWO_PI * .24) * .12f;
     const bool bEating = Activity == EMirmirActivity::Eat && bHabitatArrived && !bHabitatTraveling && MovementSpeed < 1.0f;
-    EatingPoseStrength = FMath::FInterpConstantTo(EatingPoseStrength, bEating ? 1.0f : 0.0f, DeltaSeconds, 2.0f);
+    if (bEating) FeedingSeconds += DeltaSeconds;
+    const bool LowerHead = bEating && FeedingSeconds > .55f && FeedingSeconds < 10.2f;
+    if (bEating)
+    {
+        const float LowerBlend=FMath::SmoothStep(0.0f,1.0f,FMath::Clamp((FeedingSeconds-.55f)/1.45f,0.0f,1.0f));
+        const float RaiseBlend=1.0f-FMath::SmoothStep(0.0f,1.0f,FMath::Clamp((FeedingSeconds-10.2f)/1.15f,0.0f,1.0f));
+        EatingPoseStrength=FMath::Min(LowerBlend,RaiseBlend);
+    }
+    else EatingPoseStrength=FMath::FInterpTo(EatingPoseStrength,0.0f,DeltaSeconds,4.0f);
+    // Two short, asymmetric licks followed by a pause avoid the mechanical
+    // metronome motion of the previous single sine wave.
+    const float Cycle = FMath::Fmod(FMath::Max(0.0f,FeedingSeconds-2.0f), 1.05f);
+    const float FirstLick=Cycle<.22f ? FMath::Square(FMath::Sin(Cycle/.22f*UE_PI)) : 0.0f;
+    const float SecondT=(Cycle-.31f)/.26f;
+    const float SecondLick=SecondT>=0.0f && SecondT<=1.0f ? .72f*FMath::Square(FMath::Sin(SecondT*UE_PI)) : 0.0f;
+    FeedingJawAlpha = LowerHead && EatingPoseStrength > .97f ? FMath::Max(FirstLick,SecondLick) : 0.0f;
+    FeedingPhase = bHabitatTraveling && Activity == EMirmirActivity::Eat ? TEXT("Approach") :
+        bEating ? (FeedingSeconds < .55f ? TEXT("Settle") : FeedingSeconds > 10.2f ? TEXT("Raise") :
+            EatingPoseStrength < .99f ? TEXT("Lower") : TEXT("Lick")) :
+        EatingPoseStrength > .01f ? TEXT("Raise") : TEXT("None");
+    if (Habitat)
+    {
+        // A cat eats from the near side of the food surface, not through the
+        // ceramic centre. This keeps the collision-safe 36 cm body clearance
+        // while placing the measured lip/tongue over visible kibble.
+        const float SearchAlpha=EatingPoseStrength>.97f ? 1.0f : 0.0f;
+        const FVector BowlTangent=FVector::CrossProduct(FVector::UpVector,BowlApproachOutward).GetSafeNormal();
+        // A feeding cat samples neighbouring pieces instead of holding one
+        // mathematically frozen muzzle point. Keep the search well inside the
+        // visible near rim and small enough that the paws never have to move.
+        const FVector SearchOffset=BowlTangent*(.65f*FMath::Sin(FeedingSeconds*.83f)+.25f*FMath::Sin(FeedingSeconds*1.73f))+
+            BowlApproachOutward*(.25f*FMath::Sin(FeedingSeconds*.47f));
+        FeedingTargetWorld = Habitat->GetBowlLocation() + BowlApproachOutward * 7.2f + SearchOffset*SearchAlpha +
+            FVector(0,0,3.0f + .12f*FeedingJawAlpha + .18f*SearchAlpha*FMath::Sin(FeedingSeconds*1.1f));
+    }
+}
+
+void AMirmirCat::UpdatePlayPose(float DeltaSeconds, bool bChasingToy)
+{
+    if (!bChasingToy || bNeedBowlExit || bAnimationTransitionBlocksMovement)
+    {
+        PlayPhase=TEXT("None"); PlayPhaseSeconds=0; PlayPawAlpha=0; bPawStrikeWindow=false;
+        return;
+    }
+    const FVector LocalBall=GetActorTransform().InverseTransformPosition(Toy->GetBallLocation());
+    const bool Reachable=LocalBall.X>12.0f && LocalBall.X<40.0f && FMath::Abs(LocalBall.Y)<18.0f;
+    if (PlayPhase == TEXT("None")) { PlayPhase=TEXT("Chase"); PlayPhaseSeconds=0; }
+    PlayPhaseSeconds += DeltaSeconds;
+    if (PlayPhase==TEXT("Chase") && Reachable && Toy->GetBallSpeedCmPerSecond()<45.0f)
+    {
+        PlayPhase=TEXT("Plant"); PlayPhaseSeconds=0; bWaitingAtToy=true;
+        PlayPawIndex=LocalBall.Y<0 ? 0 : 1;
+        StrikeBallWorld=Toy->GetBallLocation();
+    }
+    if (PlayPhase==TEXT("Plant") && MovementSpeed<1.0f && PlayPhaseSeconds>.4f)
+    { PlayPhase=TEXT("Strike"); PlayPhaseSeconds=0; StrikeBallWorld=Toy->GetBallLocation(); }
+    if (PlayPhase==TEXT("Strike") && PlayPhaseSeconds>.62f)
+    { PlayPhase=TEXT("Recover"); PlayPhaseSeconds=0; }
+    if (PlayPhase==TEXT("Recover") && PlayPhaseSeconds>.6f)
+    { PlayPhase=TEXT("Chase"); PlayPhaseSeconds=0; bWaitingAtToy=false; }
+    bPawStrikeWindow=PlayPhase==TEXT("Strike") && PlayPhaseSeconds>.20f && PlayPhaseSeconds<.50f;
+    const FVector Forward=GetActorForwardVector();
+    // First lift and draw back, then pass through the ball along the floor.
+    if (PlayPhase==TEXT("Strike"))
+    {
+        const float T=FMath::Clamp(PlayPhaseSeconds/.55f,0.0f,1.0f);
+        const float Sweep=FMath::SmoothStep(.20f,.85f,T);
+        PawTargetWorld=StrikeBallWorld + Forward*FMath::Lerp(-8.0f,8.0f,Sweep) + FVector(0,0,4.0f*FMath::Sin(T*UE_PI));
+        PlayPawAlpha=FMath::SmoothStep(0.0f,.18f,T);
+    }
+    else if (PlayPhase==TEXT("Recover")) PlayPawAlpha=FMath::Max(0.0f,1.0f-PlayPhaseSeconds/.5f);
+    else PlayPawAlpha=0;
+    if (PlayPhase!=TEXT("Chase")) bWaitingAtToy=true;
+}
+
+void AMirmirCat::MeasureEvaluatedPose(float DeltaSeconds)
+{
+    if (!AppearanceHeadBoneName.IsNone())
+        MuzzleWorldLocation=CatMesh->GetSocketTransform(AppearanceHeadBoneName).TransformPosition(MuzzleBoneLocal);
+    if (PawTipNames[PlayPawIndex].IsNone()) return;
+    const FVector Paw=CatMesh->GetBoneLocation(PawTipNames[PlayPawIndex]);
+    if (bHasPreviousPaw && bPawStrikeWindow && Toy && DeltaSeconds>SMALL_NUMBER)
+    {
+        const FVector Velocity=(Paw-PreviousPawWorld)/DeltaSeconds;
+        if (Toy->TryPawSwipe(Paw,Velocity))
+        { PlayPhase=TEXT("Recover"); PlayPhaseSeconds=0; bPawStrikeWindow=false; }
+    }
+    PreviousPawWorld=Paw; bHasPreviousPaw=true;
+}
+
+void AMirmirCat::HandleBonesFinalized()
+{
+    MeasureEvaluatedPose(PoseMeasurementDelta);
 }
 
 void AMirmirCat::ChooseWanderTarget()
@@ -925,7 +1167,7 @@ void AMirmirCat::RefreshState()
     {
         if (Previous == EMirmirActivity::Eat)
         {
-            bNeedBowlExit = true;
+            bNeedBowlExit = bHabitatArrived || (Habitat && FVector::Dist2D(GetActorLocation(),Habitat->GetBowlLocation())<55.0f);
             if (Habitat && bHabitatArrived) Habitat->SetFoodVisible(false);
         }
         bHabitatTraveling = false;
@@ -985,6 +1227,7 @@ bool AMirmirCat::Pet()
 bool AMirmirCat::Feed()
 {
     const bool Accepted = Interact(Mirmir::Interaction::Feed, TEXT("Feed"), FeedSound);
+    if (Accepted) { FeedingSeconds=0.0f; if (bHabitatArrived) Behavior.RestartActivity(12.0); }
     if (Accepted && Activity == EMirmirActivity::Eat && !bHabitatTraveling && !bHabitatArrived) BeginHabitatApproach();
     if (Accepted && Habitat) Habitat->SetFoodVisible(true);
     return Accepted;
@@ -992,7 +1235,11 @@ bool AMirmirCat::Feed()
 bool AMirmirCat::Play()
 {
     const bool Accepted = Interact(Mirmir::Interaction::Play, TEXT("Play"), PlaySound);
-    if (Accepted) { bToyStartPending = true; bWaitingAtBlockedToy = false; }
+    if (Accepted)
+    {
+        bToyStartPending=true; bWaitingAtBlockedToy=false;
+        if (bNeedBowlExit) InteractionMessage=TEXT("Mırmır önce kabından uzaklaşıyor; sonra topuyla oynayacak.");
+    }
     return Accepted;
 }
 void AMirmirCat::ToggleMute()

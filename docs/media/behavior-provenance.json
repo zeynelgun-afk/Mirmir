@@ -1,0 +1,416 @@
+{
+  "schema_version": 1,
+  "kind": "actual-unreal-owned-frame-contact-sheet",
+  "source_run": ".local/shipping-behavior-final-release",
+  "configuration": "Shipping",
+  "desktop_screenshot": false,
+  "microphone_or_audio_captured": false,
+  "source_pngs_modified": false,
+  "normal_quit_verified": true,
+  "all_archived_main_frames_crc_checked": 444,
+  "check_record_sha256": "22d4494b4be357ce426ebbd9ddb9dbfdb67168ce68344cebaa06ec15410c2e8b",
+  "neutral_background_rgb": [
+    24,
+    29,
+    37
+  ],
+  "common_scale": 1.05,
+  "caption": "Actual Unreal render · preview background",
+  "composition": "CRC-matched action furniture below the depth-composited main image; same projection offsets within each panel. Panels centered independently at one constant pixel scale. No pose edits.",
+  "captures_json_sha256": "4ec7fcf1172655cbfb7f533b64ab636b9ad5ea5b0995e4e80aca9ac2b7185713",
+  "samples_json_sha256": "0632bfceca9df1cffa3ef28ebd9748772d259639e7575d04d3f1d02cb00f2e95",
+  "shots": [
+    {
+      "scene": "feed",
+      "source_run": ".local/shipping-behavior-final-release",
+      "source_main_file": "feed_direct-286.png",
+      "producer_pid": 1414366,
+      "session_id": "01A1817B-45AF-72AF-A5CA-355101B9197D",
+      "frame_seq": 286,
+      "sample_engine_frame": 287,
+      "capture_utc": "2026-10-28T07:48:36.747Z",
+      "layout_revision": 1,
+      "appearance": "van",
+      "animation_asset": "cat-tuxedo-motion-candidateTuxedo_Idle",
+      "animation_state": "Idle",
+      "behavior_pose": {
+        "feeding_phase": "Lick",
+        "rest_phase": "Standing",
+        "play_phase": "None",
+        "muzzle_world_cm": [
+          75.18074524784889,
+          -26.747427365726793,
+          17.20178725760356
+        ],
+        "feeding_target_world_cm": [
+          73.59416785370087,
+          -27.830832873054764,
+          16.335829257965088
+        ],
+        "paw_target_world_cm": [
+          0,
+          0,
+          0
+        ],
+        "feeding_jaw_alpha": 0.5721954107284546,
+        "play_paw_alpha": 0,
+        "paw_strike_window": false
+      },
+      "layers": [
+        {
+          "role": "bowl",
+          "source": ".local/shipping-behavior-final-release/raw/bowl-2409518614.png",
+          "sha256": "2e69f85fd1271a8fb51211fb6ff34d91da886f89a4085f5382a4c0a4477784a3",
+          "png_crc32": 2409518614,
+          "frame_seq": 1,
+          "offset": [
+            -22.445420595573722,
+            294.33839826774545
+          ],
+          "unaltered_public_file": "raw-behavior-feed-bowl.png"
+        },
+        {
+          "role": "main",
+          "source": ".local/shipping-behavior-final-release/raw/feed_direct-286.png",
+          "sha256": "6069cd79f492ad6b25fa030b0b58f7ba32cbbf1bae3400b692414a8599d3aefa",
+          "png_crc32": 1670115404,
+          "frame_seq": 286,
+          "offset": [
+            -316.16854221390764,
+            116.41527917112005
+          ],
+          "unaltered_public_file": "raw-behavior-feed.png"
+        }
+      ]
+    },
+    {
+      "scene": "play",
+      "source_run": ".local/shipping-behavior-final-release",
+      "source_main_file": "play_after_feed-496.png",
+      "producer_pid": 1414366,
+      "session_id": "01A1817B-45AF-72AF-A5CA-355101B9197D",
+      "frame_seq": 496,
+      "sample_engine_frame": 497,
+      "capture_utc": "2026-10-28T07:48:47.439Z",
+      "layout_revision": 1,
+      "appearance": "van",
+      "animation_asset": "cat-tuxedo-motion-candidateTuxedo_Idle",
+      "animation_state": "Idle",
+      "behavior_pose": {
+        "feeding_phase": "None",
+        "rest_phase": "Standing",
+        "play_phase": "Recover",
+        "muzzle_world_cm": [
+          138.5096555681241,
+          -20.485996543737414,
+          22.090834738794733
+        ],
+        "feeding_target_world_cm": [
+          73.59416785370087,
+          -27.830832873054764,
+          16.25
+        ],
+        "paw_target_world_cm": [
+          147.97094383602695,
+          -32.52550351202359,
+          6.446417365692753
+        ],
+        "feeding_jaw_alpha": 0,
+        "play_paw_alpha": 0.837989330291748,
+        "paw_strike_window": false
+      },
+      "layers": [
+        {
+          "role": "main",
+          "source": ".local/shipping-behavior-final-release/raw/play_after_feed-496.png",
+          "sha256": "4a97b851dc7b7ca2b7bd5d8cc0b32bd63037c89b51f0dd18d0c481d91ff66136",
+          "png_crc32": 1043742990,
+          "frame_seq": 496,
+          "offset": [
+            -555.1051851160289,
+            178.3464906712948
+          ],
+          "unaltered_public_file": "raw-behavior-play.png"
+        }
+      ]
+    },
+    {
+      "scene": "rest",
+      "source_run": ".local/shipping-rest-final-release",
+      "source_main_file": "rest-441.png",
+      "producer_pid": 1413901,
+      "session_id": "01A1817A-9365-7B70-A812-777D80A73BAF",
+      "frame_seq": 441,
+      "sample_engine_frame": 441,
+      "capture_utc": "2026-10-28T07:48:01.272Z",
+      "layout_revision": 1,
+      "appearance": "van",
+      "animation_asset": "cat-tuxedo-motion-candidateTuxedo_IdleSit",
+      "animation_state": "Sitting",
+      "behavior_pose": {
+        "feeding_phase": "None",
+        "rest_phase": "Sleeping",
+        "play_phase": "None",
+        "muzzle_world_cm": [
+          -61.91611906368885,
+          51.814452845341364,
+          37.814699984810396
+        ],
+        "feeding_target_world_cm": [
+          62,
+          -30,
+          16.25
+        ],
+        "paw_target_world_cm": [
+          0,
+          0,
+          0
+        ],
+        "feeding_jaw_alpha": 0,
+        "play_paw_alpha": 0,
+        "paw_strike_window": false
+      },
+      "layers": [
+        {
+          "role": "bed",
+          "source": ".local/shipping-rest-final-release/bed.png",
+          "sha256": "b8f8f7af4e284ce8acea71a58e1fab322af47750730009321b32f6f489bf4324",
+          "png_crc32": 1027094055,
+          "frame_seq": 1,
+          "offset": [
+            188.8048632862824,
+            -45.88681334000075
+          ],
+          "unaltered_public_file": "raw-behavior-rest-bed.png"
+        },
+        {
+          "role": "main",
+          "source": ".local/shipping-rest-final-release/raw/rest-441.png",
+          "sha256": "b969abd6602a73bd2b1adb72f4031ab37ef38396ccc392056ac1ceb13a3c5922",
+          "png_crc32": 1763282390,
+          "frame_seq": 441,
+          "offset": [
+            207.90963864996783,
+            -155.5754071000946
+          ],
+          "unaltered_public_file": "raw-behavior-rest.png"
+        }
+      ]
+    }
+  ],
+  "controlled_run_phase_evidence": [
+    {
+      "time_to_goal_from_first_sample_s": 13.466501300004893,
+      "phase": "feed_direct",
+      "samples": 387,
+      "duration_s": 19.968045820001862,
+      "animation_states": [
+        "Idle",
+        "Walk"
+      ],
+      "evaluated_paw_hits_with_paired_velocity": []
+    },
+    {
+      "time_to_goal_from_first_sample_s": null,
+      "phase": "play_after_feed",
+      "samples": 492,
+      "duration_s": 23.905328902008478,
+      "animation_states": [
+        "Idle",
+        "IdleVariation",
+        "Walk"
+      ],
+      "evaluated_paw_hits_with_paired_velocity": [
+        {
+          "paw_sample_frame": 495,
+          "first_observed_frame_seq": 495,
+          "before_cm_s": [
+            0.03765705227851868,
+            0.9002895355224609,
+            1.1054760662432273e-08
+          ],
+          "after_cm_s": [
+            -26.799636840820312,
+            -5.580331802368164,
+            -7.150622316487443e-09
+          ],
+          "delta_velocity_cm_s": 27.6086724858274,
+          "paw_world_cm": [
+            147.94150236389805,
+            -31.501118566814043,
+            6.468582827441692
+          ],
+          "paw_velocity_cm_s": [
+            -59.59760665077954,
+            0.230461896847814,
+            5.84315465465061
+          ]
+        },
+        {
+          "paw_sample_frame": 697,
+          "first_observed_frame_seq": 696,
+          "before_cm_s": [
+            -6.450007816738434e-08,
+            4.436773082261425e-08,
+            -9.577267068123997e-16
+          ],
+          "after_cm_s": [
+            -22.233686447143555,
+            -6.843339443206787,
+            -1.527584174709773e-07
+          ],
+          "delta_velocity_cm_s": 23.263020128606318,
+          "paw_world_cm": [
+            137.6573899511957,
+            -33.35538700038421,
+            6.428224782642393
+          ],
+          "paw_velocity_cm_s": [
+            -50.689194680374975,
+            -1.179028156896157,
+            9.27115711244242
+          ]
+        }
+      ]
+    },
+    {
+      "time_to_goal_from_first_sample_s": 15.285566550999647,
+      "phase": "rest",
+      "samples": 400,
+      "duration_s": 20.260679355997127,
+      "animation_states": [
+        "SitDown",
+        "Sitting",
+        "Walk"
+      ],
+      "evaluated_paw_hits_with_paired_velocity": []
+    },
+    {
+      "time_to_goal_from_first_sample_s": 17.6809204910096,
+      "phase": "feed_after_rest",
+      "samples": 621,
+      "duration_s": 28.173187257998507,
+      "animation_states": [
+        "Idle",
+        "StandUp",
+        "Walk"
+      ],
+      "evaluated_paw_hits_with_paired_velocity": []
+    },
+    {
+      "time_to_goal_from_first_sample_s": null,
+      "phase": "play_after_meal",
+      "samples": 320,
+      "duration_s": 23.89194557099836,
+      "animation_states": [
+        "Idle",
+        "IdleVariation",
+        "Walk"
+      ],
+      "evaluated_paw_hits_with_paired_velocity": [
+        {
+          "paw_sample_frame": 1970,
+          "first_observed_frame_seq": 1969,
+          "before_cm_s": [
+            0.1634017825126648,
+            -0.9018134474754333,
+            -2.2910604968728876e-08
+          ],
+          "after_cm_s": [
+            18.480220794677734,
+            9.031392097473145,
+            -5.0643834015318134e-08
+          ],
+          "delta_velocity_cm_s": 20.83685271634392,
+          "paw_world_cm": [
+            -7.672880442697824,
+            -49.059970423776115,
+            6.47433098868446
+          ],
+          "paw_velocity_cm_s": [
+            56.236667776675574,
+            12.409199931373616,
+            6.686524037693026
+          ]
+        }
+      ]
+    }
+  ],
+  "additional_rest_run": {
+    "source": ".local/shipping-rest-final-release",
+    "normal_quit_verified": true,
+    "archived_main_frames_crc_checked": 89,
+    "captures_json_sha256": "c59cb898ddff6a7c9b52b26a75cac6503ae8c0cdcef71d84597ec48e99bcd99e",
+    "samples_json_sha256": "b1c258fc35f48bbbc3159af74076b5b066eb1e17f9f13a448ace41aa474e2a54",
+    "normal_stop_exit_code": 0,
+    "selected_frame_seq": 441,
+    "visual_observation": "Original front-profile RGBA frame shows closed eyelids in the authored seated pose; no mesh cover or pose editing was added."
+  },
+  "limitations": [
+    "Three selected stills are not a continuous sequence or proof of every layout.",
+    "Seated rest uses authored sit/stand clips and procedural eyelids, not an authored lying/sleep clip.",
+    "Tongue surface is a rig landmark; no tongue-to-food collision solver.",
+    "Cat movement is kinematic; the toy is a Chaos rigidbody.",
+    "Visual naturalness and photorealism are not established by CRC or target error."
+  ],
+  "credits": "Cat Walk: LostBoyz2078, CC BY-NC 4.0; additional Tuxedo motion: DreamNoms, CC BY 4.0; see ASSET-LICENSES.md.",
+  "shipping_binary_sha256": "648617a616c3f144cc60c5a8a77a40d293f8bd55257da5a72d44b7a19a20d52a",
+  "shipping_archive_name": "package-20261028T074553Z-1412355",
+  "artifacts": {
+    "raw-behavior-feed-bowl.png": {
+      "bytes": 13970,
+      "sha256": "2e69f85fd1271a8fb51211fb6ff34d91da886f89a4085f5382a4c0a4477784a3"
+    },
+    "raw-behavior-feed.png": {
+      "bytes": 38541,
+      "sha256": "6069cd79f492ad6b25fa030b0b58f7ba32cbbf1bae3400b692414a8599d3aefa"
+    },
+    "raw-behavior-play.png": {
+      "bytes": 40454,
+      "sha256": "4a97b851dc7b7ca2b7bd5d8cc0b32bd63037c89b51f0dd18d0c481d91ff66136"
+    },
+    "raw-behavior-rest-bed.png": {
+      "bytes": 34192,
+      "sha256": "b8f8f7af4e284ce8acea71a58e1fab322af47750730009321b32f6f489bf4324"
+    },
+    "raw-behavior-rest.png": {
+      "bytes": 42463,
+      "sha256": "b969abd6602a73bd2b1adb72f4031ab37ef38396ccc392056ac1ceb13a3c5922"
+    },
+    "behavior-contact-sheet.png": {
+      "bytes": 165854,
+      "sha256": "011906f1432666fcc62bfdf210788ba6f50f20304aba25ec2f7c64eaf51c5f5a"
+    }
+  },
+  "sample_count": 2220,
+  "normal_stop_exit_code": 0,
+  "engine_version": "5.8.4",
+  "project_version": "0.5.0",
+  "checks": {
+    "SitDown_samples": 13,
+    "Sitting_samples": 97,
+    "StandUp_samples": 24,
+    "active_ball_minimum_z_cm": 2.499999674544548
+  },
+  "feeding_measurements": {
+    "feed_direct": {
+      "lick_samples": 121,
+      "upper_lip_to_near_rim_target_cm": {
+        "min": 1.8049554055688584,
+        "median": 2.0500005627516598,
+        "max": 2.157232190745065
+      },
+      "resolved_tongue_to_kibble_collision_verified": false
+    },
+    "feed_after_rest": {
+      "lick_samples": 164,
+      "upper_lip_to_near_rim_target_cm": {
+        "min": 0.8218018302181792,
+        "median": 1.125332288239718,
+        "max": 1.5582284910615147
+      },
+      "resolved_tongue_to_kibble_collision_verified": false
+    }
+  },
+  "composition_script_sha256": "6317e573a72b437aeed2567bbdbafaf52c7e47b7f4577f11af5b18d4ba7da2a7"
+}
