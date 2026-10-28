@@ -1,3 +1,5 @@
+> Historical record (Turkish). See the [current English documentation](../README.md).
+
 # Locomotion research and implementation decisions
 
 Research date: 2026-10-27. These are primary sources and pinned repository

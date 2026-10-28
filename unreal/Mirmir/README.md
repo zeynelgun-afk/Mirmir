@@ -1,128 +1,103 @@
-# Mırmır — Unreal Engine 5.8.4
+# Mırmır — Unreal development
 
-Gerçek Unreal C++ modülü derlendi, varlıklar içe aktarıldı ve kedi hem editör
-çalıştırıcısıyla hem bağımsız Linux Shipping paketiyle yerel masaüstü kabuğunda
-görüntülendi. Bu, geliştirilen ilk çalışan Unreal dilimidir; nihai fotogerçekçi
-kürk ve bütün doğal davranış animasyonları tamamlanmış değildir. Eski
-`desktop-lab/` kapalıdır ve ürünün çalışma yolu değildir.
+The main product is a C++ Unreal Engine **5.8.4** game rendered into RGBA
+frames for the [native desktop shell](../../native-shell/README.md). Both
+Editor game mode and a cooked Linux Shipping game have been run locally.
+See [current status](../../docs/current-status.md) for versioned evidence.
 
-## Doğrulanan durum
+## Run and build
 
-- Resmî Unreal Engine **5.8.4**, `/home/zeynel/Applications/UnrealEngine-5.8.4`
-  altında kurulu. Paket içindeki v26 Clang 20.1.8 ile UHT ve Linux C++ editör
-  derlemesi geçti; üç Unreal davranış/kayıt otomasyon testi başarılı.
-- Gerçek iskeletli kedi, **dört mesh parçası**, Unreal'da **0.8 saniyelik yürüyüş
-  döngüsü** ve üç gerçek kedi SoundWave'i içe aktarıldı. Blueprint ve
-  `/Game/Mirmir/Preview/MirmirPreview` haritası editör API'siyle oluşturuldu.
-  Yerel yapılandırma denetimi [preview.json](../../.local/preview.json) içindedir.
-- Editör tabanlı gerçek native-shell koşusunda yaklaşık **21 saniyede 307 kare,
-  14.61 FPS** gözlendi. Alpha aralığı 0–255'ti; üretici PID'si, oturum, kare
-  sırası, boyut ve CRC ile aynı Unreal süreci doğrulandı. Play, Pet, Rest, Mute
-  ve Feed IPC komutlarının motor durumundaki etkileri kaydedildi.
-- Shipping build/cook/stage/pak/package/archive tamamlandı. İlk bağımsız açılış,
-  Radeon 890M/Mesa ACO tarafındaki PSO ön hazırlığında çöktü. Projede
-  `r.PSOPrecaching=0` uygulanarak yeniden paketlenen sürüm gerçek Qt masaüstü
-  kabuğunda **35 saniyeden uzun** çalıştı; `engine_kind=shipping`, hazır kareler
-  ve alpha 0–255 gözlendi. Bu yerel uyumluluk çözümüdür; uzun süreli dayanıklılık
-  veya bütün sürücülerin uyumu kanıtı değildir.
-- Gerçek PulseAudio çıkışında oyunun kendi PID'sine ait, sessize alınmamış ve
-  duraklatılmamış akış görüldü. Yalnız bu akışın dört saniyelik mırlama
-  monitöründe RMS **0.01137**, tepe **0.09781** ölçüldü. Mikrofon veya başka
-  uygulamaların sesi kaydedilmedi. Bu, çıkış sinyali kanıtıdır; fiziksel
-  hoparlör veya kullanıcının duyma deneyimi ayrıca doğrulanmış sayılmaz.
-
-Güncel genel durum [current-status.md](../../docs/current-status.md), hareket
-ölçüm yöntemi [unreal-motion-verification.json](../../docs/unreal-motion-verification.json)
-içindedir. Kısa kontrollü örnekleme sürekli kullanım performansının yerine geçmez.
-
-## Çalıştırma
-
-Proje kökünden:
+From the repository root:
 
 ```bash
+export MIRMIR_UE_ROOT=/path/to/UnrealEngine-5.8.4
+./unreal/Mirmir/scripts/build.sh -MaxParallelActions=2
 ./run.sh
 ./run.sh --stop
 ./run.sh --preview
 ./run.sh --editor
 ```
 
-Varsayılan yol gerçek Unreal görüntülerini kullanan [yerel masaüstü
-kabuğudur](../../native-shell/README.md). Geçerli `.local/package.json` varsa
-Shipping ikilisi doğrudan başlatılır; yoksa kurulu editör kullanılır.
-`--preview` normal oyun penceresi açar; `--editor` geliştirme editörüdür.
-Masaüstü katmanı kullanıcı Wayland oturumunu değiştirmeden Qt/XWayland kullanır.
-Godot veya sabit kedi görüntüsü yedeği bulunmaz.
-
-Normal önizleme kısayolları `P` sevme, `F` mama, `B` oyun, `M` sessiz,
-`Esc` çıkıştır. Masaüstü tepsisi aynı eylemleri IPC ile iletir. IPC durum
-doğrulaması, bütün gerçek fare etkileşimlerinin kullanıcı tarafından kabul
-edildiği anlamına gelmez. Kedi dışı bölge ve odak davranışı için yerel kabuk
-belgesindeki doğrulama sınırlarını koruyun.
-
-## Varlıklar, yürüyüş ve mevcut eksikler
-
-Kedi kaynağı LostBoyz2078'in **Cat Walk** modelidir: **CC BY-NC 4.0, yalnızca
-kişisel ve ticari olmayan yerel prototip**. [Kaynak/lisans
-kaydı](../../assets/personal-use/sources.json), [döngü
-varyantı](../../assets/personal-use/loop-variant.json) ve [genel
-lisanslar](../../ASSET-LICENSES.md) korunmalıdır. Model ticari ürün varlığı
-olarak kabul edilmez. Miyavlama ve mırlama kayıtları Joseph SARDIN /
-BigSoundBank kaynaklıdır ve CC0 lisanslıdır.
-
-Dört mesh, aynı iskeletin pozunu izleyerek birlikte görüntülenir. Hareket gerçek
-bakış yönünde uygulanır ve dönüşte yavaşlar. Yürüyüş oynatma hızı gerçek cm/s
-hızına bağlanır; yaklaşık **68 cm/s** authored hız referansı kaynak eklem
-verilerinden çıkarılmış başlangıç değeridir. Gerçek Unreal örneklemesinde düz
-ilerleme bakış yönüyle eşleşti. Düşük yükseklikli distal kemik örnekleri pati
-tabanı kilidi değildir; sıfır kayma veya doğal yürüyüşün kullanıcı kabulü
-iddia edilmez. Yavaş dönüşlerde eski 0.1 oynatma alt sınırı son kaynakta 0.01'e
-indirildi; önceki ölçüm raporu bu düzeltmeden önceki koşuyu açıkça belirtir.
-
-Gerçek bekleme ve kuyruk klipleri uyumlu iskelete retarget edilip motor
-karelerinde incelendi; native BlendStack bunları yürüyüşle harmanlar. Oturma
-adayları temas/poz hataları nedeniyle ürüne atanmadı. Uyuma, temizlenme veya
-koşma klibi yoktur. Dinlenme ihtiyacı, görsel uyuma animasyonu değildir.
-
-0.2'de görünüm seçimi, fiziksel Chaos topu, kısa kürk kabukları ve floatHDR
-renk dönüşümü gerçek Shipping çalıştırmasında doğrulandı. Hareket30/sakin8fps
-hedeflenir. Güncel kanıt [release-0.2-verification.json](../../docs/release-0.2-verification.json)
-içindedir; yukarıdaki14.61fps örneği0.1'e aittir. Pati/dönüş iyileştirmesi
-sürüyor; [araştırma kaydı](../../docs/research/locomotion-2026-10-27.md) kaynakları
-ve yaklaşım farklarını açıklar. Groom ve tamamlanmış fotogerçekçilik yoktur.
-
-Mırlama ve miyavlama SoundWave'leri atanmıştır. Ayrı yeme veya oyuncak sesi
-uydurulmaz; `FeedSound` henüz boş olabilir. Alt süreçte
-`SDL_AUDIODRIVER=pulseaudio` ve `SDL_AUDIO_DRIVER=pulseaudio` varsayılanları,
-projede `UnfocusedVolumeMultiplier=1.0` kullanılır. Kullanıcının genel ses veya
-masaüstü ayarları değiştirilmez.
-
-## Geliştirme ve yeniden üretim
-
-Bu dizinden:
+With a valid `.local/package.json`, the launcher starts its Shipping binary.
+Otherwise it uses the installed engine. The desktop shell uses Qt/XWayland
+on the tested KDE Wayland session. It does not change the user's compositor
+settings. There is no static-cat or Godot fallback.
 
 ```bash
-./scripts/build.sh -MaxParallelActions=2
-./scripts/test-core.sh
-./scripts/test-engine.sh
+./unreal/Mirmir/scripts/test-core.sh
+./unreal/Mirmir/scripts/test-engine.sh
+./unreal/Mirmir/scripts/package-game.sh
 ```
 
-Motor yolu `MIRMIR_UE_ROOT` veya proje `.local/engine.json` kaydından çözülür.
-Çekirdek testi ASan/UBSan altında motor bağımsız ihtiyaç/etkileşim davranışlarını
-sınar; tek başına Unreal modülü veya JSON dosya I/O kanıtı değildir.
+The engine path is resolved from `MIRMIR_UE_ROOT` or ignored local metadata.
+Core tests exercise engine-independent behavior, locomotion and navigation
+under ASan/UBSan. Unreal automation, RHI rendering and Shipping launch are
+separate checks. Each package invocation creates a new archive and records
+its project version; previous packages are preserved.
 
-`scripts/import-assets.py` mevcut lisanslı GLB ve ses kaynaklarını içe aktarır;
-`scripts/bootstrap-preview.py` gerçek mesh/animasyon/ses atamalarıyla Blueprint
-ve haritayı oluşturur. Bu adımlar bu makinede çalıştırılmıştır. Mevcut Shared
-varlıkları veya yabancı Blueprint'ler körlemesine üzerine yazılmaz; importu
-tekrarlamadan önce mevcut içeriği inceleyin. Bootstrap yürüyüş, idle veya Groom
-üretmez. Yerel Shipping üretimi `scripts/package-game.sh` ile yeni bir arşiv
-klasörüne yapılır; önceki paketler korunur.
+## Assets and animation
 
-Kayıt: `${XDG_DATA_HOME:-$HOME/.local/share}/mirmir/unreal/cat-v1.json`.
-Komutlar veri kökünün `commands/` dizinindedir. Kareler/runtime/durum ve
-kabuk kilidi uygun `XDG_RUNTIME_DIR` özel tmpfs dizininde; bulunamazsa state
-dizinindedir. `frame-location.json` güncel yolu gösterir. Kabuk günlükleri
-`${XDG_STATE_HOME:-$HOME/.local/state}/mirmir/unreal/` içinde kalır. Unreal editör
-önbelleği ve `Saved/` dosyaları ürün kaydından ayrıdır. Bozuk kayıt üzerine
-kendiliğinden yazılmaz; `ResetCat` açık sıfırlama eylemidir. Eski Godot
-kayıtları otomatik olarak taşınmış sayılmaz.
+The cat uses LostBoyz2078's **Cat Walk**, licensed **CC BY-NC 4.0**. Four mesh
+parts follow the same skeleton. An authored 0.8-second walk and retargeted
+idle/tail clips are blended in a native animation instance. Source motion
+suggests an initial walk-speed reference of approximately 68 cm/s; this is
+not proof of zero foot sliding. Four-paw IK and speed-dependent playback
+reduce sliding. Backward clearance steps play the walk in reverse.
+
+Movement follows bounded curvature, acceleration and yaw rates. Candidate
+routes and actual swept steps avoid furniture and respect the desktop
+viewport. The bed has visible openings at both ends; resting enters from
+one side and exits forward through the other. This is constrained kinematic
+locomotion, not a full muscle or paw-force simulation. The toy ball uses
+Chaos rigid-body physics and collides with the floor and furniture.
+
+Van, British Shorthair and black-and-white profiles share the same geometry.
+Short fur shells and float-HDR color conversion are implemented. Rest and
+eating reactions are procedural. There are no accepted authored sleep,
+grooming or running clips, closed-eye geometry or finished Groom fur.
+
+Asset source links, hashes, modifications and all license conditions are
+recorded in [ASSET-LICENSES.md](../../ASSET-LICENSES.md). `import-assets.py`
+imports existing licensed GLB/audio sources; `bootstrap-preview.py` creates
+the preview Blueprint and map with actual mesh, animation and sound
+assignments. Inspect existing content before rerunning either step; do not
+blindly overwrite unrelated assets. These tools do not generate a new walk,
+idle animation or Groom.
+
+## Desktop rendering and placement
+
+The main capture renders the cat, toy and furniture together so depth ordering
+is decided in Unreal. Separate bed and bowl captures keep stationary objects
+visible while the cat travels. Smaller captures retain the same physical
+pixels-per-centimeter scale and publish top-left offsets in the shared scene.
+Two depth captures derive a visible-cat input mask, paired with the main
+frame's sequence and PNG CRC. Hidden cat pixels do not intercept input.
+
+The shell sends a session-bound `move_station` request after a drop. The engine
+converts physical pixel displacement to the floor plane, validates the new
+layout, saves accepted positions and returns the matching request ID. Invalid
+overlap or occupied-bed moves are rejected. `viewport.json` bounds movement
+using the shell's actual available desktop region.
+
+See the [shell protocol](../../native-shell/README.md) and
+[placement design](../../docs/superpowers/specs/2026-10-28-mirmir-layout-collision-design.md).
+
+## Data and sound
+
+On Linux, `${XDG_DATA_HOME:-~/.local/share}/mirmir/unreal/` contains
+`cat-v1.json`, `habitat-v1.json`, the native home anchor and command files.
+Logs use `${XDG_STATE_HOME:-~/.local/state}/mirmir/unreal/`. Frames, runtime
+metadata and the shell lease use a private runtime directory where possible;
+`frame-location.json` records it. Engine caches and `Saved/` are separate from
+the cat's user data. Corrupt saves are not overwritten automatically.
+
+Meow and purr use real SoundWave recordings. `FeedSound` may remain unassigned;
+there is no invented eating recording. The child process defaults to
+PulseAudio and the project allows unfocused audio. Global sound settings are
+not changed. Earlier isolated output-stream measurements confirm a signal,
+not physical speaker output or a user's listening experience.
+
+`r.PSOPrecaching=0` is a project-specific workaround for a reproduced startup
+crash on the local Radeon 890M/Mesa ACO stack. Keep it until a separately
+verified replacement is available. A short successful run does not establish
+long-term stability or compatibility with every GPU.

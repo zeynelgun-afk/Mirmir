@@ -79,24 +79,49 @@ def main():
                 raise RuntimeError("Flatpak output did not stay in its app-owned namespace.")
             result["frames"] = str(frames)
 
+            def auxiliary(record, expected_size):
+                name = record.get("frame_file")
+                if not isinstance(name, str) or Path(name).name != name:
+                    raise RuntimeError("Unexpected auxiliary PNG path.")
+                if (record.get("width"), record.get("height")) != expected_size:
+                    raise RuntimeError("Unexpected auxiliary frame dimensions.")
+                png = (frames / name).read_bytes()
+                if len(png) != record.get("png_bytes") or zlib.crc32(png) != record.get("png_crc32"):
+                    raise ValueError("Auxiliary publication pair is changing.")
+                return png
+
             def matched():
                 runtime, shell = read_json(frames / "runtime.json"), read_json(frames / "shell-status.json")
                 if not (runtime.get("running") is True and runtime.get("ready") is True and shell.get("ready") is True and shell.get("engine_kind") == "shipping" and
-                        runtime.get("session_id") == shell.get("session_id") and isinstance(runtime.get("producer_pid"), int) and runtime["producer_pid"] > 0):
+                        runtime.get("session_id") == shell.get("session_id") and runtime.get("frame_seq") == shell.get("frame_seq") and
+                        isinstance(runtime.get("producer_pid"), int) and runtime["producer_pid"] > 0):
                     return None
-                if args.require_props and not (runtime.get("props", {}).get("ready") is True and shell.get("props_ready") is True):
+                props = runtime.get("props", {})
+                if args.require_props and not (props.get("ready") is True and shell.get("props_ready") is True):
                     return None
                 try:
-                    name = runtime.get("frame_file", "frame.png")
-                    if not isinstance(name, str) or Path(name).name != name:
-                        raise RuntimeError("Unexpected frame path.")
-                    png = (frames / name).read_bytes()
-                except OSError:
+                    png = auxiliary(runtime, (runtime.get("width"), runtime.get("height")))
+                    extra = {}
+                    if args.require_props:
+                        if props.get("schema_version") != 2 or not isinstance(props.get("layout_revision"), int):
+                            raise RuntimeError("0.5 requires independent station captures and a layout revision.")
+                        for item_id, dimensions in [("bed", (512, 512)), ("bowl", (256, 256))]:
+                            record = props.get("items", {}).get(item_id, {})
+                            if record.get("ready") is not True or shell.get("props_items", {}).get(item_id, {}).get("ready") is not True:
+                                return None
+                            extra[item_id] = (record, auxiliary(record, dimensions))
+                    mask = runtime.get("input_mask")
+                    if args.require_props and not isinstance(mask, dict):
+                        raise RuntimeError("0.5 requires a visible-cat input mask.")
+                    if isinstance(mask, dict):
+                        if mask.get("frame_seq") != runtime.get("frame_seq") or shell.get("input_mask_frame_seq") != runtime.get("frame_seq"):
+                            return None
+                        extra["input_mask"] = (mask, auxiliary(mask, (runtime["width"], runtime["height"])))
+                    return runtime, shell, png, extra
+                except (OSError, ValueError):
                     return None
-                if len(png) == runtime.get("png_bytes") and zlib.crc32(png) == runtime.get("png_crc32"):
-                    return runtime, shell, png
 
-            runtime, shell, png = wait_for(matched, 75, process)
+            runtime, shell, png, extra = wait_for(matched, 75, process)
             from PyQt6.QtGui import QImage
             image = QImage.fromData(png, "PNG").convertToFormat(QImage.Format.Format_RGBA8888)
             if image.isNull() or not image.hasAlphaChannel():
@@ -111,25 +136,24 @@ def main():
             result.update(session_id=runtime["session_id"], producer_pid_in_sandbox=runtime["producer_pid"],
                           raw_frame_sha256=hashlib.sha256(png).hexdigest(), alpha_range=[min(alpha), max(alpha)],
                           frame_size=[image.width(), image.height()], engine_kind=shell["engine_kind"], frame_storage=location.get("storage"))
+            def record_auxiliary(label, record, content, require_mixed):
+                decoded = QImage.fromData(content, "PNG").convertToFormat(QImage.Format.Format_RGBA8888)
+                if decoded.isNull() or not decoded.hasAlphaChannel():
+                    raise RuntimeError("Auxiliary frame is not RGBA: " + label)
+                alpha = decoded.constBits().asstring(decoded.sizeInBytes())[3::4]
+                if require_mixed and (min(alpha) != 0 or max(alpha) != 255):
+                    raise RuntimeError("Station lacks transparent/opaque coverage: " + label)
+                (output / (label + ".png")).write_bytes(content)
+                return {"crc_matched": True, "frame_seq": record["frame_seq"],
+                        "alpha_range": [min(alpha), max(alpha)], "size": [decoded.width(), decoded.height()],
+                        "raw_sha256": hashlib.sha256(content).hexdigest()}
             if args.require_props:
-                props = runtime["props"]
-                name = props.get("frame_file")
-                if not isinstance(name, str) or Path(name).name != name:
-                    raise RuntimeError("Unexpected habitat frame path.")
-                props_png = (frames / name).read_bytes()
-                if len(props_png) != props.get("png_bytes") or zlib.crc32(props_png) != props.get("png_crc32"):
-                    raise RuntimeError("Habitat CRC did not match its published bytes.")
-                props_image = QImage.fromData(props_png, "PNG").convertToFormat(QImage.Format.Format_RGBA8888)
-                if props_image.isNull() or not props_image.hasAlphaChannel():
-                    raise RuntimeError("Habitat is not RGBA.")
-                props_alpha = props_image.constBits().asstring(props_image.sizeInBytes())[3::4]
-                if min(props_alpha) != 0 or max(props_alpha) != 255:
-                    raise RuntimeError("Habitat lacks transparent/opaque coverage.")
-                (output / "props.png").write_bytes(props_png)
-                result["habitat"] = {"crc_matched": True, "alpha_range": [min(props_alpha), max(props_alpha)],
-                    "size": [props_image.width(), props_image.height()], "native_ready": shell["props_ready"],
-                    "native_visible_intent": shell.get("props_visible"), "frame_seq": props["frame_seq"],
-                    "raw_sha256": hashlib.sha256(props_png).hexdigest()}
+                result["habitat"] = {"schema_version": 2, "layout_revision": runtime["props"]["layout_revision"],
+                    "items": {name: record_auxiliary(name, *extra[name], True) for name in ("bed", "bowl")},
+                    "native_ready": shell["props_ready"]}
+            if "input_mask" in extra:
+                result["visible_cat_input_mask"] = record_auxiliary("cat-input", *extra["input_mask"], False)
+
             try:
                 from Xlib import display
                 from Xlib.ext import shape
@@ -141,7 +165,7 @@ def main():
                         bounds = own_window.shape_get_rectangles(shape.SK.Bounding).rectangles
                         # QWidget.show() and the initial status write can
                         # precede the compositor/X11 map acknowledgement.
-                        return (attributes, bounds) if attributes.map_state == 2 and len(bounds) >= 2 else None
+                        return (attributes, bounds) if attributes.map_state == 2 and len(bounds) >= 1 else None
                     if result["desktop_session_locked"] is True and args.allow_locked_session:
                         attributes = own_window.get_attributes()
                         bounds = own_window.shape_get_rectangles(shape.SK.Bounding).rectangles
@@ -151,10 +175,51 @@ def main():
                         "depth": own_window.get_geometry().depth, "bounding_shape_rectangles": len(bounds)}
                     if attributes.map_state != 2 and result["desktop_session_locked"] is True and args.allow_locked_session:
                         result["unverified"].append("Actual desktop mapping/visibility: user's session is locked; no unlock or compositor changes attempted.")
-                    elif attributes.map_state != 2 or len(bounds) < 2:
+                    elif attributes.map_state != 2 or len(bounds) < 1:
                         raise RuntimeError("Owned desktop overlay is not mapped with a cat-shaped region.")
                     else:
                         result["actual_desktop_overlay_verified"] = True
+                    if runtime.get("props", {}).get("schema_version") == 2:
+                        own_ids = {"cat": shell["window_id"], **{name: shell["props_items"][name]["window_id"] for name in ("bed", "bowl")}}
+                        policy = {}
+                        for name, identifier in own_ids.items():
+                            own = connection.create_resource_object("window", int(identifier))
+                            if not (result["desktop_session_locked"] is True and args.allow_locked_session):
+                                wait_for(lambda: own.get_attributes().map_state == 2, 5, process)
+                            states = own.get_full_property(connection.intern_atom("_NET_WM_STATE"), 0)
+                            names = [connection.get_atom_name(int(a)) for a in states.value] if states else []
+                            hints = own.get_wm_hints()
+                            if not hints or hints.input != 0 or not {"_NET_WM_STATE_SKIP_TASKBAR", "_NET_WM_STATE_SKIP_PAGER"}.issubset(names):
+                                raise RuntimeError("Own window taskbar/focus hints missing: " + name)
+                            policy[name] = {"skip_taskbar": True, "skip_pager": True, "wm_input": False,
+                                            "mapped": own.get_attributes().map_state == 2}
+                        result["x11_window_policy"] = policy
+                        result["actual_desktop_overlay_verified"] = all(entry["mapped"] for entry in policy.values())
+                    if "input_mask" in extra:
+                        def exact_input_shape():
+                            sample = matched()
+                            if not sample or "input_mask" not in sample[3]:
+                                return None
+                            current, shown, _, auxiliary_frames = sample
+                            mask_record, mask_bytes = auxiliary_frames["input_mask"]
+                            mask_image = QImage.fromData(mask_bytes, "PNG").convertToFormat(QImage.Format.Format_RGBA8888)
+                            w, h = mask_image.width(), mask_image.height()
+                            alpha = mask_image.constBits().asstring(mask_image.sizeInBytes())[3::4]
+                            expected = bytes(v >= 32 for v in alpha)
+                            own = connection.create_resource_object("window", int(shown["window_id"]))
+                            rectangles = own.shape_get_rectangles(shape.SK.Input).rectangles
+                            actual = bytearray(w * h)
+                            for rectangle in rectangles:
+                                x0, y0 = max(0, rectangle.x), max(0, rectangle.y)
+                                x1, y1 = min(w, rectangle.x + rectangle.width), min(h, rectangle.y + rectangle.height)
+                                if x1 > x0 and y1 > y0:
+                                    for row in range(y0, y1):
+                                        actual[row*w+x0:row*w+x1] = bytes([1]) * (x1-x0)
+                            after = read_json(frames / "shell-status.json")
+                            if after.get("frame_seq") != shown.get("frame_seq") or bytes(actual) != expected:
+                                return None
+                            return {"exact_alpha_region": True, "frame_seq": mask_record["frame_seq"], "rectangles": len(rectangles)}
+                        result["x11_visible_cat_input_shape"] = wait_for(exact_input_shape, 8, process)
                 finally:
                     connection.close()
             except ImportError:

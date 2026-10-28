@@ -30,7 +30,9 @@ def main():
         return [name for name in names if name.endswith(('.debug','.sym','.pdb','.log')) or name in {'Manifest_DebugFiles_Linux.txt','__pycache__'}]
     shutil.copytree(source,a.output/'runtime',symlinks=True,ignore=ignore)
     shutil.copytree(a.runtime/'python',a.output/'python',symlinks=True,ignore=ignore)
-    for relative in ['native-shell/mirmir_shell.py','native-shell/README.md','native-shell/LICENSE','LICENSE','ASSET-LICENSES.md']:
+    for module in (ROOT/'native-shell').glob('*.py'):
+        copy(module,a.output/'native-shell'/module.name)
+    for relative in ['native-shell/README.md','native-shell/LICENSE','LICENSE','ASSET-LICENSES.md']:
         item=ROOT/relative
         if item.is_file():copy(item,a.output/relative)
     copy(ROOT/'desktop-lab/icon.svg',a.output/'assets/icon.svg')
@@ -59,6 +61,8 @@ def main():
     source_metadata={key:package.get(key) for key in ['configuration','platform','project_version','packaged_at_utc','map','editor_required_for_runtime']}
     source_metadata['archive_name']=Path(package['archive_directory']).name
     record={'schema_version':1,'version':a.version,'platform':'Linux-x86_64','staged_at_unix':int(time.time()),'shipping_binary_sha256':hashlib.sha256(binary.read_bytes()).hexdigest(),'native_shell_sha256':hashlib.sha256((a.output/'native-shell/mirmir_shell.py').read_bytes()).hexdigest(),'source_package_manifest':source_metadata,'minimum_glibc':lock['minimum_glibc'],'python_version':lock['python']['version'],'wheel_versions':{x['name']:x['version'] for x in lock['wheels']},'engine_sdk_included':False,'staged_runtime_launch_verified':False,'other_distro_install_verified':False}
+    record['native_modules_sha256']={module.name:hashlib.sha256(module.read_bytes()).hexdigest()
+        for module in sorted((a.output/'native-shell').glob('*.py'))}
     (a.output/'bundle-manifest.json').write_text(json.dumps(record,indent=2)+'\n')
     print(a.output)
 

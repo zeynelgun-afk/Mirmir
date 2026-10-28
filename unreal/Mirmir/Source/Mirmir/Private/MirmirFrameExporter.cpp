@@ -87,18 +87,32 @@ AMirmirFrameExporter::AMirmirFrameExporter()
     CaptureComponent->ShowFlags.SetPostProcessing(false);
     CaptureComponent->ShowFlags.SetMotionBlur(false);
     CaptureComponent->ShowFlags.SetTemporalAA(false);
-    PropsCapture = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("HabitatCapture"));
-    PropsCapture->SetupAttachment(CaptureComponent);
-    PropsCapture->bCaptureEveryFrame = false;
-    PropsCapture->bCaptureOnMovement = false;
-    PropsCapture->bAlwaysPersistRenderingState = false;
-    PropsCapture->PrimitiveRenderMode = ESceneCapturePrimitiveRenderMode::PRM_UseShowOnlyList;
-    PropsCapture->CaptureSource = ESceneCaptureSource::SCS_SceneColorHDR;
-    PropsCapture->ShowFlags.SetAtmosphere(false);
-    PropsCapture->ShowFlags.SetFog(false);
-    PropsCapture->ShowFlags.SetPostProcessing(false);
-    PropsCapture->ShowFlags.SetMotionBlur(false);
-    PropsCapture->ShowFlags.SetTemporalAA(false);
+    const FName StationNames[] = { TEXT("BedCapture"), TEXT("BowlCapture") };
+    for (int32 I = 0; I < 2; ++I)
+    {
+        USceneCaptureComponent2D* Capture = CreateDefaultSubobject<USceneCaptureComponent2D>(StationNames[I]);
+        Capture->SetupAttachment(CaptureComponent);
+        Capture->bCaptureEveryFrame = false;
+        Capture->bCaptureOnMovement = false;
+        Capture->bAlwaysPersistRenderingState = false;
+        Capture->PrimitiveRenderMode = ESceneCapturePrimitiveRenderMode::PRM_UseShowOnlyList;
+        Capture->CaptureSource = ESceneCaptureSource::SCS_SceneColorHDR;
+        Capture->ShowFlags = CaptureComponent->ShowFlags;
+        StationCaptures.Add(Capture);
+    }
+    CatDepthCapture = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("CatInputDepth"));
+    WorldDepthCapture = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("WorldInputDepth"));
+    for (USceneCaptureComponent2D* Depth : { CatDepthCapture.Get(), WorldDepthCapture.Get() })
+    {
+        Depth->SetupAttachment(CaptureComponent);
+        Depth->bCaptureEveryFrame = false;
+        Depth->bCaptureOnMovement = false;
+        Depth->bAlwaysPersistRenderingState = false;
+        Depth->PrimitiveRenderMode = ESceneCapturePrimitiveRenderMode::PRM_UseShowOnlyList;
+        Depth->CaptureSource = ESceneCaptureSource::SCS_SceneDepth;
+        Depth->ShowFlags = CaptureComponent->ShowFlags;
+    }
+
 }
 
 bool AMirmirFrameExporter::Initialize(AMirmirCat* InCat, UCameraComponent* InCamera)
@@ -137,7 +151,7 @@ bool AMirmirFrameExporter::Initialize(AMirmirCat* InCat, UCameraComponent* InCam
     if (GEngine) GEngine->SetMaxFPS(CurrentCaptureFPS);
     Subject = InCat;
     SourceCamera = InCamera;
-    InitialCatLocation = InCat->GetActorLocation();
+    InitialCatLocation = InCat->GetDesktopOrigin();
     LastActorLocation = InitialCatLocation;
     LastActorRotation = InCat->GetActorQuat();
     LastActivity = uint8(InCat->Activity);
@@ -150,6 +164,7 @@ bool AMirmirFrameExporter::Initialize(AMirmirCat* InCat, UCameraComponent* InCam
     FrameSequence = 0;
     CaptureComponent->ShowOnlyActors.Reset();
     CaptureComponent->ShowOnlyActors.Add(InCat);
+    if (IsValid(InCat->Habitat)) CaptureComponent->ShowOnlyActors.Add(InCat->Habitat);
     if (IsValid(InCat->Toy)) CaptureComponent->ShowOnlyActors.Add(InCat->Toy);
     CaptureComponent->ProjectionType = InCamera->ProjectionMode;
     CaptureComponent->FOVAngle = InCamera->FieldOfView;
@@ -171,25 +186,42 @@ bool AMirmirFrameExporter::Initialize(AMirmirCat* InCat, UCameraComponent* InCam
     RenderTarget->InitCustomFormat(FrameSize, FrameSize, PF_FloatRGBA, true);
     RenderTarget->UpdateResourceImmediate(true);
     CaptureComponent->TextureTarget = RenderTarget;
+    auto DepthTarget = [this](const TCHAR* Name, USceneCaptureComponent2D* Depth, bool bFurniture)
+    {
+        Depth->ProjectionType = CaptureComponent->ProjectionType;
+        Depth->OrthoWidth = CaptureComponent->OrthoWidth;
+        Depth->FOVAngle = CaptureComponent->FOVAngle;
+        Depth->ShowOnlyActors.Add(Subject.Get());
+        if (Subject->Toy) Depth->ShowOnlyActors.Add(Subject->Toy);
+        if (bFurniture && Subject->Habitat) Depth->ShowOnlyActors.Add(Subject->Habitat);
+        UTextureRenderTarget2D* Target = NewObject<UTextureRenderTarget2D>(this, Name);
+        Target->ClearColor = FLinearColor(1.0e20f, 0, 0, 0);
+        // Vulkan's FLinearColor readback supports RGBA32f, not R32f. Retain
+        // centimetre depth precision rather than quantising to half floats.
+        Target->InitCustomFormat(FrameSize, FrameSize, PF_A32B32G32R32F, true);
+        Target->UpdateResourceImmediate(true);
+        Depth->TextureTarget = Target;
+        return Target;
+    };
+    CatDepthTarget = DepthTarget(TEXT("CatInputDepthTarget"), CatDepthCapture, false);
+    WorldDepthTarget = DepthTarget(TEXT("WorldInputDepthTarget"), WorldDepthCapture, true);
+    StationFrames[0].Id = TEXT("bed"); StationFrames[0].Size = FrameSize;
+    StationFrames[1].Id = TEXT("bowl"); StationFrames[1].Size = FMath::Max(128, FrameSize / 2);
     if (IsValid(InCat->Habitat))
     {
-        // Centre the separate fixed canvas on the furniture's planar bounds.
-        // Publish the matching pixel offset so its desktop world alignment is
-        // unchanged; clipping furniture is not fixed by scaling the scene.
-        const FBox Bounds = InCat->Habitat->GetComponentsBoundingBox(true);
-        if (Bounds.IsValid)
+        StationTargets.SetNum(2);
+        for (int32 I = 0; I < 2; ++I)
         {
-            PropsCameraShift = Bounds.GetCenter() - InitialCatLocation;
-            PropsCameraShift.Z = 0.0;
+            USceneCaptureComponent2D* Station = StationCaptures[I];
+            Station->ProjectionType = ECameraProjectionMode::Orthographic;
+            Station->OrthoWidth = StationFrames[I].Size / DesktopPixelsPerCentimeter;
+            UTextureRenderTarget2D* Target = NewObject<UTextureRenderTarget2D>(this);
+            Target->ClearColor = FLinearColor(0, 0, 0, 1);
+            Target->InitCustomFormat(StationFrames[I].Size, StationFrames[I].Size, PF_FloatRGBA, true);
+            Target->UpdateResourceImmediate(true);
+            StationTargets[I] = Target;
+            Station->TextureTarget = Target;
         }
-        PropsCapture->ShowOnlyActors.Add(InCat->Habitat);
-        PropsCapture->ProjectionType = CaptureComponent->ProjectionType;
-        PropsCapture->OrthoWidth = CaptureComponent->OrthoWidth;
-        PropsRenderTarget = NewObject<UTextureRenderTarget2D>(this, TEXT("DesktopHabitatFrame"));
-        PropsRenderTarget->ClearColor = FLinearColor(0, 0, 0, 1);
-        PropsRenderTarget->InitCustomFormat(FrameSize, FrameSize, PF_FloatRGBA, true);
-        PropsRenderTarget->UpdateResourceImmediate(true);
-        PropsCapture->TextureTarget = PropsRenderTarget;
     }
     bInitialized = true;
     NextCaptureSeconds = FPlatformTime::Seconds();
@@ -216,6 +248,7 @@ void AMirmirFrameExporter::Tick(float DeltaSeconds)
         return;
     }
     const double Now = FPlatformTime::Seconds();
+    PollPlacement();
     PollCursorInterest();
     UpdateCadence(Now, DeltaSeconds);
     // The engine uses the same cap. Sub-millisecond timer jitter must not turn
@@ -353,6 +386,7 @@ void AMirmirFrameExporter::UpdateCadence(double Now, float DeltaSeconds)
 bool AMirmirFrameExporter::CaptureAndPublish()
 {
     CapturePropsIfNeeded();
+    if (!CaptureVisibleInput()) return false;
     CaptureComponent->SetWorldLocationAndRotation(
         Subject->GetActorLocation() + CameraOffset, CameraRotation);
     // CaptureScene is manual; enabling capture-every-frame would double render.
@@ -385,7 +419,8 @@ bool AMirmirFrameExporter::CaptureAndPublish()
     for (int32 Index = 0; Index < HDRPixels.Num(); ++Index)
     {
         FLinearColor Linear = HDRPixels[Index];
-        const float Coverage = FMath::Clamp(bInvertCaptureAlpha ? 1.0f - Linear.A : Linear.A, 0.0f, 1.0f);
+        const float Coverage = CatSupportPixels.IsValidIndex(Index) && CatSupportPixels[Index]
+            ? FMath::Clamp(bInvertCaptureAlpha ? 1.0f - Linear.A : Linear.A, 0.0f, 1.0f) : 0.0f;
         FColor& Pixel = Pixels[Index];
         Pixel.A = static_cast<uint8>(FMath::RoundToInt(Coverage * 255.0f));
         AlphaMin = FMath::Min(AlphaMin, int32(Pixel.A));
@@ -440,61 +475,6 @@ bool AMirmirFrameExporter::CaptureAndPublish()
     return true;
 }
 
-void AMirmirFrameExporter::CapturePropsIfNeeded()
-{
-    const AMirmirCat* Cat = Subject.Get();
-    if (!Cat || !IsValid(Cat->Habitat) || !PropsRenderTarget) return;
-    const double Now = FPlatformTime::Seconds();
-    const bool bFood = Cat->Habitat->IsFoodVisible();
-    if (bPropsReady && bFood == bLastFoodVisible && Now < NextPropsCaptureSeconds) return;
-    NextPropsCaptureSeconds = Now + 1.0;
-    PropsCapture->SetWorldLocationAndRotation(InitialCatLocation + CameraOffset + PropsCameraShift, CameraRotation);
-    PropsCapture->CaptureScene();
-    FTextureRenderTargetResource* Resource = PropsRenderTarget->GameThread_GetRenderTargetResource();
-    TArray<FLinearColor> HDR;
-    FReadSurfaceDataFlags Flags(RCM_MinMax);
-    Flags.SetLinearToGamma(false);
-    if (!Resource || !Resource->ReadLinearColorPixels(HDR, Flags) || HDR.Num() != FrameSize * FrameSize)
-    {
-        bPropsReady = false;
-        return;
-    }
-    TArray<FColor> Pixels;
-    Pixels.SetNumUninitialized(HDR.Num());
-    int32 Low = 255, High = 0;
-    auto Map = [this](float V)
-    {
-        const float X = FMath::Max(0.0f, V * FMath::Clamp(DisplayGain, .1f, 4.0f));
-        return bUseFilmicToneMap ? FMath::Clamp((X * (2.51f * X + .03f)) /
-            (X * (2.43f * X + .59f) + .14f), 0.0f, 1.0f) : FMath::Clamp(X, 0.0f, 1.0f);
-    };
-    for (int32 I = 0; I < HDR.Num(); ++I)
-    {
-        const float Coverage = FMath::Clamp(bInvertCaptureAlpha ? 1.0f - HDR[I].A : HDR[I].A, 0.0f, 1.0f);
-        const uint8 Alpha = uint8(FMath::RoundToInt(Coverage * 255.0f));
-        Low = FMath::Min(Low, int32(Alpha)); High = FMath::Max(High, int32(Alpha));
-        Pixels[I] = Alpha ? FLinearColor(Map(HDR[I].R), Map(HDR[I].G), Map(HDR[I].B)).ToFColorSRGB() : FColor(0, 0, 0, 0);
-        Pixels[I].A = Alpha;
-    }
-    if (Low != 0 || High == 0) { bPropsReady = false; return; }
-    if (bFlipVertically)
-        for (int32 Y = 0; Y < FrameSize / 2; ++Y)
-            for (int32 X = 0; X < FrameSize; ++X)
-                Swap(Pixels[Y * FrameSize + X], Pixels[(FrameSize - Y - 1) * FrameSize + X]);
-    const FImageView Image(Pixels.GetData(), FrameSize, FrameSize, EGammaSpace::sRGB);
-    TArray64<uint8> PNG;
-    if (!ImageWrapper->CompressImage(PNG, EImageFormat::PNG, Image, 0) || PNG.IsEmpty() || !AtomicWrite(TEXT("props.png"), PNG))
-    {
-        bPropsReady = false;
-        return;
-    }
-    PropsPNGBytes = PNG.Num();
-    PropsPNGCRC32 = FCrc::MemCrc32(PNG.GetData(), int32(PNG.Num()));
-    ++PropsSequence;
-    bLastFoodVisible = bFood;
-    bPropsReady = true;
-}
-
 bool AMirmirFrameExporter::PublishRuntime(const TCHAR* Status, bool bReady, int64 PNGBytes,
     uint32 PNGCRC32, int32 AlphaMin, int32 AlphaMax, int32 ForegroundPixels, const FString& Error)
 {
@@ -504,6 +484,17 @@ bool AMirmirFrameExporter::PublishRuntime(const TCHAR* Status, bool bReady, int6
     JSON->SetNumberField(TEXT("producer_pid"), FPlatformProcess::GetCurrentProcessId());
     JSON->SetStringField(TEXT("session_id"), SessionId);
     JSON->SetStringField(TEXT("frame_file"), TEXT("frame.png"));
+    const TSharedRef<FJsonObject> Input = MakeShared<FJsonObject>();
+    Input->SetStringField(TEXT("frame_file"), TEXT("cat-input.png"));
+    Input->SetNumberField(TEXT("frame_seq"), double(FrameSequence));
+    Input->SetNumberField(TEXT("png_bytes"), double(InputPNGBytes));
+    Input->SetNumberField(TEXT("png_crc32"), double(InputPNGCRC32));
+    Input->SetNumberField(TEXT("width"), FrameSize);
+    Input->SetNumberField(TEXT("height"), FrameSize);
+    Input->SetNumberField(TEXT("visible_cat_pixels"), VisibleCatPixels);
+    Input->SetNumberField(TEXT("occluded_cat_pixels"), OccludedCatPixels);
+    JSON->SetObjectField(TEXT("input_mask"), Input);
+    JSON->SetBoolField(TEXT("main_frame_includes_furniture"), true);
     JSON->SetNumberField(TEXT("frame_seq"), double(FrameSequence));
     JSON->SetNumberField(TEXT("width"), FrameSize);
     JSON->SetNumberField(TEXT("height"), FrameSize);
@@ -540,39 +531,18 @@ bool AMirmirFrameExporter::PublishRuntime(const TCHAR* Status, bool bReady, int6
         Interaction->SetBoolField(TEXT("accepted"), Cat->bLastInteractionAccepted);
         Interaction->SetStringField(TEXT("message"), Cat->InteractionMessage);
         JSON->SetObjectField(TEXT("interaction"), Interaction);
-        if (const AMirmirHabitat* Habitat = Cat->Habitat.Get())
+        if (Cat->Habitat)
         {
-            const TSharedRef<FJsonObject> Props = MakeShared<FJsonObject>();
-            Props->SetBoolField(TEXT("ready"), bPropsReady && bReady);
-            Props->SetStringField(TEXT("frame_file"), TEXT("props.png"));
-            Props->SetNumberField(TEXT("png_bytes"), double(PropsPNGBytes));
-            Props->SetNumberField(TEXT("png_crc32"), double(PropsPNGCRC32));
-            Props->SetNumberField(TEXT("frame_seq"), double(PropsSequence));
-            Props->SetNumberField(TEXT("width"), FrameSize);
-            Props->SetNumberField(TEXT("height"), FrameSize);
-            const FRotationMatrix Projection(CameraRotation);
-            const double PixelsPerCM = FMath::Clamp(DesktopPixelsPerCentimeter, .01f, 20.0f);
-            Props->SetArrayField(TEXT("desktop_offset_px"), {
-                MakeShared<FJsonValueNumber>(FVector::DotProduct(PropsCameraShift, Projection.GetUnitAxis(EAxis::Y)) * PixelsPerCM),
-                MakeShared<FJsonValueNumber>(-FVector::DotProduct(PropsCameraShift, Projection.GetUnitAxis(EAxis::Z)) * PixelsPerCM) });
-            auto ScreenPoint = [&](FVector World)
-            {
-                const FVector Offset = World - InitialCatLocation - CameraOffset - PropsCameraShift;
-                const double X = FrameSize * .5 + FVector::DotProduct(Offset, Projection.GetUnitAxis(EAxis::Y)) * PixelsPerCM;
-                double Y = FrameSize * .5 - FVector::DotProduct(Offset, Projection.GetUnitAxis(EAxis::Z)) * PixelsPerCM;
-                if (bFlipVertically) Y = FrameSize - Y;
-                return TArray<TSharedPtr<FJsonValue>>{ MakeShared<FJsonValueNumber>(X), MakeShared<FJsonValueNumber>(Y) };
-            };
-            Props->SetArrayField(TEXT("bed_center_px"), ScreenPoint(Habitat->GetBedLocation()));
-            Props->SetArrayField(TEXT("bowl_center_px"), ScreenPoint(Habitat->GetBowlLocation()));
-            Props->SetBoolField(TEXT("food_visible"), Habitat->IsFoodVisible());
-            Props->SetBoolField(TEXT("traveling"), Cat->bHabitatTraveling);
-            Props->SetBoolField(TEXT("arrived"), Cat->bHabitatArrived);
-            Props->SetNumberField(TEXT("rest_pose_alpha"), Cat->RestPoseAlpha);
-            Props->SetNumberField(TEXT("eating_pose_strength"), Cat->EatingPoseStrength);
-            Props->SetArrayField(TEXT("bed_world_cm"), VectorJSON(Habitat->GetBedLocation()));
-            Props->SetArrayField(TEXT("bowl_world_cm"), VectorJSON(Habitat->GetBowlLocation()));
-            JSON->SetObjectField(TEXT("props"), Props);
+            JSON->SetObjectField(TEXT("props"), BuildPropsState(bReady));
+            const TSharedRef<FJsonObject> Placement = MakeShared<FJsonObject>();
+            Placement->SetStringField(TEXT("request_id"), PlacementRequestId);
+            Placement->SetStringField(TEXT("item_id"), PlacementItemId);
+            Placement->SetBoolField(TEXT("accepted"), bPlacementAccepted);
+            Placement->SetStringField(TEXT("message"), PlacementMessage);
+            Placement->SetNumberField(TEXT("layout_revision"), double(Cat->Habitat->GetLayoutRevision()));
+            if (PlacementItemId == TEXT("bed") || PlacementItemId == TEXT("bowl"))
+                Placement->SetArrayField(TEXT("world_floor_cm"), VectorJSON(Cat->Habitat->GetStationFloorPosition(FName(*PlacementItemId))));
+            JSON->SetObjectField(TEXT("placement"), Placement);
         }
         JSON->SetStringField(TEXT("appearance"), Cat->AppearanceId.ToString());
         JSON->SetBoolField(TEXT("appearance_ready"), Cat->bAppearanceReady);
@@ -610,6 +580,8 @@ bool AMirmirFrameExporter::PublishRuntime(const TCHAR* Status, bool bReady, int6
         TSharedRef<FJsonObject> Motion = MakeShared<FJsonObject>();
         Motion->SetNumberField(TEXT("sample_monotonic_s"), FPlatformTime::Seconds());
         Motion->SetNumberField(TEXT("movement_speed_cm_s"), Cat->MovementSpeed);
+        Motion->SetBoolField(TEXT("walking_backwards"), Cat->bWalkingBackwards);
+        Motion->SetBoolField(TEXT("movement_blocked"), Cat->bMovementBlocked);
         Motion->SetNumberField(TEXT("yaw_rate_rad_s"), Cat->LocomotionYawRate);
         Motion->SetNumberField(TEXT("curvature_per_cm"), Cat->LocomotionCurvature);
         Motion->SetNumberField(TEXT("minimum_turn_radius_cm"), Cat->MinimumTurnRadius);
@@ -664,7 +636,7 @@ bool AMirmirFrameExporter::PublishRuntime(const TCHAR* Status, bool bReady, int6
                 Motion->SetStringField(TEXT("animation_asset"), GetNameSafe(Instance->ActiveClip.Get()));
                 Motion->SetNumberField(TEXT("animation_time_s"), Instance->ActiveClipTime);
                 Motion->SetNumberField(TEXT("animation_rate"), Instance->ActivePlayRate);
-                Motion->SetBoolField(TEXT("animation_playing"), Instance->ActivePlayRate > 0.0f);
+                Motion->SetBoolField(TEXT("animation_playing"), FMath::Abs(Instance->ActivePlayRate) > SMALL_NUMBER);
                 Motion->SetStringField(TEXT("animation_state"), Instance->PlaybackState.ToString());
                 Motion->SetNumberField(TEXT("animation_blend_count"), Instance->ActiveBlendCount);
                 Motion->SetNumberField(TEXT("stance_valid_legs"), Instance->StanceValidLegs);
@@ -796,9 +768,13 @@ void AMirmirFrameExporter::ShutdownExporter()
         bOwnsOutput = false;
     }
     CaptureComponent->TextureTarget = nullptr;
-    PropsCapture->TextureTarget = nullptr;
-    if (PropsRenderTarget) PropsRenderTarget->ReleaseResource();
-    PropsRenderTarget = nullptr;
+    for (USceneCaptureComponent2D* Station : StationCaptures) Station->TextureTarget = nullptr;
+    for (UTextureRenderTarget2D* Target : StationTargets) if (Target) Target->ReleaseResource();
+    StationTargets.Reset();
+    CatDepthCapture->TextureTarget = nullptr; WorldDepthCapture->TextureTarget = nullptr;
+    if (CatDepthTarget) CatDepthTarget->ReleaseResource();
+    if (WorldDepthTarget) WorldDepthTarget->ReleaseResource();
+    CatDepthTarget = nullptr; WorldDepthTarget = nullptr;
     if (RenderTarget) RenderTarget->ReleaseResource();
     RenderTarget = nullptr;
     Subject.Reset();

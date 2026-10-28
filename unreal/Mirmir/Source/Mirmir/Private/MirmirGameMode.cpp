@@ -11,6 +11,7 @@
 #include "Engine/DirectionalLight.h"
 #include "Engine/SkyLight.h"
 #include "Components/SkyLightComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Engine/TextureCube.h"
 #include "Engine/World.h"
 #include "InputCoreTypes.h"
@@ -48,7 +49,8 @@ void AMirmirGameMode::BeginPlay()
     const bool bDesktop = FParse::Param(FCommandLine::Get(), TEXT("MirmirDesktop"));
     if (Camera)
     {
-        const FBox Bounds = Cat ? Cat->GetComponentsBoundingBox() : FBox(ForceInit);
+        // Navigation/collision proxies must not resize the cat's render scale.
+        const FBox Bounds = Cat && Cat->CatMesh ? Cat->CatMesh->Bounds.GetBox() : FBox(ForceInit);
         const FVector Center = Bounds.IsValid ? Bounds.GetCenter() : FVector(0, 0, 35);
         Camera->SetActorLocation(Center + FVector(210, -250, 105));
         Camera->SetActorRotation((Center - Camera->GetActorLocation()).Rotation());
@@ -85,6 +87,7 @@ void AMirmirGameMode::BeginPlay()
     {
         Habitat = GetWorld()->SpawnActor<AMirmirHabitat>(Cat->GetActorLocation(), FRotator::ZeroRotator);
         Cat->Habitat = Habitat;
+        if (Habitat) Habitat->AttachCat(Cat);
         Toy = GetWorld()->SpawnActor<AMirmirToy>();
         if (Toy)
         {

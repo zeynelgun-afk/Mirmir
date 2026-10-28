@@ -1,9 +1,9 @@
 # Mırmır
 
-- Hedef: kullanıcının KDE/Wayland masaüstünde yaşayan, gerçekçi kısa tüylü bir 3B kedi.
-- Ana ürün motoru Unreal Engine 5; `desktop-lab/` kurulu Godot ile yürütülen ayrı fizibilite prototipidir. Bunu Unreal sürümü diye sunma.
-- Kullanıcı bu oturumda tasarım ve geliştirmeyi onay istemeden ilerletmeye yetki verdi. Hesap girişini, ücretli alımı ve lisans kabulünü kendin yapma.
-- Kullanıcı oturumunu, KWin ayarlarını veya ekran düzenini değiştirme. Uygulamayı tek komutla kapatılabilir tut.
-- Varlıkları yalnızca kaynağı ve kullanım lisansı kaydedilmişse projeye ekle. İnternetten alınan kodu incelemeden çalıştırma.
-- Çalıştırılmayan Unreal kodunu derlendi veya görsel olarak doğrulandı diye sunma. Laboratuvar varlık kalitesini nihai fotogerçekçilikle karıştırma.
-- Kayıt verileri XDG veri dizininde, uygulama günlükleri XDG durum dizininde tutulur. Dosya içeriğine veya ekrana ait kişisel veri toplanmaz.
+- Goal: a realistic short-haired 3D cat living on the user's KDE/Wayland desktop.
+- The main product uses Unreal Engine 5. `desktop-lab/` is a separate archived Godot feasibility prototype; never present it as Unreal evidence.
+- The user authorized autonomous design and development without approval questions. Do not sign in, purchase assets or accept licenses for the user.
+- Do not change the desktop session, KWin settings or display layout. Keep the application stoppable with one command.
+- Add assets only with recorded sources and usage licenses. Review downloaded code before running it.
+- Do not claim unexecuted Unreal code was built or visually verified. Prototype asset quality is not finished photorealism.
+- Saves use XDG data directories and logs use XDG state directories. Do not collect personal files or other apps' screen contents.

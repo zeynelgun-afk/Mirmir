@@ -1,0 +1,201 @@
+{
+  "schema_version": 1,
+  "kind": "actual-unreal-editor-game-prerelease-appearance-capture",
+  "project_version": "0.5.0",
+  "producer_pid": 1029584,
+  "session_id": "01A18104-1420-78AA-811B-7982D92ABB97",
+  "duration_s": 24.9,
+  "sample_fps": 10,
+  "recorded_samples": 249,
+  "desktop_screenshot": false,
+  "microphone_or_audio_recording": false,
+  "raw_main_pngs_modified": false,
+  "composition": "Actual CRC-matched Unreal bed/bowl images below the depth-composited main image, fixed union/projection scale on a neutral preview background.",
+  "caption": "Actual Unreal Engine render • preview background",
+  "render": {
+    "canvas": [
+      960,
+      540
+    ],
+    "union_rect_px": [
+      -188,
+      -87,
+      713,
+      600
+    ],
+    "constant_scale": 0.660844250363901,
+    "background_rgb": [
+      24,
+      29,
+      37
+    ],
+    "still_indices": [
+      0,
+      78,
+      157
+    ]
+  },
+  "profiles": [
+    {
+      "appearance": "van",
+      "frame_seq": 1379,
+      "layout_revision": 3,
+      "elapsed_s": 0.10011622599267866,
+      "preview": "van.png",
+      "preview_sha256": "05f8a2888261ad1a88528806af8e5174c03b3742af6b614d50f393be6f8f0906",
+      "unaltered_main_png": "raw-main-van.png",
+      "unaltered_main_sha256": "e828d7f984ff939a2ff7c13760f5d61de92affe98654d058b0855f0567346bd7",
+      "layers": [
+        {
+          "role": "bed",
+          "source_sha256": "471cf1fc1f5723e4d68d944dbea6e2cc3fbe42eb01f375d1589b14e97feda138",
+          "offset_px": [
+            200.2322407722709,
+            -86.11995024794984
+          ],
+          "size": [
+            512,
+            512
+          ]
+        },
+        {
+          "role": "bowl",
+          "source_sha256": "0b2ffea7a08e07b56460c7fef1cdfa9e262c2a2c743f01d544e4211c0c6d75ed",
+          "offset_px": [
+            -35.301220805127,
+            343.48550718162977
+          ],
+          "size": [
+            256,
+            256
+          ]
+        },
+        {
+          "role": "main",
+          "source_sha256": "e828d7f984ff939a2ff7c13760f5d61de92affe98654d058b0855f0567346bd7",
+          "offset_px": [
+            -187.56032022891927,
+            32.857456986649126
+          ],
+          "size": [
+            512,
+            512
+          ]
+        }
+      ]
+    },
+    {
+      "appearance": "british",
+      "frame_seq": 1434,
+      "layout_revision": 3,
+      "elapsed_s": 7.900072992997593,
+      "preview": "british.png",
+      "preview_sha256": "e60d76501eab1dd86cb177fb5faece3e567d00862a1024695c781cc3f01b1dea",
+      "unaltered_main_png": "raw-main-british.png",
+      "unaltered_main_sha256": "c6cf8fcc9f6b060c8e711a394a6761cbc81cedf6e3f369e639b13f315e078559",
+      "layers": [
+        {
+          "role": "bed",
+          "source_sha256": "471cf1fc1f5723e4d68d944dbea6e2cc3fbe42eb01f375d1589b14e97feda138",
+          "offset_px": [
+            200.2322407722709,
+            -86.11995024794984
+          ],
+          "size": [
+            512,
+            512
+          ]
+        },
+        {
+          "role": "bowl",
+          "source_sha256": "0b2ffea7a08e07b56460c7fef1cdfa9e262c2a2c743f01d544e4211c0c6d75ed",
+          "offset_px": [
+            -35.301220805127,
+            343.48550718162977
+          ],
+          "size": [
+            256,
+            256
+          ]
+        },
+        {
+          "role": "main",
+          "source_sha256": "c6cf8fcc9f6b060c8e711a394a6761cbc81cedf6e3f369e639b13f315e078559",
+          "offset_px": [
+            -187.56032022891927,
+            32.857456986649126
+          ],
+          "size": [
+            512,
+            512
+          ]
+        }
+      ]
+    },
+    {
+      "appearance": "tuxedo",
+      "frame_seq": 1515,
+      "layout_revision": 3,
+      "elapsed_s": 15.800072443991667,
+      "preview": "tuxedo.png",
+      "preview_sha256": "9beabae7efb7ef641ffe3dce598993028f0a0825288589d1ab2275e5e883ce6c",
+      "unaltered_main_png": "raw-main-tuxedo.png",
+      "unaltered_main_sha256": "f5c5670ea48ac5662435d40dcaa1cfdddbb299a8a6011a2b070e61a8a28e3299",
+      "layers": [
+        {
+          "role": "bed",
+          "source_sha256": "471cf1fc1f5723e4d68d944dbea6e2cc3fbe42eb01f375d1589b14e97feda138",
+          "offset_px": [
+            200.2322407722709,
+            -86.11995024794984
+          ],
+          "size": [
+            512,
+            512
+          ]
+        },
+        {
+          "role": "bowl",
+          "source_sha256": "0b2ffea7a08e07b56460c7fef1cdfa9e262c2a2c743f01d544e4211c0c6d75ed",
+          "offset_px": [
+            -35.301220805127,
+            343.48550718162977
+          ],
+          "size": [
+            256,
+            256
+          ]
+        },
+        {
+          "role": "main",
+          "source_sha256": "f5c5670ea48ac5662435d40dcaa1cfdddbb299a8a6011a2b070e61a8a28e3299",
+          "offset_px": [
+            -187.56032022891927,
+            32.857456986649126
+          ],
+          "size": [
+            512,
+            512
+          ]
+        }
+      ]
+    }
+  ],
+  "media": {
+    "appearance-preview.mp4": {
+      "bytes": 37786,
+      "sha256": "c11f5716338b113439234f9208c1fa2be6e09b89be9d5984560042a6e6017856"
+    },
+    "appearance-preview.gif": {
+      "bytes": 94091,
+      "sha256": "7bc70e506427a0ff1615bfd5250a9110ef868c0f99cb6db47df622845cbcbe93"
+    }
+  },
+  "limits": [
+    "This clip demonstrates three appearance profiles; the actor did not translate during this capture.",
+    "It is not a walking demo or final Shipping/runtime acceptance proof.",
+    "Appearance profiles share the same base mesh.",
+    "The neutral background and caption are preview presentation, not a desktop screenshot."
+  ],
+  "credits": "See ASSET-LICENSES.md at the repository root for Cat Walk (CC BY-NC4.0), Tuxedo motion (CC BY4.0), and generated fur provenance."
+}

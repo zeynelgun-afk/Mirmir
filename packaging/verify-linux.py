@@ -9,6 +9,7 @@ import hashlib
 import json
 import os
 import shutil
+import struct
 import subprocess
 import tempfile
 import time
@@ -18,6 +19,39 @@ import zlib
 
 def capture(command,env=None):
     return subprocess.check_output([str(x) for x in command],text=True,stderr=subprocess.PIPE,env=env)
+
+
+def verify_png_frame(metadata,frames,size):
+    name=metadata.get('frame_file')
+    if not isinstance(name,str) or Path(name).name!=name:
+        raise ValueError('Unexpected auxiliary frame path.')
+    png=(frames/name).read_bytes()
+    if len(png)!=metadata.get('png_bytes') or zlib.crc32(png)!=metadata.get('png_crc32'):
+        raise ValueError('Auxiliary PNG and CRC metadata differ.')
+    if (len(png)<33 or png[:8]!=b'\x89PNG\r\n\x1a\n' or png[12:16]!=b'IHDR' or
+            struct.unpack('>II',png[16:24])!=size or
+            (metadata.get('width'),metadata.get('height'))!=size):
+        raise ValueError('Unexpected auxiliary PNG dimensions.')
+    return {'file':name,'frame_seq':metadata.get('frame_seq'),'sha256':hashlib.sha256(png).hexdigest()}
+
+
+def verify_placement_frames(metadata,frames):
+    props=metadata.get('props',{})
+    if props.get('schema_version')!=2 or props.get('ready') is not True:
+        raise ValueError('0.5 requires ready per-item habitat captures.')
+    items=props.get('items',{})
+    verified={}
+    for name,size in [('bed',(512,512)),('bowl',(256,256))]:
+        item=items.get(name,{})
+        if item.get('ready') is not True:raise ValueError('Habitat item is not ready: '+name)
+        if item.get('layout_revision')!=props.get('layout_revision'):
+            raise ValueError('Habitat item belongs to an older layout: '+name)
+        verified[name]=verify_png_frame(item,frames,size)
+    mask=metadata.get('input_mask',{})
+    if mask.get('frame_seq')!=metadata.get('frame_seq'):
+        raise ValueError('Visible-cat input mask is not paired to the main frame.')
+    verified['visible_cat_input_mask']=verify_png_frame(mask,frames,(512,512))
+    return verified
 
 
 def main():
@@ -52,7 +86,7 @@ def main():
         with (scratch/'shell.log').open('w') as log:
             child=subprocess.Popen([str(stage/'mirmir'),'--frame-dir',str(frames),'--no-cursor-interest'],env=testenv,stdout=log,stderr=subprocess.STDOUT)
             try:
-                deadline=time.monotonic()+45;matched=None
+                deadline=time.monotonic()+45;matched=None;placement_frames=None
                 while time.monotonic()<deadline and child.poll() is None:
                     try:
                         metadata=json.loads((frames/'runtime.json').read_text());png=(frames/'frame.png').read_bytes();shell=json.loads((frames/'shell-status.json').read_text())
@@ -61,6 +95,8 @@ def main():
                                 and shell.get('session_id')==metadata.get('session_id')
                                 and (tuple(map(int,version.split('.'))) < (0,4,0) or shell.get('props_ready') is True)
                                 and len(png)==metadata.get('png_bytes') and zlib.crc32(png)&0xffffffff==metadata.get('png_crc32')):
+                            if tuple(map(int,version.split('.'))) >= (0,5,0):
+                                placement_frames=verify_placement_frames(metadata,frames)
                             matched=metadata;break
                     except (OSError,ValueError):pass
                     time.sleep(.15)
@@ -82,7 +118,10 @@ def main():
                     record['desktop_window_map_note']='Own window remained unmapped; repeat visibility verification in an unlocked session. No session/window-manager setting was changed.'
                 record['isolated_runtime_sample']={k:matched.get(k) for k in ['producer_pid','session_id','frame_seq','width','height','png_crc32','appearance']}
                 record['isolated_runtime_sample']['stance_valid_legs']=matched.get('motion',{}).get('stance_valid_legs')
-                if tuple(map(int,version.split('.'))) >= (0,4,0):
+                if tuple(map(int,version.split('.'))) >= (0,5,0):
+                    record['habitat_crc_verified']=True
+                    record['per_item_and_input_mask_frames']=placement_frames
+                elif tuple(map(int,version.split('.'))) >= (0,4,0):
                     props=matched.get('props',{})
                     name=props.get('frame_file')
                     if props.get('ready') is not True or not isinstance(name,str) or Path(name).name!=name:

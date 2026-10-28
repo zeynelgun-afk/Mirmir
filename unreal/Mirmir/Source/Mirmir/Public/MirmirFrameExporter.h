@@ -9,6 +9,20 @@ class UCameraComponent;
 class USceneCaptureComponent2D;
 class UTextureRenderTarget2D;
 class IImageWrapperModule;
+class FJsonObject;
+
+struct FMirmirStationFrame
+{
+    FName Id;
+    int32 Size = 512;
+    bool bReady = false;
+    FVector CameraShift = FVector::ZeroVector;
+    uint64 Sequence = 0;
+    int64 PNGBytes = 0;
+    uint32 PNGCRC32 = 0;
+    uint64 LayoutRevision = MAX_uint64;
+    bool bFoodVisible = true;
+};
 
 /**
  * Opt-in bridge from Unreal's isolated cat render to the native desktop shell.
@@ -97,15 +111,23 @@ private:
     UPROPERTY(Transient)
     TObjectPtr<UTextureRenderTarget2D> RenderTarget;
 
-    UPROPERTY() TObjectPtr<USceneCaptureComponent2D> PropsCapture;
-    UPROPERTY(Transient) TObjectPtr<UTextureRenderTarget2D> PropsRenderTarget;
-    uint64 PropsSequence = 0;
-    int64 PropsPNGBytes = 0;
-    uint32 PropsPNGCRC32 = 0;
-    double NextPropsCaptureSeconds = 0.0;
+    UPROPERTY() TArray<TObjectPtr<USceneCaptureComponent2D>> StationCaptures;
+    UPROPERTY(Transient) TArray<TObjectPtr<UTextureRenderTarget2D>> StationTargets;
+    FMirmirStationFrame StationFrames[2];
+    UPROPERTY() TObjectPtr<USceneCaptureComponent2D> CatDepthCapture;
+    UPROPERTY() TObjectPtr<USceneCaptureComponent2D> WorldDepthCapture;
+    UPROPERTY(Transient) TObjectPtr<UTextureRenderTarget2D> CatDepthTarget;
+    UPROPERTY(Transient) TObjectPtr<UTextureRenderTarget2D> WorldDepthTarget;
+    TArray<uint8> CatSupportPixels;
+    int64 InputPNGBytes = 0;
+    uint32 InputPNGCRC32 = 0;
+    int32 VisibleCatPixels = 0;
+    int32 OccludedCatPixels = 0;
     bool bPropsReady = false;
-    bool bLastFoodVisible = true;
-    FVector PropsCameraShift = FVector::ZeroVector;
+    FString PlacementRequestId;
+    FString PlacementItemId;
+    FString PlacementMessage;
+    bool bPlacementAccepted = false;
 
     UPROPERTY(Transient)
     TWeakObjectPtr<AMirmirCat> Subject;
@@ -145,7 +167,11 @@ private:
     double LastCursorSampleMilliseconds = -1.0;
 
     void PollCursorInterest();
+    void PollPlacement();
+    void PollDesktopBounds();
     void CapturePropsIfNeeded();
+    TSharedRef<FJsonObject> BuildPropsState(bool bReady) const;
+    bool CaptureVisibleInput();
     bool CaptureAndPublish();
     void UpdateCadence(double Now, float DeltaSeconds);
     bool PublishRuntime(const TCHAR* Status, bool bReady, int64 PNGBytes = 0,

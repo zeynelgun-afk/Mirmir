@@ -1,3 +1,5 @@
+> Historical record (Turkish). See the [current English documentation](README.md).
+
 # Uygulama planı
 
 - [x] Donanımı ve KDE/Wayland/XWayland oturumunu doğrula.

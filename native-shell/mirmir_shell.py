@@ -17,6 +17,7 @@ import tempfile
 import time
 import uuid
 import zlib
+import atexit
 
 WINDOWS = sys.platform == "win32"
 if not WINDOWS:
@@ -36,6 +37,55 @@ ROOT = Path(sys.executable).resolve().parent if getattr(sys, "frozen", False) el
 MAX_PNG_BYTES = 16 * 1024 * 1024
 ACTIVITIES = ["Keyfi yerinde", "Geziniyor", "Temizleniyor", "Dinleniyor", "Oynuyor", "Mama molası", "İlgi bekliyor", "Mırlıyor"]
 APPEARANCES = {"van": "Van", "british": "British Shorthair", "tuxedo": "Siyah-beyaz"}
+_x11_policy = None
+
+
+def x11_policy():
+    global _x11_policy
+    if _x11_policy is None:
+        from window_platform import X11WindowPolicy
+        _x11_policy = X11WindowPolicy()
+        atexit.register(_x11_policy.close)
+    return _x11_policy
+
+
+def overlay_policy(widget, force=False):
+    platform = QGuiApplication.platformName()
+    if platform not in {"xcb", "windows"}:
+        return
+    identifier = int(widget.winId())
+    if not force and getattr(widget, "policy_window_id", None) == identifier:
+        return
+    if platform == "xcb":
+        x11_policy().hide_from_taskbar(identifier)
+    elif WINDOWS:
+        windows_overlay(identifier)
+    widget.policy_window_id = identifier
+
+
+def input_bitmap(image):
+    """Physical-pixel XBitmap rows; all-zero visible-cat masks are valid."""
+    rgba = image.convertToFormat(QImage.Format.Format_RGBA8888)
+    width, height = rgba.width(), rgba.height()
+    alpha = rgba.constBits().asstring(rgba.sizeInBytes())[3::4]
+    if np is not None:
+        return np.packbits(np.frombuffer(alpha, dtype=np.uint8).reshape(height, width) >= 32,
+                           axis=1, bitorder="little").tobytes()
+    stride = (width + 7) // 8
+    result = bytearray(stride * height)
+    for y in range(height):
+        for x in range(width):
+            if alpha[y * width + x] >= 32:
+                result[y * stride + x // 8] |= 1 << (x % 8)
+    return bytes(result)
+
+
+def clamp_visible_position(point, bounds, available):
+    """Constrain opaque content, allowing its transparent canvas off-screen."""
+    if bounds.isEmpty():
+        return QPoint(point)
+    return QPoint(max(available.left() - bounds.left(), min(point.x(), available.right() - bounds.right())),
+                  max(available.top() - bounds.top(), min(point.y(), available.bottom() - bounds.bottom())))
 
 
 class FramePairMismatch(ValueError):
@@ -370,7 +420,7 @@ def windows_overlay(window_id):
     user.SetWindowPos.argtypes = [wintypes.HWND, wintypes.HWND, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int, wintypes.UINT]
     # WS_EX_TRANSPARENT would also discard clicks on the cat. Qt's alpha32
     # mask limits our region; zero-alpha layered pixels pass through natively.
-    style = get_style(window_id, -20) | 0x80000 | 0x80 | 0x8000000
+    style = (get_style(window_id, -20) & ~0x40000) | 0x80000 | 0x80 | 0x8000000
     ctypes.set_last_error(0)
     if not set_style(window_id, -20, style) and ctypes.get_last_error():
         raise ctypes.WinError(ctypes.get_last_error())
@@ -481,19 +531,21 @@ def request_stop(frames, wait=True):
 
 
 class PropsWindow(QWidget):
-    """Only real Unreal habitat pixels; fixed to the companion's home anchor."""
-    def __init__(self, companion):
+    """One real Unreal station (or the read-only legacy compound frame)."""
+    def __init__(self, companion, station_id=None):
         super().__init__(None, Qt.WindowType.Tool | Qt.WindowType.FramelessWindowHint |
                          Qt.WindowType.WindowStaysOnTopHint | Qt.WindowType.WindowDoesNotAcceptFocus)
-        self.companion = companion
+        self.companion, self.station_id = companion, station_id
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
         self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.setWindowTitle("Mırmır · Unreal yaşam alanı")
+        self.setWindowTitle("Mırmır · " + {"bed": "Yatak", "bowl": "Mama kabı"}.get(station_id, "Unreal yaşam alanı"))
         self.image, self.key, self.metadata = QImage(), None, {}
-        self.ready = False
-        self.pair_until = 0.0
+        self.ready, self.pair_until = False, 0.0
+        self.press_global = self.drag_origin = self.preview_position = None
+        self.dragged = False
+        self.press_revision = None
 
     def update_frame(self, metadata, image, key, region):
         self.image, self.key, self.metadata = image, key, metadata
@@ -502,22 +554,34 @@ class PropsWindow(QWidget):
         self.setMask(region)
         self.update()
 
-    def show_at_home(self):
-        if self.companion.home is None or self.image.isNull():
-            self.hide(); return
+    def confirmed_position(self):
         offset = self.metadata.get("desktop_offset_px", [0, 0])
-        if not isinstance(offset, list) or len(offset) != 2 or any(isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v) for v in offset):
-            self.hide(); return
+        if (self.companion.home is None or not isinstance(offset, list) or len(offset) != 2 or
+                any(isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v) for v in offset)):
+            return None
         ratio = self.companion.devicePixelRatioF()
-        anchor = self.companion.home + QPoint(round(offset[0] / ratio), round(offset[1] / ratio))
-        screen = QGuiApplication.screenAt(self.companion.home) or QGuiApplication.primaryScreen()
-        self.move(clamp_position(anchor, self.size(), screen.availableGeometry()))
+        return self.companion.home + QPoint(round(offset[0] / ratio), round(offset[1] / ratio))
+
+    def show_at_home(self):
+        position = self.confirmed_position()
+        if position is None or self.image.isNull():
+            self.hide(); return
+        pending = self.companion.pending_placement
+        if self.preview_position is not None and (self.dragged or pending and pending["item_id"] == self.station_id):
+            position = self.preview_position
+        elif self.station_id is None:
+            # Legacy0.4 has one compound image and no station placement API.
+            screen = QGuiApplication.screenAt(self.companion.home) or QGuiApplication.primaryScreen()
+            position = clamp_position(position, self.size(), screen.availableGeometry())
+        # V2 confirmed positions are never independently clamped; that would
+        # disagree with the physical station and the cat's world-space target.
+        self.move(position)
         was_visible = self.isVisible()
         self.show()
+        overlay_policy(self)
         if not was_visible:
-            self.companion.raise_()  # Keep the cat above its habitat, without activation.
-        if WINDOWS and QGuiApplication.platformName() == "windows" and not getattr(self, "windows_style_ready", False):
-            windows_overlay(int(self.winId())); self.windows_style_ready = True
+            QTimer.singleShot(100, lambda: overlay_policy(self, force=True) if self.isVisible() else None)
+            self.companion.raise_()
 
     def paintEvent(self, event):
         painter = QPainter(self)
@@ -534,19 +598,52 @@ class PropsWindow(QWidget):
                 self.companion.drag_home = QPoint(self.companion.home)
                 self.setCursor(Qt.CursorShape.ClosedHandCursor)
                 return
+            if self.station_id is not None:
+                if self.companion.pending_placement is not None or not self.ready:
+                    return
+                self.press_global = event.globalPosition().toPoint()
+                self.drag_origin = QPoint(self.pos())
+                self.press_revision = self.companion.layout_revision
+                self.dragged = False
+                return
+            # Compatibility with the former compound capture.
             point = [event.position().x() * self.image.width() / max(1, self.width()),
                      event.position().y() * self.image.height() / max(1, self.height())]
             centers = [self.metadata.get("bed_center_px"), self.metadata.get("bowl_center_px")]
-            if all(isinstance(center, list) and len(center) == 2 and all(isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v) for v in center) for center in centers):
-                distances = [sum((point[i] - center[i]) ** 2 for i in (0, 1)) for center in centers]
+            if all(isinstance(c, list) and len(c) == 2 and all(isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v) for v in c) for c in centers):
+                distances = [sum((point[i] - c[i]) ** 2 for i in (0, 1)) for c in centers]
                 self.companion.send("rest" if distances[0] <= distances[1] else "feed")
 
     def mouseMoveEvent(self, event):
         if self.companion.drag_start is not None:
             self.companion.home = self.companion.drag_home + event.globalPosition().toPoint() - self.companion.drag_start
+            return
+        if self.press_global is None:
+            return
+        delta = event.globalPosition().toPoint() - self.press_global
+        if not self.dragged and delta.manhattanLength() < QApplication.startDragDistance():
+            return
+        self.dragged = True
+        self.setCursor(Qt.CursorShape.ClosedHandCursor)
+        candidate = self.drag_origin + delta
+        screen = QGuiApplication.screenAt(event.globalPosition().toPoint()) or self.screen()
+        self.preview_position = clamp_visible_position(candidate, self.mask().boundingRect(), screen.availableGeometry())
+        self.move(self.preview_position)
 
     def mouseReleaseEvent(self, event):
-        self.companion.drag_start = self.companion.drag_home = None
+        if self.companion.drag_start is not None:
+            self.companion.drag_start = self.companion.drag_home = None
+            self.companion.save_home_anchor()
+        elif self.station_id is not None and self.press_global is not None:
+            if self.dragged:
+                preview = self.preview_position or self.drag_origin
+                self.companion.move_station(self, preview - self.drag_origin, self.press_revision)
+            elif self.mask().contains(QPoint(int(event.position().x()), int(event.position().y()))):
+                self.companion.send("rest" if self.station_id == "bed" else "feed")
+            self.press_global = self.drag_origin = None
+            self.dragged = False
+            if self.companion.pending_placement is None:
+                self.preview_position = None
         self.setCursor(Qt.CursorShape.PointingHandCursor)
 
 
@@ -576,7 +673,20 @@ class MirmirShell(QWidget):
         self.cursor_interest = CursorInterest()
         self.cursor_enabled = not getattr(args, "no_cursor_interest", False)
         self.cursor_published = False
+        self.pending_placement = None
+        self.layout_revision = None
+        self.props_mode = 1
+        self.props_windows = {}
         self.props_window = PropsWindow(self)
+        self.scene_fit_session = None
+        self.input_image = None
+        self.input_region = None
+        self.input_key = None
+        self.native_input_pending = False
+        self.native_input_applied = False
+        self.last_viewport_key = None
+        self.next_viewport_publish = 0.0
+        self.viewport_published = False
         self.last_interaction_serial = 0
         self.started = time.monotonic()
         self.started_wall = lease[1]["started_at"] if lease else time.time()
@@ -596,6 +706,7 @@ class MirmirShell(QWidget):
         self.summary = menu.addAction("Unreal görüntüsü bekleniyor…"); self.summary.setEnabled(False)
         self.needs = menu.addAction(""); self.needs.setEnabled(False)
         self.feedback = menu.addAction(""); self.feedback.setEnabled(False); self.feedback.setVisible(False)
+        self.placement_feedback = menu.addAction(""); self.placement_feedback.setEnabled(False); self.placement_feedback.setVisible(False)
         menu.addSeparator()
         for label, command in [("Sev", "pet"), ("Mama ver", "feed"), ("Oyna", "play"), ("Dinlen", "rest"), ("Sesi aç / kapat", "mute")]:
             action = menu.addAction(label)
@@ -671,6 +782,179 @@ class MirmirShell(QWidget):
         self.appearance_menu.setEnabled(self.appearance_ready)
         self.appearance_menu.menuAction().setToolTip("" if self.appearance_ready else "Kedi görünümü henüz hazır değil.")
 
+    def all_props(self):
+        return [self.props_window, *self.props_windows.values()]
+
+    def save_home_anchor(self):
+        if self.home is not None:
+            try:
+                atomic_json(self.data / "home-anchor-v1.json", {"schema_version": 1, "home_logical": [self.home.x(), self.home.y()]})
+            except OSError:
+                self.placement_feedback.setText("Masaüstü konumu kaydedilemedi."); self.placement_feedback.setVisible(True)
+
+    def restore_home_anchor(self, fallback):
+        stored = json_file(self.data / "home-anchor-v1.json")
+        values = stored.get("home_logical")
+        if (stored.get("schema_version") == 1 and isinstance(values, list) and len(values) == 2 and
+                all(isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v) and abs(v) <= 1000000 for v in values)):
+            return QPoint(round(values[0]), round(values[1]))
+        return fallback
+
+    def fit_scene_home(self, session, navigation_offsets=None):
+        if self.props_mode != 2 or self.scene_fit_session == session or self.pending_placement or self.drag_start is not None:
+            return
+        if not self.props_windows or not all(window.ready for window in self.props_windows.values()):
+            return
+        relative = QRect()
+        for window in self.props_windows.values():
+            position = window.confirmed_position()
+            if position is not None:
+                relative = relative.united(window.mask().boundingRect().translated(position - self.home))
+        # The engine's viewport contract conservatively keeps the entire cat
+        # canvas available. Station previews still clamp only opaque content.
+        relative = relative.united(QRect(QPoint(), self.size()).translated(self.offset))
+        if isinstance(navigation_offsets, list) and len(navigation_offsets) <= 32:
+            ratio = self.devicePixelRatioF()
+            for point in navigation_offsets:
+                if (isinstance(point, list) and len(point) == 2 and
+                        all(isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v) for v in point)):
+                    offset = QPoint(round(point[0] / ratio), round(point[1] / ratio))
+                    relative = relative.united(QRect(QPoint(), self.size()).translated(offset))
+        screen = QGuiApplication.screenAt(self.home) or QGuiApplication.primaryScreen()
+        available = screen.availableGeometry()
+        self.scene_fit_session = session
+        if relative.width() > available.width() or relative.height() > available.height():
+            self.placement_feedback.setText("Yerleşim bu ekrana sığmıyor; eşyaları ekrana taşıyın.")
+            self.placement_feedback.setVisible(True)
+            return
+        fitted = clamp_visible_position(self.home, relative, available)
+        if fitted != self.home:
+            self.home = fitted
+            self.save_home_anchor()
+            for window in self.props_windows.values():
+                window.show_at_home()
+
+    def move_station(self, window, delta, revision):
+        if (self.pending_placement is not None or self.process is None or self.args.no_engine or
+                window.station_id not in {"bed", "bowl"} or revision != self.layout_revision or
+                isinstance(revision, bool) or not isinstance(revision, int) or revision < 0 or
+                time.monotonic() >= self.valid_until or delta.isNull()):
+            window.preview_position = None
+            return False
+        ratio = self.devicePixelRatioF()
+        physical = [delta.x() * ratio, delta.y() * ratio]
+        if any(not math.isfinite(v) or abs(v) > 65536 for v in physical):
+            window.preview_position = None
+            return False
+        created = int(time.time() * 1000)
+        request = {"schema_version": 1, "command": "move_station", "request_id": uuid.uuid4().hex,
+                   "item_id": window.station_id, "producer_pid": self.process.pid,
+                   "session_id": self.last_metadata.get("session_id"), "layout_revision": revision,
+                   "delta_px": physical, "created_at_unix_ms": created, "expires_at_unix_ms": created + 5000}
+        try:
+            atomic_json(self.frames / "layout-command.json", request)
+        except OSError:
+            window.preview_position = None
+            self.placement_feedback.setText("Konum değişikliği iletilemedi."); self.placement_feedback.setVisible(True)
+            return False
+        self.pending_placement = dict(request, deadline=time.monotonic() + 6)
+        self.placement_feedback.setText("Konum kaydediliyor…"); self.placement_feedback.setVisible(True)
+        return True
+
+    def poll_placement(self, metadata):
+        pending = self.pending_placement
+        if not pending:
+            return
+        acknowledgement = metadata.get("placement")
+        finished, message = False, None
+        if isinstance(acknowledgement, dict) and acknowledgement.get("request_id") == pending["request_id"]:
+            if acknowledgement.get("item_id") == pending["item_id"]:
+                accepted = acknowledgement.get("accepted") is True
+                confirmed_revision = metadata.get("props", {}).get("layout_revision")
+                window = self.props_windows.get(pending["item_id"])
+                image_confirmed = window and window.ready and window.metadata.get("layout_revision") == confirmed_revision
+                if not accepted or (image_confirmed and isinstance(confirmed_revision, int) and confirmed_revision == acknowledgement.get("layout_revision") and confirmed_revision > pending["layout_revision"]):
+                    finished = True
+                    message = acknowledgement.get("message") or ("Konum kaydedildi." if accepted else "Konum değişikliği uygulanamadı.")
+        if time.monotonic() >= pending["deadline"]:
+            finished, message = True, "Konum değişikliği onaylanmadı; önceki yere dönüldü."
+        if finished:
+            window = self.props_windows.get(pending["item_id"])
+            if window:
+                window.preview_position = None
+            self.pending_placement = None
+            if window and window.ready:
+                window.show_at_home()
+            self.placement_feedback.setText(str(message)[:240]); self.placement_feedback.setVisible(True)
+
+    def read_input_frame(self, metadata):
+        mask = metadata.get("input_mask")
+        if mask is None:
+            return None, None, None
+        if not isinstance(mask, dict):
+            raise FramePairMismatch("Kedi giriş maskesi bekleniyor.")
+        name = mask.get("frame_file")
+        if not isinstance(name, str) or Path(name).name != name:
+            raise FramePairMismatch("Kedi giriş maskesi yolu geçersiz.")
+        if mask.get("frame_seq") != metadata.get("frame_seq") or mask.get("width") != metadata.get("width") or mask.get("height") != metadata.get("height"):
+            raise FramePairMismatch("Görüntü ve kedi giriş maskesi eşleşmesi bekleniyor.")
+        with (self.frames / name).open("rb") as source:
+            if os.fstat(source.fileno()).st_size > MAX_PNG_BYTES:
+                raise FramePairMismatch("Kedi giriş maskesi boyutu geçersiz.")
+            png = source.read(MAX_PNG_BYTES + 1)
+        image, identity = decode_frame(dict(mask, session_id=metadata.get("session_id")), png)
+        region = alpha_region(image, self.devicePixelRatioF())[0]
+        # Empty means fully occluded by a physical station. The composite
+        # remains visible; every input event then passes to lower own windows.
+        return image, identity, region
+
+    def apply_input_shape(self):
+        platform = QGuiApplication.platformName()
+        if platform == "xcb":
+            image = self.input_image if self.input_image is not None else self.image
+            x11_policy().set_input_bitmap(int(self.winId()), image.width(), image.height(), input_bitmap(image))
+            self.native_input_applied = True
+        elif WINDOWS and platform == "windows":
+            self.native_input_applied = True  # WM_NCHITTEST reads the matched image.
+        self.native_input_pending = False
+
+    def publish_viewport(self, metadata):
+        if self.args.no_engine or self.process is None or self.home is None:
+            return
+        screen = QGuiApplication.screenAt(self.home) or QGuiApplication.primaryScreen()
+        area, ratio = screen.availableGeometry(), self.devicePixelRatioF()
+        fingerprint = (metadata.get("session_id"), self.process.pid, self.home.x(), self.home.y(),
+                       self.width(), self.height(), area.x(), area.y(), area.width(), area.height(), ratio)
+        now = time.monotonic()
+        if fingerprint == self.last_viewport_key and now < self.next_viewport_publish:
+            return
+        created = int(time.time() * 1000)
+        value = {"schema_version": 1, "producer_pid": self.process.pid, "session_id": metadata.get("session_id"),
+                 "min_offset_px": [(area.left() - self.home.x()) * ratio, (area.top() - self.home.y()) * ratio],
+                 "max_offset_px": [(area.right() + 1 - self.home.x() - self.width()) * ratio,
+                                   (area.bottom() + 1 - self.home.y() - self.height()) * ratio],
+                 "sampled_at_unix_ms": created, "expires_at_unix_ms": created + 5000}
+        atomic_json(self.frames / "viewport.json", value)
+        self.last_viewport_key, self.next_viewport_publish, self.viewport_published = fingerprint, now + 1.0, True
+
+    if WINDOWS:
+        def nativeEvent(self, event_type, message):
+            if WINDOWS and self.input_image is not None and bytes(event_type) in {b"windows_generic_MSG", b"windows_dispatcher_MSG"}:
+                import ctypes
+                from ctypes import wintypes
+                native = wintypes.MSG.from_address(int(message))
+                if native.message == 0x84:  # WM_NCHITTEST
+                    point = wintypes.POINT(ctypes.c_short(native.lParam & 0xffff).value,
+                                           ctypes.c_short((native.lParam >> 16) & 0xffff).value)
+                    user = ctypes.WinDLL("user32", use_last_error=True)
+                    user.ScreenToClient.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.POINT)]
+                    if user.ScreenToClient(int(self.winId()), ctypes.byref(point)):
+                        if not (0 <= point.x < self.input_image.width() and 0 <= point.y < self.input_image.height()) or self.input_image.pixelColor(point.x, point.y).alpha() < 32:
+                            return True, -1  # HTTRANSPARENT, only this own window.
+            # QWidget's default is unhandled. Avoid re-entering the binding's
+            # nativeEvent bridge with the ephemeral native message pointer.
+            return False, 0
+
     def send(self, command, appearance=None, stroke_normalized=None):
         payload = {"command": command}
         if stroke_normalized is not None:
@@ -700,8 +984,8 @@ class MirmirShell(QWidget):
 
     def error(self, message, notify=False):
         self.clear_cursor()
-        self.props_window.hide()
-        self.props_window.ready = False
+        for window in self.all_props():
+            window.hide(); window.ready = False
         self.hide()
         self.valid_until = 0.0
         self.appearance_ready = False
@@ -754,12 +1038,41 @@ class MirmirShell(QWidget):
 
     def poll_props(self, parent_metadata):
         props = parent_metadata.get("props")
-        window = self.props_window
         if (self.args.no_engine or self.process is None or
                 parent_metadata.get("producer_pid") != self.process.pid or
                 parent_metadata.get("running") is not True or parent_metadata.get("ready") is not True or
-                not isinstance(props, dict) or props.get("ready") is not True):
-            window.ready = False; window.hide(); return
+                not isinstance(props, dict)):
+            for window in self.all_props():
+                window.ready = False; window.hide()
+            return
+        items = props.get("items")
+        if props.get("schema_version") == 2 and isinstance(items, dict):
+            revision = props.get("layout_revision")
+            if isinstance(revision, bool) or not isinstance(revision, int) or revision < 0:
+                for window in self.all_props():
+                    window.ready = False; window.hide()
+                return
+            self.props_mode, self.layout_revision = 2, revision
+            self.props_window.ready = False; self.props_window.hide()
+            for station_id in ("bed", "bowl"):
+                if station_id not in self.props_windows:
+                    self.props_windows[station_id] = PropsWindow(self, station_id)
+                window = self.props_windows[station_id]
+                item = items.get(station_id)
+                if not isinstance(item, dict) or item.get("ready") is not True:
+                    window.ready = False; window.hide(); continue
+                self.load_prop_window(parent_metadata, dict(item, layout_revision=revision), window)
+            self.fit_scene_home(parent_metadata.get("session_id"), props.get("navigation_offsets_px"))
+        else:
+            self.props_mode = 1
+            for window in self.props_windows.values():
+                window.ready = False; window.hide()
+            if props.get("ready") is True:
+                self.load_prop_window(parent_metadata, props, self.props_window)
+            else:
+                self.props_window.ready = False; self.props_window.hide()
+
+    def load_prop_window(self, parent_metadata, props, window):
         try:
             name = props.get("frame_file")
             if not isinstance(name, str) or Path(name).name != name:
@@ -780,14 +1093,12 @@ class MirmirShell(QWidget):
                 window.update_frame(props, image, key, region)
             else:
                 window.metadata = props
-            # A static habitat PNG may be old. Current validated parent frames
-            # establish liveness; this CRC identity establishes its own pixels.
             window.pair_until = time.monotonic() + 3
             window.ready = True
             window.show_at_home()
         except (OSError, ValueError, TypeError):
             window.ready = False
-            if (window.key and window.key[0] == parent_metadata.get("session_id") and time.monotonic() < window.pair_until):
+            if window.key and window.key[0] == parent_metadata.get("session_id") and time.monotonic() < window.pair_until:
                 window.show_at_home()
             else:
                 window.hide()
@@ -816,16 +1127,31 @@ class MirmirShell(QWidget):
 
     def publish_status(self, waiting_for_pair=False):
         try:
+            active = self.props_windows if self.props_mode == 2 else {"legacy": self.props_window}
+            representative = active.get("bed") or self.props_window
+            props_status = {key: {"ready": window.ready, "visible": window.isVisible(),
+                            "frame_seq": window.metadata.get("frame_seq"),
+                            "geometry": [window.x(), window.y(), window.width(), window.height()],
+                            "window_id": int(window.winId()) if window.isVisible() else None,
+                            "taskbar_hint_applied": getattr(window, "policy_window_id", None) is not None}
+                            for key, window in active.items()}
             atomic_json(self.frames / "shell-status.json", {"implementation": "qt-unreal-frame-shell", "engine_started": self.process is not None,
                         "engine_kind": self.engine_kind,
                         "test_mode": self.args.no_engine, "ready": True, "waiting_for_pair": waiting_for_pair,
                         "session_id": self.last_metadata.get("session_id"), "frame_seq": self.last_metadata.get("frame_seq"),
                         "geometry": [self.x(), self.y(), self.width(), self.height()], "device_pixel_ratio": self.devicePixelRatioF(),
                         "window_id": int(self.winId()), "appearance": self.confirmed_appearance, "appearance_ready": self.appearance_ready,
-                        "props_ready": self.props_window.ready, "props_visible": self.props_window.isVisible(),
-                        "props_frame_seq": self.props_window.metadata.get("frame_seq"),
-                        "props_geometry": [self.props_window.x(), self.props_window.y(), self.props_window.width(), self.props_window.height()],
-                        "props_window_id": int(self.props_window.winId()) if self.props_window.isVisible() else None,
+                        "props_ready": bool(active) and all(window.ready for window in active.values()),
+                        "props_visible": any(window.isVisible() for window in active.values()),
+                        "props_frame_seq": representative.metadata.get("frame_seq"),
+                        "props_geometry": [representative.x(), representative.y(), representative.width(), representative.height()],
+                        "props_window_id": int(representative.winId()) if representative.isVisible() else None,
+                        "props_items": props_status, "layout_revision": self.layout_revision,
+                        "placement_pending": {"request_id": self.pending_placement["request_id"], "item_id": self.pending_placement["item_id"]} if self.pending_placement else None,
+                        "input_mask_frame_seq": self.input_key[1] if self.input_key else None,
+                        "input_mask_empty": self.input_region.isEmpty() if self.input_region is not None else None,
+                        "input_shape_applied": self.native_input_applied,
+                        "taskbar_hint_applied": getattr(self, "policy_window_id", None) is not None,
                         "interaction_serial": self.last_interaction_serial})
         except OSError:
             self.error("Masaüstü durumu yazılamadı.")
@@ -876,11 +1202,14 @@ class MirmirShell(QWidget):
                         raise FramePairMismatch("Yeni Unreal sürecinin ilk karesi bekleniyor.")
                     png = source.read(MAX_PNG_BYTES + 1)  # One file handle/read, then decode these same bytes.
                 image, key = decode_frame(metadata, png)
+                input_image, input_key, input_region = self.read_input_frame(metadata)
                 ratio = self.devicePixelRatioF()
                 region, low, high = alpha_region(image, ratio)
                 if region.isEmpty() or low >= 32 or high < 32:
                     raise ValueError("Kediyi ayıran saydam alpha kanalı bekleniyor.")
                 self.image, self.frame_key = image, key
+                self.input_image, self.input_key, self.input_region = input_image, input_key, input_region
+                self.native_input_pending = True
                 self.last_metadata = metadata
                 self.valid_until = time.monotonic() + max(0.0, 3.0 - (time.time() - stat.st_mtime))
                 self.resize(math.ceil(image.width() / ratio), math.ceil(image.height() / ratio))
@@ -888,8 +1217,9 @@ class MirmirShell(QWidget):
                 if self.home is None:
                     available = QGuiApplication.primaryScreen().availableGeometry()
                     # Leave space for the first walks in both screen directions.
-                    self.home = QPoint(available.right() - self.width() - 24 - min(280, available.width() // 5),
-                                       available.bottom() - self.height() - 24 - min(90, available.height() // 10))
+                    fallback = QPoint(available.right() - self.width() - 24 - min(280, available.width() // 5),
+                                      available.bottom() - self.height() - 24 - min(90, available.height() // 10))
+                    self.home = self.restore_home_anchor(fallback)
                 self.update()
             raw_offset = self.last_metadata.get("desktop_offset_px", [0, 0])
             if not isinstance(raw_offset, list) or len(raw_offset) != 2 or not all(isinstance(v, (int, float)) and math.isfinite(v) for v in raw_offset):
@@ -897,9 +1227,10 @@ class MirmirShell(QWidget):
             self.offset = QPoint(round(raw_offset[0] / self.devicePixelRatioF()), round(raw_offset[1] / self.devicePixelRatioF()))
             screen = QGuiApplication.screenAt(self.home) or QGuiApplication.primaryScreen()
             requested = self.home + self.offset
-            bounded = clamp_position(requested, self.size(), screen.availableGeometry())
+            modern_scene = self.props_mode == 2 or isinstance(metadata.get("input_mask"), dict)
+            bounded = requested if modern_scene else clamp_position(requested, self.size(), screen.availableGeometry())
             self.move(bounded)
-            if bounded != requested and time.monotonic() - self.last_boundary_rest > 3:
+            if not modern_scene and bounded != requested and time.monotonic() - self.last_boundary_rest > 3:
                 # Stop the actual Unreal actor at a screen edge, rather than
                 # letting a clamped window show an endless walking-in-place pose.
                 needs = metadata.get("needs")
@@ -910,13 +1241,20 @@ class MirmirShell(QWidget):
                     self.send("rest")
                     self.last_boundary_rest = time.monotonic()
             self.show()
-            if WINDOWS and QGuiApplication.platformName() == "windows" and not getattr(self, "windows_style_ready", False):
-                windows_overlay(int(self.winId())); self.windows_style_ready = True
+            first_policy = getattr(self, "policy_window_id", None) is None
+            overlay_policy(self)
+            if first_policy:
+                QTimer.singleShot(100, lambda: overlay_policy(self, force=True) if self.isVisible() else None)
+            if self.native_input_pending:
+                self.apply_input_shape()
             self.last_error = ""
             state = runtime_ui_state(self.last_metadata, self.frames, self.data)
             self.sync_appearance(state)
             self.sync_interaction(metadata)
             self.poll_props(metadata)
+            self.poll_placement(metadata)
+            if modern_scene:
+                self.publish_viewport(metadata)
             label = "GÖRSEL TEST · Unreal başlatılmadı" if self.args.no_engine else "Mırmır · Unreal Engine"
             self.summary.setText(label)
             self.tray.setToolTip(label + " · " + activity_label(state.get("activity")))
@@ -965,6 +1303,8 @@ class MirmirShell(QWidget):
             self.setCursor(Qt.CursorShape.PointingHandCursor)
 
     def mouseReleaseEvent(self, event):
+        if self.drag_start is not None:
+            self.save_home_anchor()
         self.drag_start = self.drag_home = None
         self.setCursor(Qt.CursorShape.PointingHandCursor)
 
@@ -976,7 +1316,8 @@ class MirmirShell(QWidget):
 
     def close_companion(self):
         self.clear_cursor()
-        self.props_window.hide()
+        for window in self.all_props():
+            window.hide()
         self.closed = True
         self.timer.stop(); self.hide()
         # aboutToQuit/stop_engine sends exactly one quit and waits for its child.
@@ -984,7 +1325,8 @@ class MirmirShell(QWidget):
 
     def stop_engine(self):
         self.clear_cursor()
-        self.props_window.hide()
+        for window in self.all_props():
+            window.hide()
         if self.process is not None and self.process.poll() is None:
             self.send("quit")
             try:
@@ -1209,6 +1551,94 @@ def self_test():
         shell.poll_props(dict(props_parent, running=False)); assert not shell.props_window.isVisible()
         shell.process = None; shell.args.no_engine = True; shell.offset = QPoint()
 
+        # Independent stations commit only on release and matching placement
+        # ACK; previews may use transparent margins outside the screen.
+        assert clamp_visible_position(QPoint(-100, -100), QRect(30, 40, 20, 10), QRect(0, 0, 100, 100)) == QPoint(-30, -40)
+        from PyQt6.QtCore import QPointF
+        previous_home = QPoint(shell.home)
+        bowl_image = image.scaled(4, 4); bowl_image.save(str(frames / "bowl.png"))
+        image.save(str(frames / "bed.png"))
+        def item(name, size, offset):
+            content = (frames / (name + ".png")).read_bytes()
+            return {"ready": True, "frame_file": name + ".png", "frame_seq": 1, "width": size, "height": size,
+                    "png_bytes": len(content), "png_crc32": zlib.crc32(content), "desktop_offset_px": offset,
+                    "center_px": [size / 2, size / 2]}
+        scene_props = {"schema_version": 2, "ready": True, "layout_revision": 5,
+                       "items": {"bed": item("bed", 8, [10, 0]), "bowl": item("bowl", 4, [-10, 2])}}
+        invisible = QImage(8, 8, QImage.Format.Format_RGBA8888); invisible.fill(Qt.GlobalColor.transparent)
+        invisible.save(str(frames / "cat-input.png")); invisible_png = (frames / "cat-input.png").read_bytes()
+        mask_metadata = {"frame_file": "cat-input.png", "frame_seq": 1, "width": 8, "height": 8,
+                         "png_bytes": len(invisible_png), "png_crc32": zlib.crc32(invisible_png)}
+        modern = publish(1, session_id="synthetic-modern-mask", producer_pid=123, props=scene_props, input_mask=mask_metadata)
+        shell.args.no_engine = False; shell.process = argparse.Namespace(pid=123, poll=lambda: None)
+        shell.poll()
+        assert shell.isVisible() and shell.input_region.isEmpty() and shell.input_key[1] == 1
+        assert input_bitmap(invisible) == bytes(8)
+        assert set(shell.props_windows) == {"bed", "bowl"} and all(w.ready for w in shell.props_windows.values())
+        viewport = json_file(frames / "viewport.json")
+        assert viewport["producer_pid"] == 123 and viewport["session_id"] == modern["session_id"]
+        assert viewport["expires_at_unix_ms"] - viewport["sampled_at_unix_ms"] == 5000
+        viewport_stamp = (frames / "viewport.json").stat().st_mtime_ns
+        shell.publish_viewport(modern); assert (frames / "viewport.json").stat().st_mtime_ns == viewport_stamp
+        bed, bowl = shell.props_windows["bed"], shell.props_windows["bowl"]
+        def station_event(local, global_point):
+            return argparse.Namespace(button=lambda: Qt.MouseButton.LeftButton,
+                modifiers=lambda: Qt.KeyboardModifier.NoModifier,
+                position=lambda: QPointF(local), globalPosition=lambda: QPointF(global_point))
+        origin, bowl_origin = QPoint(bed.pos()), QPoint(bowl.pos())
+        press = origin + QPoint(3, 3)
+        before = set((shell.data / "commands").glob("*.json"))
+        bed.mousePressEvent(station_event(QPoint(3, 3), press))
+        assert set((shell.data / "commands").glob("*.json")) == before and not (frames / "layout-command.json").exists()
+        bed.mouseMoveEvent(station_event(QPoint(43, 13), press + QPoint(40, 10)))
+        preview = QPoint(bed.pos()); bed.show_at_home()
+        assert bed.pos() == preview and preview != origin and bowl.pos() == bowl_origin
+        assert not (frames / "layout-command.json").exists()
+        bed.mouseReleaseEvent(station_event(QPoint(43, 13), press + QPoint(40, 10)))
+        request = json_file(frames / "layout-command.json")
+        assert request["item_id"] == "bed" and request["layout_revision"] == 5
+        assert request["delta_px"] == [(preview.x() - origin.x()) * shell.devicePixelRatioF(), (preview.y() - origin.y()) * shell.devicePixelRatioF()]
+        assert request["expires_at_unix_ms"] - request["created_at_unix_ms"] == 5000
+        shell.poll_placement(dict(modern, placement={"request_id": "foreign", "item_id": "bed", "accepted": True, "layout_revision": 6}))
+        assert shell.pending_placement["request_id"] == request["request_id"]
+        confirmed_items = dict(scene_props["items"])
+        confirmed_items["bed"] = dict(confirmed_items["bed"], desktop_offset_px=[10 + request["delta_px"][0], request["delta_px"][1]])
+        accepted = dict(modern, props=dict(scene_props, layout_revision=6, items=confirmed_items),
+            placement={"request_id": request["request_id"], "item_id": "bed", "accepted": True, "layout_revision": 6, "message": "Konum kaydedildi."})
+        shell.poll_props(accepted); shell.poll_placement(accepted)
+        assert shell.pending_placement is None and bed.pos() == preview and bowl.pos() == bowl_origin
+        frames.joinpath("layout-command.json").unlink()
+        bowl_press = bowl.pos() + QPoint(1, 1)
+        bowl.mousePressEvent(station_event(QPoint(1, 1), bowl_press))
+        bowl.mouseMoveEvent(station_event(QPoint(31, 11), bowl_press + QPoint(30, 10)))
+        bowl.mouseReleaseEvent(station_event(QPoint(31, 11), bowl_press + QPoint(30, 10)))
+        rejected_request = json_file(frames / "layout-command.json")
+        shell.poll_placement(dict(accepted, placement={"request_id": rejected_request["request_id"], "item_id": "bowl", "accepted": False, "layout_revision": 6, "message": "Konum uygun değil."}))
+        assert shell.pending_placement is None and bowl.pos() == bowl_origin and bed.pos() == preview
+        frames.joinpath("layout-command.json").unlink()
+        assert not shell.move_station(bed, QPoint(30, 0), 5)  # Stale layout revision.
+        assert not (frames / "layout-command.json").exists()
+        bed.preview_position = bed.pos() + QPoint(10, 0)
+        assert shell.move_station(bed, QPoint(10, 0), 6)
+        shell.pending_placement["deadline"] = time.monotonic() - 1
+        shell.poll_placement(accepted)
+        assert shell.pending_placement is None and bed.preview_position is None
+        shell.home += QPoint(17, 13); shell.save_home_anchor()
+        assert shell.restore_home_anchor(QPoint()) == shell.home
+        shell.publish_viewport(modern)
+        assert json_file(frames / "viewport.json")["min_offset_px"] != viewport["min_offset_px"]
+        try:
+            shell.read_input_frame(dict(modern, input_mask=dict(mask_metadata, frame_seq=2)))
+            raise AssertionError("Mismatched visible-cat mask accepted")
+        except FramePairMismatch:
+            pass
+        for window in shell.props_windows.values():
+            window.hide()
+        shell.process = None; shell.args.no_engine = True; shell.home = previous_home
+        shell.props_mode = 1; shell.layout_revision = None; shell.scene_fit_session = None
+        frames.joinpath("layout-command.json").unlink(missing_ok=True)
+        publish(1); shell.poll()
+
         shell.sync_interaction({"interaction": {"serial": 1, "action": "feed", "accepted": True, "message": "Mama kabına gidiyor"}})
         assert shell.feedback.isVisible() and shell.feedback.text() == "Mama kabına gidiyor"
         shell.sync_interaction({"interaction": {"serial": 1, "action": "play", "message": "Stale acknowledgement"}})
@@ -1288,7 +1718,7 @@ def self_test():
     started = time.perf_counter(); fallback = alpha_region(benchmark, 1, use_numpy=False)
     fallback_ms = (time.perf_counter() - started) * 1000
     assert measured[0] == fallback[0]
-    print("PASS: habitat CRC/static age/home anchor/input gates, engine acknowledgements, Play edge-clamp regression, cursor bounds/TTL/isolation, portable launch selection, private tmpfs/namespaces, legacy lease/stop, paired frames, alpha/DPI, IPC; Unreal/Windows runtime not tested.")
+    print("PASS: independent station drag/ACK/reject/timeout, persistent home, viewport TTL, empty/paired visible-cat input, habitat CRC/static age, engine acknowledgements, Play edge-clamp regression, cursor bounds/TTL/isolation, portable launch selection, private tmpfs/namespaces, legacy lease/stop, paired frames, alpha/DPI, IPC; Unreal/Windows runtime not tested.")
     print(json.dumps({"synthetic_mask_size": [512, 512], "mask_backend": "numpy+Qt-bitmap" if np is not None else "Python-fallback",
                       "mask_ms_mean_5": round(milliseconds, 3), "fallback_ms_one": round(fallback_ms, 3)}))
 

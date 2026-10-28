@@ -15,6 +15,7 @@ class USkeletalMesh;
 class UAnimSequence;
 class AMirmirToy;
 class AMirmirHabitat;
+class UBoxComponent;
 class UMaterialInterface;
 class UMaterialInstanceDynamic;
 
@@ -143,6 +144,13 @@ public:
     float PetReactionStrength = 0.0f;
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Mirmir|Interaction")
     float PetStrokeDirection = 0.0f;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Mirmir|Movement") bool bWalkingBackwards = false;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Mirmir|Movement") bool bMovementBlocked = false;
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Mirmir|Movement") bool bExitingBed = false;
+    FVector GetDesktopOrigin() const { return HomeLocation; }
+    bool IsBedOccupied() const;
+    void SetDesktopBounds(FVector Origin, FVector Right, FVector Up, float PixelsPerCM, FVector2D Minimum, FVector2D Maximum);
+    bool IsInsideDesktop(FVector Position) const;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Mirmir|Sound")
     TObjectPtr<USoundBase> PurrSound;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Mirmir|Sound")
@@ -212,6 +220,22 @@ private:
     TArray<FVector> HabitatWaypoints;
     int32 HabitatWaypointIndex = 0;
     FVector HabitatDestination = FVector::ZeroVector;
+    TArray<FVector> NavigationWaypoints;
+    int32 NavigationWaypointIndex = 0;
+    FVector NavigationDestination = FVector::ZeroVector;
+    float NavigationReplanSeconds = 0.0f;
+    uint64 ObservedLayoutRevision = 0;
+    bool bBedEntryPermission = false;
+    bool bBowlClearancePermission = false;
+    bool bNeedBowlExit = false;
+    bool bWaitingAtBlockedToy = false;
+    bool bLeavingBedTraversal = false;
+    FVector BowlApproachOutward = -FVector::ForwardVector;
+    bool bHasDesktopBounds = false;
+    FVector DesktopOrigin, DesktopRight, DesktopUp;
+    float DesktopScale = 1.0f;
+    FVector2D DesktopMinimum, DesktopMaximum;
+    UPROPERTY() TObjectPtr<UBoxComponent> CollisionBody;
     double PoseSeconds = 0.0;
     float VoiceCooldown = 3.0f;
     bool bWelcomed = false;
@@ -236,6 +260,9 @@ private:
     void BeginHabitatApproach();
     void UpdateHabitat(float DeltaSeconds);
     FVector HabitatSteeringTarget();
+    bool SegmentClear(FVector A, FVector B, bool BedCorridor, bool BowlCorridor, float Margin = .5f) const;
+    bool PlanCurvedRoute(FVector Goal, FVector EndForward, bool BedCorridor, bool BowlCorridor, TArray<FVector>& Out) const;
+    FVector NavigationSteeringTarget(FVector Goal);
     void UpdateAuthoredAnimation();
     void NormalizeMesh();
     void AssembleAdditionalMeshes();

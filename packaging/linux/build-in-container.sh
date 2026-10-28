@@ -17,7 +17,7 @@ Maintainer: Mirmir contributors <noreply@github.com>
 Section: games
 Priority: optional
 Installed-Size: $size
-Depends: libc6 (>= 2.34), libstdc++6 (>= 11), libvulkan1, libglib2.0-0, libegl1, libgl1, libzstd1, zlib1g, libx11-6, libx11-xcb1, libxcb1, libxcb-cursor0, libxcb-icccm4, libxcb-image0, libxcb-keysyms1, libxcb-render-util0, libxcb-randr0, libxcb-render0, libxcb-shape0, libxcb-shm0, libxcb-sync1, libxcb-xfixes0, libxcb-xinerama0, libxcb-xkb1, libxkbcommon-x11-0, libfontconfig1, libfreetype6, libpulse0, libasound2, libdbus-1-3
+Depends: libc6 (>= 2.34), libstdc++6 (>= 11), libvulkan1, libglib2.0-0, libegl1, libgl1, libzstd1, zlib1g, libx11-6, libx11-xcb1, libxext6, libxcb1, libxcb-cursor0, libxcb-icccm4, libxcb-image0, libxcb-keysyms1, libxcb-render-util0, libxcb-randr0, libxcb-render0, libxcb-shape0, libxcb-shm0, libxcb-sync1, libxcb-xfixes0, libxcb-xinerama0, libxcb-xkb1, libxkbcommon-x11-0, libfontconfig1, libfreetype6, libpulse0, libasound2, libdbus-1-3
 Recommends: xwayland
 Homepage: https://github.com/zeynelgun-afk/Mirmir
 Description: Unreal-rendered desktop cat companion
@@ -37,7 +37,7 @@ License: MIT AND GPL-3.0-only AND LGPL-3.0-only AND CC-BY-NC-4.0 AND CC-BY-4.0 A
 URL: https://github.com/zeynelgun-afk/Mirmir
 BuildArch: x86_64
 AutoReqProv: no
-Requires: libc.so.6(GLIBC_2.34)(64bit), libstdc++.so.6(GLIBCXX_3.4.29)(64bit), libvulkan.so.1()(64bit), libglib-2.0.so.0()(64bit), libEGL.so.1()(64bit), libGL.so.1()(64bit), libzstd.so.1()(64bit), libz.so.1()(64bit), libX11.so.6()(64bit), libX11-xcb.so.1()(64bit), libxcb.so.1()(64bit), libxcb-cursor.so.0()(64bit), libxcb-icccm.so.4()(64bit), libxcb-image.so.0()(64bit), libxcb-keysyms.so.1()(64bit), libxcb-render-util.so.0()(64bit), libxcb-randr.so.0()(64bit), libxcb-render.so.0()(64bit), libxcb-shape.so.0()(64bit), libxcb-shm.so.0()(64bit), libxcb-sync.so.1()(64bit), libxcb-xfixes.so.0()(64bit), libxcb-xkb.so.1()(64bit), libxkbcommon-x11.so.0()(64bit), libpulse.so.0()(64bit), libasound.so.2()(64bit), libfontconfig.so.1()(64bit), libfreetype.so.6()(64bit), libdbus-1.so.3()(64bit)
+Requires: libc.so.6(GLIBC_2.34)(64bit), libstdc++.so.6(GLIBCXX_3.4.29)(64bit), libvulkan.so.1()(64bit), libglib-2.0.so.0()(64bit), libEGL.so.1()(64bit), libGL.so.1()(64bit), libzstd.so.1()(64bit), libz.so.1()(64bit), libX11.so.6()(64bit), libX11-xcb.so.1()(64bit), libXext.so.6()(64bit), libxcb.so.1()(64bit), libxcb-cursor.so.0()(64bit), libxcb-icccm.so.4()(64bit), libxcb-image.so.0()(64bit), libxcb-keysyms.so.1()(64bit), libxcb-render-util.so.0()(64bit), libxcb-randr.so.0()(64bit), libxcb-render.so.0()(64bit), libxcb-shape.so.0()(64bit), libxcb-shm.so.0()(64bit), libxcb-sync.so.1()(64bit), libxcb-xfixes.so.0()(64bit), libxcb-xkb.so.1()(64bit), libxkbcommon-x11.so.0()(64bit), libpulse.so.0()(64bit), libasound.so.2()(64bit), libfontconfig.so.1()(64bit), libfreetype.so.6()(64bit), libdbus-1.so.3()(64bit)
 %description
 A desktop companion using a cooked Unreal renderer and private Python/Qt shell.
 Cat assets retain personal noncommercial conditions; see included attribution.
@@ -79,6 +79,7 @@ depend = libglvnd
 depend = zstd
 depend = zlib
 depend = libx11
+depend = libxext
 depend = libxcb
 depend = xcb-util-cursor
 depend = xcb-util-image

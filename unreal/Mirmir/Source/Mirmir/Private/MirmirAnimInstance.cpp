@@ -212,6 +212,7 @@ struct FCatAnimationInput
     FTransform ComponentToWorld = FTransform::Identity;
     FRotator HeadRotation = FRotator::ZeroRotator;
     bool bHabitatTraveling = false;
+    bool bBackwards = false;
     float RestAlpha = 0.0f;
     float BreathingCm = 0.0f;
     FVector RestTailAxis = FVector::RightVector;
@@ -285,6 +286,7 @@ protected:
         Input.bPreferSitting = Cat->bPreferSittingWhenResting;
         Input.bWaitingAtToy = Cat->bWaitingAtToy;
         Input.bHabitatTraveling = Cat->bHabitatTraveling;
+        Input.bBackwards = Cat->bWalkingBackwards;
         Input.RestAlpha = Cat->RestPoseAlpha;
         Input.BreathingCm = Cat->RestBreathing;
         Input.bSuppressVariation = Cat->Activity == EMirmirActivity::Sleep || Cat->Activity == EMirmirActivity::Eat;
@@ -383,7 +385,7 @@ protected:
 
         UAnimSequence* Selected = ClipFor(Next);
         const float Rate = Next == ECatPose::HeldWalk ? 0.0f
-            : (Next == ECatPose::Walk ? FMath::Clamp(Input.Speed / Input.ReferenceSpeed, 0.0f, 3.0f)
+            : (Next == ECatPose::Walk ? FMath::Clamp(Input.Speed / Input.ReferenceSpeed, 0.0f, 3.0f) * (Input.bBackwards ? -1.0f : 1.0f)
                 : (Next == ECatPose::Idle ? Input.IdleRate : (Next == ECatPose::IdleVariation ? Input.VariationRate : 1.0f)));
         if (Selected && (Next != Pose || Selected != ActiveClip))
         {
@@ -391,6 +393,7 @@ protected:
                 Next != ECatPose::HeldWalk && Next != ECatPose::IdleVariation;
             // HeldWalk is a frozen existing walk sample, not an invented clip.
             float Start = Next == ECatPose::HeldWalk ? FMath::Min(1.0f / 30.0f, Selected->GetPlayLength()) : 0.0f;
+            if (Next == ECatPose::Walk && Input.bBackwards) Start = FMath::Max(.001f, Selected->GetPlayLength() - .001f);
             if (Next == ECatPose::Walk && Pose == ECatPose::HeldWalk && Selected == ActiveClip)
                 Start = Stack.GetCurrentAssetTime();
             Stack.BlendTo(Context, Selected, Start, bLoop, false, nullptr,

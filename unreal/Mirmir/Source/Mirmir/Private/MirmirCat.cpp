@@ -1,6 +1,8 @@
 #include "MirmirCat.h"
 #include "MirmirToy.h"
 #include "MirmirHabitat.h"
+#include "CatNavigation.h"
+#include "Components/BoxComponent.h"
 #include "MirmirSaveGame.h"
 #include "MirmirAnimInstance.h"
 #include "Components/AudioComponent.h"
@@ -31,7 +33,15 @@
 AMirmirCat::AMirmirCat()
 {
     PrimaryActorTick.bCanEverTick = true;
-    RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("CatRoot"));
+    CollisionBody = CreateDefaultSubobject<UBoxComponent>(TEXT("CatRoot"));
+    RootComponent = CollisionBody;
+    CollisionBody->SetBoxExtent(FVector(23.0, 12.0, 18.0));
+    CollisionBody->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+    CollisionBody->SetCollisionObjectType(ECC_WorldDynamic);
+    CollisionBody->SetCollisionResponseToAllChannels(ECR_Ignore);
+    CollisionBody->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Block);
+    CollisionBody->SetHiddenInGame(true);
+    CollisionBody->SetCanEverAffectNavigation(false);
     CatMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("CatMesh"));
     CatMesh->SetupAttachment(RootComponent);
     CatMesh->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
@@ -108,7 +118,15 @@ void AMirmirCat::Tick(float DeltaSeconds)
     Behavior.Advance(DeltaSeconds, !bHabitatTraveling);
     RefreshState();
     const FVector Before = GetActorLocation();
+    const float BeforeYaw = GetActorRotation().Yaw;
     const float MovementDelta = FMath::Clamp(DeltaSeconds, 0.0f, 0.1f);
+    NavigationReplanSeconds = FMath::Max(0.0f, NavigationReplanSeconds - MovementDelta);
+    if (Habitat && ObservedLayoutRevision != Habitat->GetLayoutRevision())
+    {
+        ObservedLayoutRevision = Habitat->GetLayoutRevision();
+        NavigationWaypoints.Reset();
+        if (Activity == EMirmirActivity::Eat || Activity == EMirmirActivity::Sleep) BeginHabitatApproach();
+    }
     UpdateHabitat(MovementDelta);
     UpdateCuriosity(MovementDelta);
     const bool bVisitAllowed = Activity == EMirmirActivity::Idle || Activity == EMirmirActivity::Wander ||
@@ -130,12 +148,17 @@ void AMirmirCat::Tick(float DeltaSeconds)
         bToyStartPending = false;
     }
     const bool bChasingToy = Activity == EMirmirActivity::Play && Toy && Toy->IsPlaying();
-    if (!bChasingToy) bWaitingAtToy = false;
+    if (!bChasingToy) { bWaitingAtToy = false; bWaitingAtBlockedToy = false; }
     else
     {
         const float Distance = FVector::Dist2D(Toy->GetBallLocation(), Before);
-        if (Distance <= 32.0f) bWaitingAtToy = true;
-        else if (Distance > 37.0f) bWaitingAtToy = false;
+        const bool ProtectedBall = Habitat &&
+            (FVector::Dist2D(Toy->GetBallLocation(), Habitat->GetStationFloorPosition(TEXT("bowl"))) < 52.0f ||
+             FVector::Dist2D(Toy->GetBallLocation(), Habitat->GetStationFloorPosition(TEXT("bed"))) < 77.0f);
+        if (Distance > 60.0f || !ProtectedBall) bWaitingAtBlockedToy = false;
+        if (bWaitingAtBlockedToy || Distance <= 38.0f) bWaitingAtToy = true;
+        else if (Distance > 46.0f) bWaitingAtToy = false;
+        if (bNeedBowlExit) { bWaitingAtToy = false; bWaitingAtBlockedToy = false; }
     }
     const ECollisionEnabled::Type DesiredCollision = bChasingToy
         ? ECollisionEnabled::QueryAndPhysics : ECollisionEnabled::QueryOnly;
@@ -169,6 +192,48 @@ void AMirmirCat::Tick(float DeltaSeconds)
             Target = WanderTarget;
         }
     }
+    const bool WasBacking = bWalkingBackwards;
+    bWalkingBackwards = false;
+    bExitingBed = false;
+    bBedEntryPermission = false;
+    bBowlClearancePermission = false;
+    if (Habitat && bTravel)
+    {
+        const FVector Bed = Habitat->GetStationFloorPosition(TEXT("bed"));
+        const FVector Bowl = Habitat->GetStationFloorPosition(TEXT("bowl"));
+        const FVector LocalBed = Before - Bed;
+        // The bed is open at both ends. The sleeping pose finishes facing +X,
+        // allowing a forward exit instead of an in-place frozen rotation.
+        if (Activity != EMirmirActivity::Sleep && FMath::Abs(LocalBed.Y) < 13.0 &&
+            LocalBed.X > -65.0 && LocalBed.X < 85.0 && Before.Z > HomeLocation.Z + .5) bLeavingBedTraversal = true;
+        if (LocalBed.X >= 95.0 || FMath::Abs(LocalBed.Y) > 18.0) bLeavingBedTraversal = false;
+        bExitingBed = bLeavingBedTraversal;
+        const bool SupportedAtBed = FMath::Abs(LocalBed.X) < 65.0 && FMath::Abs(LocalBed.Y) < 13.0 && Before.Z > HomeLocation.Z + .5;
+        const bool FinalBedLane = Activity == EMirmirActivity::Sleep && bHabitatTraveling &&
+            !HabitatWaypoints.IsEmpty() && HabitatWaypointIndex >= HabitatWaypoints.Num() - 18;
+        bBedEntryPermission = (SupportedAtBed || bExitingBed || FinalBedLane) &&
+            FMath::Abs(LocalBed.Y) < 13.0 && FMath::Abs(LocalBed.X) < 110.0 && GetActorForwardVector().X > .85;
+        if (bExitingBed) Target = Bed + FVector(105, 0, 0);
+        // A real backwards playback of the walk clears the food bowl before
+        // forward steering resumes. The stationary body is never spun through it.
+        const FVector ToBowl = Bowl - Before;
+        if (ToBowl.Size2D() >= 105.0) bNeedBowlExit = false;
+        bWalkingBackwards = bNeedBowlExit && Activity != EMirmirActivity::Eat && !bExitingBed && ToBowl.Size2D() < 105.0 &&
+            FVector::DotProduct(ToBowl.GetSafeNormal2D(), GetActorForwardVector()) > .35;
+        if (bWalkingBackwards && !WasBacking && MovementSpeed > 1.0f)
+        {
+            bWalkingBackwards = false;
+            bTravel = false; // Settle the forward step before reversing velocity.
+        }
+        if (WasBacking && !bWalkingBackwards && Locomotion.Speed > .1)
+        {
+            bWalkingBackwards = true;
+            bTravel = false; // Brake in the existing direction before going forward.
+        }
+        bBowlClearancePermission = bWalkingBackwards || (Activity == EMirmirActivity::Eat && bHabitatTraveling);
+        if (bWalkingBackwards) Target = Before - GetActorForwardVector() * 80.0;
+        else if (!bExitingBed && !bHabitatTraveling) Target = NavigationSteeringTarget(Target);
+    }
     const FVector ToTarget = Target - Before;
     const FVector Forward = GetActorForwardVector().GetSafeNormal2D();
     const FVector Right = GetActorRightVector().GetSafeNormal2D();
@@ -180,22 +245,46 @@ void AMirmirCat::Tick(float DeltaSeconds)
         Locomotion.Speed = 0.0;
         Locomotion.YawRate = 0.0;
     }
+    if (bWalkingBackwards) Locomotion.YawRate = 0.0;
     const Mirmir::LocomotionStep Step = Mirmir::AdvanceLocomotion(Locomotion,
-        FVector::DotProduct(ToTarget, Forward), FVector::DotProduct(ToTarget, Right),
-        bCuriosityVisit ? FMath::Min(Cruise, 25.0f) : Cruise, bTravel, MovementDelta, Settings);
-    SetActorLocation(Before + Forward * Step.Forward + Right * Step.Right);
+        bWalkingBackwards ? 80.0 : FVector::DotProduct(ToTarget, Forward),
+        bWalkingBackwards ? 0.0 : FVector::DotProduct(ToTarget, Right),
+        bWalkingBackwards ? 24.0f : bCuriosityVisit ? FMath::Min(Cruise, 25.0f) : Cruise, bTravel, MovementDelta, Settings);
+    FVector Proposed = Before + (bWalkingBackwards ? -Forward : Forward) * Step.Forward + Right * Step.Right;
     if (Habitat)
     {
-        FVector Position = GetActorLocation();
-        const float BedDistance = FVector::Dist2D(Position, Habitat->GetBedLocation());
-        const float FloorZ = BedDistance < 32.0f ? Habitat->GetBedLocation().Z : HomeLocation.Z;
-        Position.Z = FMath::FInterpConstantTo(Position.Z, FloorZ, MovementDelta, 12.0f);
-        SetActorLocation(Position);
+        const float BedDistance = FVector::Dist2D(Proposed, Habitat->GetBedLocation());
+        const bool bOnSupport = (bBedEntryPermission || (bHabitatArrived && Activity == EMirmirActivity::Sleep) || bExitingBed) && BedDistance < 58.0f;
+        const float FloorZ = bOnSupport ? Habitat->GetBedLocation().Z : HomeLocation.Z;
+        Proposed.Z = FMath::FInterpConstantTo(Proposed.Z, FloorZ, MovementDelta, 12.0f);
+        CollisionBody->IgnoreComponentWhenMoving(Habitat->GetBedCollision(), bBedEntryPermission || (bHabitatArrived && Activity == EMirmirActivity::Sleep));
     }
-    if (FMath::Abs(Step.Yaw) > 0.0000001)
-        SetActorRotation(FRotator(0.0f, GetActorRotation().Yaw + FMath::RadiansToDegrees(Step.Yaw), 0.0f));
+    bMovementBlocked = !SegmentClear(Before, Proposed, bBedEntryPermission || (bHabitatArrived && Activity == EMirmirActivity::Sleep), bBowlClearancePermission);
+    FHitResult Hit;
+    if (!bMovementBlocked)
+    {
+        const FQuat Rotation = FRotator(0, GetActorRotation().Yaw + (bWalkingBackwards ? 0.0 : FMath::RadiansToDegrees(Step.Yaw)), 0).Quaternion();
+        CollisionBody->MoveComponent(Proposed - Before, Rotation, true, &Hit);
+        bMovementBlocked = Hit.bBlockingHit;
+        if (Hit.bBlockingHit)
+        {
+            const double RequestedDistance = FVector::Dist2D(Before, Proposed);
+            const double Fraction = RequestedDistance > .0001
+                ? FMath::Clamp(FVector::Dist2D(Before, GetActorLocation()) / RequestedDistance, 0.0, 1.0) : 0.0;
+            // UE's linear sweep can apply the requested rotation even when
+            // translation hits a wall. Keep actual yaw tied to the accepted arc.
+            SetActorRotation(FRotator(0, BeforeYaw + (bWalkingBackwards ? 0.0 : FMath::RadiansToDegrees(Step.Yaw) * Fraction), 0));
+        }
+    }
+    if (bMovementBlocked)
+    {
+        Locomotion.Speed = 0.0;
+        Locomotion.YawRate = 0.0;
+        NavigationWaypoints.Reset();
+    }
     MovementSpeed = DeltaSeconds > SMALL_NUMBER ? FVector::Dist2D(Before, GetActorLocation()) / DeltaSeconds : 0.0f;
-    LocomotionYawRate = DeltaSeconds > SMALL_NUMBER ? Step.Yaw / DeltaSeconds : 0.0f;
+    LocomotionYawRate = DeltaSeconds > SMALL_NUMBER
+        ? FMath::DegreesToRadians(FMath::FindDeltaAngleDegrees(BeforeYaw, GetActorRotation().Yaw)) / DeltaSeconds : 0.0f;
     LocomotionCurvature = MovementSpeed > 0.01f ? LocomotionYawRate / MovementSpeed : 0.0f;
     UpdateAuthoredAnimation();
     OnVisualUpdate(DeltaSeconds, MovementSpeed);
@@ -222,74 +311,210 @@ void AMirmirCat::Tick(float DeltaSeconds)
     }
 }
 
-void AMirmirCat::BeginHabitatApproach()
+void AMirmirCat::SetDesktopBounds(FVector Origin, FVector Right, FVector Up, float PixelsPerCM, FVector2D Minimum, FVector2D Maximum)
 {
-    bHabitatTraveling = false;
-    bHabitatArrived = false;
-    HabitatWaypoints.Reset();
-    HabitatWaypointIndex = 0;
-    if (!Habitat || (Activity != EMirmirActivity::Eat && Activity != EMirmirActivity::Sleep)) return;
+    if (Origin.ContainsNaN() || Right.ContainsNaN() || Up.ContainsNaN() || Minimum.ContainsNaN() || Maximum.ContainsNaN() ||
+        !FMath::IsFinite(PixelsPerCM) || PixelsPerCM <= .01f || PixelsPerCM > 20.0f ||
+        Minimum.X >= Maximum.X || Minimum.Y >= Maximum.Y) return;
+    const bool Changed = !bHasDesktopBounds || !DesktopMinimum.Equals(Minimum,.5f) || !DesktopMaximum.Equals(Maximum,.5f);
+    bHasDesktopBounds = true;
+    DesktopOrigin = Origin; DesktopRight = Right.GetSafeNormal(); DesktopUp = Up.GetSafeNormal();
+    DesktopScale = PixelsPerCM; DesktopMinimum = Minimum; DesktopMaximum = Maximum;
+    if (Changed) { NavigationWaypoints.Reset(); if (bHabitatTraveling) HabitatWaypoints.Reset(); NavigationReplanSeconds = 0; }
+}
+
+bool AMirmirCat::IsInsideDesktop(FVector Position) const
+{
+    if (!bHasDesktopBounds) return true;
+    const FVector Delta = Position - DesktopOrigin;
+    const double X = FVector::DotProduct(Delta, DesktopRight) * DesktopScale;
+    const double Y = -FVector::DotProduct(Delta, DesktopUp) * DesktopScale;
+    return X >= DesktopMinimum.X && X <= DesktopMaximum.X && Y >= DesktopMinimum.Y && Y <= DesktopMaximum.Y;
+}
+
+bool AMirmirCat::IsBedOccupied() const
+{
+    if (!Habitat) return false;
+    const FVector Delta = GetActorLocation() - Habitat->GetStationFloorPosition(TEXT("bed"));
+    return RestPoseAlpha > .01f || bExitingBed ||
+        (FMath::Abs(Delta.X) < 65.0 && FMath::Abs(Delta.Y) < 18.0 && Delta.Z > .5) ||
+        (Activity == EMirmirActivity::Sleep && bHabitatTraveling && Delta.Size2D() < 80.0);
+}
+
+bool AMirmirCat::SegmentClear(FVector A, FVector B, bool BedCorridor, bool BowlCorridor, float Margin) const
+{
+    if (!IsInsideDesktop(A) || !IsInsideDesktop(B)) return false;
+    if (!Habitat) return true;
+    using namespace Mirmir::Navigation;
+    const FVector Bed = Habitat->GetStationFloorPosition(TEXT("bed"));
+    const FVector Bowl = Habitat->GetStationFloorPosition(TEXT("bowl"));
+    auto InBedGate = [Bed](FVector P)
+    {
+        return FMath::Abs(P.Y - Bed.Y) <= 13.0 && FMath::Abs(P.X - Bed.X) <= 115.0;
+    };
+    if (!(BedCorridor && InBedGate(A) && InBedGate(B)) &&
+        SegmentClearance({ A.X,A.Y }, { B.X,B.Y }, {{ Bed.X,Bed.Y }, 40.0 + 28.0 + Margin}) < 0.0) return false;
+    auto InFoodGate = [Bowl, this](FVector P)
+    {
+        const FVector Radial = BowlApproachOutward;
+        const FVector D = P - Bowl;
+        return FVector::DotProduct(D, Radial) >= 35.0 && FMath::Abs(D.X * Radial.Y - D.Y * Radial.X) <= 13.0;
+    };
+    const double FoodA = FVector::Dist2D(A, Bowl), FoodB = FVector::Dist2D(B, Bowl);
+    const bool SafeBackoff = bWalkingBackwards && FoodA >= 35.0 && FoodB >= FoodA - .001;
+    if (!(BowlCorridor && (SafeBackoff || (InFoodGate(A) && InFoodGate(B)))) &&
+        SegmentClearance({ A.X,A.Y }, { B.X,B.Y }, {{ Bowl.X,Bowl.Y }, 15.0 + 28.0 + Margin}) < 0.0) return false;
+    return true;
+}
+
+bool AMirmirCat::PlanCurvedRoute(FVector Goal, FVector EndForward, bool BedCorridor, bool BowlCorridor, TArray<FVector>& Out) const
+{
+    using namespace Mirmir::Navigation;
     const FVector Start = GetActorLocation();
-    const FVector Forward = GetActorForwardVector().GetSafeNormal2D();
-    const FVector Left(-Forward.Y, Forward.X, 0.0);
-    const FVector Station = Activity == EMirmirActivity::Eat ? Habitat->GetBowlLocation() : Habitat->GetBedLocation();
-    FVector Direction = (Station - Start).GetSafeNormal2D();
-    if (Direction.IsNearlyZero()) Direction = Forward;
-    HabitatDestination = Station - (Activity == EMirmirActivity::Eat ? Direction * 27.0f : FVector::ZeroVector);
-    HabitatDestination.Z = HomeLocation.Z;
-    if (FVector::Dist2D(Start, HabitatDestination) <= 12.0f)
+    const Pose2 Initial{{ Start.X,Start.Y }, FMath::DegreesToRadians(GetActorRotation().Yaw)};
+    const Pose2 Final{{ Goal.X,Goal.Y }, FMath::Atan2(EndForward.Y, EndForward.X)};
+    auto AppendValid = [&](const Candidate& CandidatePath, TArray<FVector>& Points)
     {
-        bHabitatArrived = true;
-        Behavior.RestartActivity(Activity == EMirmirActivity::Eat ? 6.0 : 30.0);
-        return;
-    }
-    // A finite forward circular arc and its tangent line reach even a nearby
-    // rearward station. Chasing a point inside the turning circle can orbit.
-    const double Radius = FMath::Clamp(MinimumTurnRadius, 45.0f, 100.0f);
-    double BestLength = TNumericLimits<double>::Max();
-    FVector BestCenter, BestTangent;
-    double BestStartAngle = 0.0, BestSweep = 0.0, BestSign = 1.0;
-    for (int32 Sign : { -1, 1 })
-    {
-        const FVector Center = Start + Left * (Sign * Radius);
-        const FVector ToGoal = HabitatDestination - Center;
-        const double Distance = ToGoal.Size2D();
-        if (Distance < Radius + .001) continue;
-        const double StartAngle = FMath::Atan2(Start.Y - Center.Y, Start.X - Center.X);
-        const double EndAngle = FMath::Atan2(ToGoal.Y, ToGoal.X) - Sign * FMath::Acos(FMath::Clamp(Radius / Distance, -1.0, 1.0));
-        double Sweep = FMath::Fmod(Sign * (EndAngle - StartAngle) + UE_TWO_PI, UE_TWO_PI);
-        if (Sweep < 0.0) Sweep += UE_TWO_PI;
-        const FVector Tangent = Center + FVector(FMath::Cos(EndAngle), FMath::Sin(EndAngle), 0) * Radius;
-        const double Length = Sweep * Radius + FVector::Dist2D(Tangent, HabitatDestination);
-        if (Length < BestLength)
+        for (size_t I = 1; I < CandidatePath.Samples.size(); ++I)
         {
-            BestLength = Length; BestCenter = Center; BestTangent = Tangent;
-            BestStartAngle = StartAngle; BestSweep = Sweep; BestSign = Sign;
+            const Point2 A = CandidatePath.Samples[I-1].Position, B = CandidatePath.Samples[I].Position;
+            if (!SegmentClear(FVector(A.X,A.Y,0), FVector(B.X,B.Y,0), BedCorridor, BowlCorridor, 8.0f)) return false;
+        }
+        for (const auto& Sample : CandidatePath.Samples)
+            Points.Add(FVector(Sample.Position.X, Sample.Position.Y, HomeLocation.Z));
+        return true;
+    };
+    for (const Candidate& CandidatePath : BuildCSC(Initial, Final, MinimumTurnRadius, 6.0))
+    {
+        TArray<FVector> Points;
+        if (AppendValid(CandidatePath, Points)) { Out = MoveTemp(Points); return true; }
+    }
+    // Two-station scenes sometimes need a detour beyond the four direct CSC
+    // families. Search bounded staging poses; every chord is checked again.
+    double BestLength = TNumericLimits<double>::Max();
+    TArray<FVector> Best;
+    for (int32 I = 0; I < 12; ++I)
+    {
+        const double Angle = I * UE_TWO_PI / 12.0;
+        const FVector Mid = (Start + Goal) * .5 + FVector(FMath::Cos(Angle), FMath::Sin(Angle), 0) * 160.0;
+        const FVector Toward = (Goal - Mid).GetSafeNormal2D();
+        const Pose2 Middle{{ Mid.X,Mid.Y }, FMath::Atan2(Toward.Y,Toward.X)};
+        for (const Candidate& First : BuildCSC(Initial, Middle, MinimumTurnRadius, 6.0))
+        {
+            if (First.Length >= BestLength) continue;
+            TArray<FVector> Prefix;
+            if (!AppendValid(First, Prefix)) continue;
+            for (const Candidate& Second : BuildCSC(Middle, Final, MinimumTurnRadius, 6.0))
+            {
+                if (First.Length + Second.Length >= BestLength) continue;
+                TArray<FVector> Suffix;
+                if (!AppendValid(Second, Suffix)) continue;
+                Best = Prefix; Best.Append(Suffix); BestLength = First.Length + Second.Length;
+            }
         }
     }
-    if (BestLength == TNumericLimits<double>::Max()) return;
-    const int32 ArcSamples = FMath::Max(1, FMath::CeilToInt(BestSweep * Radius / 8.0));
-    for (int32 I = 1; I <= ArcSamples; ++I)
+    if (Best.IsEmpty()) return false;
+    Out = MoveTemp(Best);
+    return true;
+}
+
+FVector AMirmirCat::NavigationSteeringTarget(FVector Goal)
+{
+    if (!Habitat) return Goal;
+    if (NavigationWaypoints.IsEmpty() && NavigationReplanSeconds > 0.0f) return GetActorLocation();
+    for (const FName Id : { FName(TEXT("bed")), FName(TEXT("bowl")) })
     {
-        const double Angle = BestStartAngle + BestSign * BestSweep * I / ArcSamples;
-        FVector Point = BestCenter + FVector(FMath::Cos(Angle), FMath::Sin(Angle), 0) * Radius;
-        Point.Z = HomeLocation.Z;
-        HabitatWaypoints.Add(Point);
+        const FVector Center = Habitat->GetStationFloorPosition(Id);
+        const float Radius = Id == TEXT("bed") ? 84.0f : 59.0f;
+        if (FVector::Dist2D(Goal, Center) < Radius)
+        {
+            FVector Outward = (Goal - Center).GetSafeNormal2D();
+            if (Outward.IsNearlyZero()) Outward = (GetActorLocation() - Center).GetSafeNormal2D();
+            Goal = Center + Outward * Radius;
+        }
     }
-    const int32 LineSamples = FMath::Max(1, FMath::CeilToInt(FVector::Dist2D(BestTangent, HabitatDestination) / 8.0));
-    for (int32 I = 1; I <= LineSamples; ++I)
+    if (FVector::Dist2D(NavigationDestination, Goal) > 8.0 || (NavigationWaypoints.IsEmpty() && NavigationReplanSeconds <= 0))
     {
-        FVector Point = FMath::Lerp(BestTangent, HabitatDestination, double(I) / LineSamples);
-        Point.Z = HomeLocation.Z;
-        HabitatWaypoints.Add(Point);
+        NavigationDestination = Goal;
+        NavigationWaypoints.Reset(); NavigationWaypointIndex = 0;
+        NavigationReplanSeconds = .5f;
+        FVector Heading = (Goal - GetActorLocation()).GetSafeNormal2D();
+        if (Heading.IsNearlyZero()) Heading = GetActorForwardVector();
+        for (float Offset : { 0.0f, 90.0f, -90.0f, 180.0f })
+            if (PlanCurvedRoute(Goal, Heading.RotateAngleAxis(Offset, FVector::UpVector), false, false, NavigationWaypoints)) break;
+    }
+    const bool NearProtectedToy = Toy && Toy->IsPlaying() && Activity == EMirmirActivity::Play && !bNeedBowlExit &&
+        FVector::Dist2D(GetActorLocation(), Toy->GetBallLocation()) <= 60.0f &&
+        (FVector::Dist2D(Toy->GetBallLocation(), Habitat->GetStationFloorPosition(TEXT("bowl"))) < 52.0f ||
+         FVector::Dist2D(Toy->GetBallLocation(), Habitat->GetStationFloorPosition(TEXT("bed"))) < 77.0f);
+    if (NearProtectedToy && (NavigationWaypoints.IsEmpty() || FVector::Dist2D(GetActorLocation(), Goal) < 9.0f))
+    {
+        if (!bWaitingAtBlockedToy)
+        {
+            ++InteractionSerial; LastInteractionAction = TEXT("play"); bLastInteractionAccepted = true;
+            InteractionMessage = TEXT("Top eşyanın yanında; Mırmır güvenli mesafede bekliyor.");
+        }
+        bWaitingAtBlockedToy = true; bWaitingAtToy = true;
+        return GetActorLocation();
+    }
+    if (NavigationWaypoints.IsEmpty())
+    {
+        if (Activity == EMirmirActivity::Wander) ChooseWanderTarget();
+        return GetActorLocation();
+    }
+    int32 Best = NavigationWaypointIndex;
+    double Nearest = TNumericLimits<double>::Max();
+    for (int32 I = Best; I < FMath::Min(NavigationWaypoints.Num(), Best + 18); ++I)
+    {
+        const double D = FVector::DistSquared2D(GetActorLocation(), NavigationWaypoints[I]);
+        if (D < Nearest) { Nearest = D; Best = I; }
+    }
+    NavigationWaypointIndex = Best;
+    return NavigationWaypoints[FMath::Min(Best + 8, NavigationWaypoints.Num() - 1)];
+}
+
+void AMirmirCat::BeginHabitatApproach()
+{
+    bHabitatTraveling = false; bHabitatArrived = false;
+    HabitatWaypoints.Reset(); HabitatWaypointIndex = 0;
+    if (!Habitat || (Activity != EMirmirActivity::Eat && Activity != EMirmirActivity::Sleep)) return;
+    const bool Sleeping = Activity == EMirmirActivity::Sleep;
+    const FVector Station = Habitat->GetStationFloorPosition(Sleeping ? TEXT("bed") : TEXT("bowl"));
+    FVector Outward = (GetActorLocation() - Station).GetSafeNormal2D();
+    if (Outward.IsNearlyZero()) Outward = -GetActorForwardVector();
+    if (!Sleeping) BowlApproachOutward = Outward;
+    const FVector Heading = Sleeping ? FVector::ForwardVector : -Outward;
+    HabitatDestination = Sleeping ? Station : Station + Outward * 38.0f;
+    const FVector Staging = Sleeping ? Station - FVector(90,0,0) : HabitatDestination;
+    if (FVector::Dist2D(GetActorLocation(), HabitatDestination) < 10.0f &&
+        FVector::DotProduct(GetActorForwardVector(), Heading) > .9)
+    {
+        bHabitatArrived = true;
+        Behavior.RestartActivity(Sleeping ? 30.0 : 6.0);
+        return;
+    }
+    if (!PlanCurvedRoute(Staging, Heading, false, !Sleeping, HabitatWaypoints))
+    {
+        InteractionMessage = TEXT("Mırmır güvenli bir yaklaşma yolu arıyor.");
+        bHabitatTraveling = true;
+        NavigationReplanSeconds = .5f;
+        return;
+    }
+    const int32 N = FMath::Max(1, FMath::CeilToInt(FVector::Dist2D(Staging, HabitatDestination) / 6.0));
+    FVector Previous = Staging;
+    for (int32 I = 1; I <= N; ++I)
+    {
+        const FVector Next = FMath::Lerp(Staging, HabitatDestination, double(I)/N);
+        if (!SegmentClear(Previous, Next, Sleeping, !Sleeping, 0.5f)) { HabitatWaypoints.Reset(); return; }
+        HabitatWaypoints.Add(Next); Previous = Next;
     }
     bHabitatTraveling = true;
-    if (Activity == EMirmirActivity::Eat) Habitat->SetFoodVisible(true);
+    if (!Sleeping) Habitat->SetFoodVisible(true);
 }
 
 FVector AMirmirCat::HabitatSteeringTarget()
 {
-    if (HabitatWaypoints.IsEmpty()) return HabitatDestination;
+    if (HabitatWaypoints.IsEmpty()) return GetActorLocation();
     const FVector Position = GetActorLocation();
     float Closest = TNumericLimits<float>::Max();
     int32 Best = HabitatWaypointIndex;
@@ -309,7 +534,8 @@ void AMirmirCat::UpdateHabitat(float DeltaSeconds)
     if (bHabitatTraveling)
     {
         Behavior.KeepActivityFor(30.0);
-        if (HabitatWaypointIndex >= HabitatWaypoints.Num() - 8 &&
+        if (HabitatWaypoints.IsEmpty() && NavigationReplanSeconds <= 0) BeginHabitatApproach();
+        if (!HabitatWaypoints.IsEmpty() && HabitatWaypointIndex >= HabitatWaypoints.Num() - 8 &&
             FVector::Dist2D(GetActorLocation(), HabitatDestination) <= 12.0f)
         {
             bHabitatTraveling = false;
@@ -333,26 +559,28 @@ void AMirmirCat::ChooseWanderTarget()
 {
     const FVector Position = GetActorLocation();
     const float Radius = FMath::Max(60.0f, WanderRadius);
-    if (FVector::Dist2D(Position, HomeLocation) > Radius * 0.75f)
+    const FVector TowardHome = HomeLocation + (HomeLocation - Position).GetSafeNormal2D() * 75.0f;
+    if (FVector::Dist2D(Position, HomeLocation) > Radius * .75f &&
+        IsInsideDesktop(TowardHome) && SegmentClear(TowardHome,TowardHome,false,false,8.0f))
     {
-        // A point inside the minimum turn circle can create a permanent orbit.
-        // Travel through home toward the far side, leaving room to complete
-        // the forward arc instead of chasing an unreachable center point.
-        WanderTarget = HomeLocation + (HomeLocation - Position).GetSafeNormal2D() * 75.0f;
+        WanderTarget = TowardHome;
         return;
     }
     float BestCost = TNumericLimits<float>::Max();
-    for (int32 Attempt = 0; Attempt < 12; ++Attempt)
+    FVector Best = Position;
+    for (int32 Attempt = 0; Attempt < 24; ++Attempt)
     {
-        const float Offset = MovementRandom.FRandRange(-55.0f, 55.0f);
+        const float Offset = MovementRandom.FRandRange(-135.0f, 135.0f);
         const float Angle = GetActorRotation().Yaw + Offset;
         const float MinimumDistance = FMath::Max(90.0f,
-            2.0f * FMath::Clamp(MinimumTurnRadius, 45.0f, 100.0f) * FMath::Abs(FMath::Sin(FMath::DegreesToRadians(Offset))) + 20.0f);
-        const FVector Candidate = Position + FRotator(0.0f, Angle, 0.0f).Vector() * MovementRandom.FRandRange(MinimumDistance, MinimumDistance + 25.0f);
-        const float HomeDistance = FVector::Dist2D(Candidate, HomeLocation);
-        const float Cost = FMath::Max(0.0f, HomeDistance - Radius * 0.7f) * 10.0f + HomeDistance * 0.1f;
-        if (Cost < BestCost) { BestCost = Cost; WanderTarget = Candidate; }
+            2.0f * FMath::Clamp(MinimumTurnRadius,45.0f,100.0f) * FMath::Abs(FMath::Sin(FMath::DegreesToRadians(Offset))) + 20.0f);
+        const FVector Candidate = Position + FRotator(0,Angle,0).Vector() * MovementRandom.FRandRange(MinimumDistance, MinimumDistance + 25.0f);
+        if (!IsInsideDesktop(Candidate) || !SegmentClear(Candidate,Candidate,false,false,8.0f)) continue;
+        const float Distance = FVector::Dist2D(Candidate, HomeLocation);
+        const float Cost = FMath::Max(0.0f,Distance - Radius * .7f) * 10.0f + Distance * .1f;
+        if (Cost < BestCost) { BestCost = Cost; Best = Candidate; }
     }
+    WanderTarget = Best;
 }
 
 void AMirmirCat::SetCuriosityTarget(const FVector& Target, bool bActive)
@@ -695,7 +923,11 @@ void AMirmirCat::RefreshState()
     Curiosity = State.Curiosity;
     if (Activity != Previous)
     {
-        if (Previous == EMirmirActivity::Eat && Habitat && bHabitatArrived) Habitat->SetFoodVisible(false);
+        if (Previous == EMirmirActivity::Eat)
+        {
+            bNeedBowlExit = true;
+            if (Habitat && bHabitatArrived) Habitat->SetFoodVisible(false);
+        }
         bHabitatTraveling = false;
         bHabitatArrived = false;
         HabitatWaypoints.Reset();
@@ -760,7 +992,7 @@ bool AMirmirCat::Feed()
 bool AMirmirCat::Play()
 {
     const bool Accepted = Interact(Mirmir::Interaction::Play, TEXT("Play"), PlaySound);
-    if (Accepted) bToyStartPending = true;
+    if (Accepted) { bToyStartPending = true; bWaitingAtBlockedToy = false; }
     return Accepted;
 }
 void AMirmirCat::ToggleMute()

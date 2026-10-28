@@ -24,7 +24,7 @@ if (-not $Binary) { throw 'Cooked Windows Shipping executable missing' }
 $CookedRoot=$Binary.Directory.Parent.Parent.Parent.FullName
 Copy-Item $CookedRoot "$Payload\runtime" -Recurse
 New-Item -ItemType Directory -Force "$Payload\native-shell" | Out-Null
-Copy-Item "$Root\native-shell\mirmir_shell.py","$Root\native-shell\README.md","$Root\native-shell\LICENSE" "$Payload\native-shell"
+Copy-Item "$Root\native-shell\*.py","$Root\native-shell\README.md","$Root\native-shell\LICENSE" "$Payload\native-shell"
 Copy-Item "$Root\ASSET-LICENSES.md","$Root\LICENSE" $Payload
 New-Item -ItemType Directory -Force "$Payload\licenses","$Payload\source" | Out-Null
 Copy-Item "$Root\packaging\THIRD-PARTY-NOTICES.md","$Root\packaging\runtime-lock.json","$Root\packaging\requirements-windows.txt" "$Payload\licenses"

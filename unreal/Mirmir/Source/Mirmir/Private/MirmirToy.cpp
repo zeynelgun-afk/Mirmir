@@ -74,7 +74,9 @@ void AMirmirToy::ConfigureArena()
     const float Extent = FMath::Clamp(ArenaHalfExtentCm, 35.0f, 120.0f);
     // Surface matches the cat's normalized floor. This collision actor
     // stays fixed for the session and never expands the cat mesh's bounds.
-    Floor->SetRelativeLocation(FVector(0.0f, 0.0f, -1.0f));
+    // The cat can start play on the 5 cm bed cushion. The arena still rests
+    // on the world's floor, rather than lifting an invisible floor with it.
+    Floor->SetRelativeLocation(FVector(0.0f, 0.0f, -SessionOrigin.Z - 1.0f));
     const AMirmirCat* Cat = OwnerCat.Get();
     const float FloorExtent = FMath::Max(Extent + 3.0f,
         FMath::Clamp(Cat ? Cat->WanderRadius : 120.0f, 0.0f, 500.0f) + 70.0f);

@@ -1,3 +1,5 @@
+> Historical record (Turkish). See the [current English documentation](README.md).
+
 # Masaüstü laboratuvarı doğrulaması
 
 2026-10-27 19:10 TRT / 16:10 UTC. Bu kayıt **Godot fizibilite prototipine** aittir. Unreal derlemesini, fotogerçekçi kürkü veya kullanıcının elle deneyimini doğrulamaz.

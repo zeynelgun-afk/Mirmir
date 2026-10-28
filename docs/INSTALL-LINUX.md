@@ -1,52 +1,54 @@
-# Linux kurulumu
+# Linux installation
 
-Hedef: x86_64, glibc≥2.34, Vulkan destekli GPU. Ubuntu22.04+, Debian12+ ve güncel
-Fedora/Arch/openSUSE aileleri için paket biçimleri hazırlanır. Gerçek doğrulama
-ayrı yayımlanır; bu liste her dağıtımda kurulum testi yapıldığı iddiası değildir.
-Güncel Qt wheel'i nedeniyle Ubuntu20.04/RHEL8 destek hedefi değildir.
+Target: x86_64, glibc 2.34 or newer, and a Vulkan-capable graphics driver.
+Package formats are provided for Ubuntu 22.04+, Debian 12+ and current
+Fedora, openSUSE and Arch-family systems. Consult the release verification
+records for the environments actually tested. Ubuntu 20.04 and RHEL 8 are
+outside the current Qt runtime's compatibility target.
 
-Debian/Ubuntu:
+Replace `VERSION` in the commands below with the downloaded release version.
 
-```bash
-sudo apt install ./mirmir_*_amd64.deb
-mirmir
-```
+| Distribution family | Package | Install command |
+| --- | --- | --- |
+| Debian / Ubuntu | `.deb` | `sudo apt install ./mirmir_VERSION-1_amd64.deb` |
+| Fedora | `.rpm` | `sudo dnf install ./mirmir-VERSION-1.x86_64.rpm` |
+| openSUSE | `.rpm` | `sudo zypper install ./mirmir-VERSION-1.x86_64.rpm` |
+| Arch / CachyOS / Manjaro | `.pkg.tar.zst` | `sudo pacman -U ./mirmir-VERSION-1-x86_64.pkg.tar.zst` |
 
-Fedora:
+Then run `mirmir` or use the desktop application launcher. These packages
+install the application under `/opt/mirmir`, with a launcher and `mirmir`
+command in the standard system directories. Removing the package does not
+remove your cat save.
 
-```bash
-sudo dnf install ./mirmir-*.x86_64.rpm
-mirmir
-```
-
-openSUSE için aynı RPM'i `sudo zypper install ./mirmir-*.x86_64.rpm` ile kurun.
-Arch/CachyOS/Manjaro için `sudo pacman -U ./mirmir-*-x86_64.pkg.tar.zst` kullanın.
-Paket yöneticisi uygulamayı `/opt/mirmir` altına, menü kısayolunu ve `mirmir`
-komutunu standart dizinlere kurar. Normal kaldırma kedi kaydını silmez.
-
-AppImage:
+For AppImage:
 
 ```bash
-chmod +x Mirmir-*-x86_64.AppImage
-./Mirmir-*-x86_64.AppImage
+chmod +x Mirmir-VERSION-x86_64.AppImage
+./Mirmir-VERSION-x86_64.AppImage
 ```
 
-FUSE kullanılmıyorsa bu runtime'ın `--appimage-extract-and-run` seçeneğini kullanın.
-Taşınabilir arşiv için bir kullanıcı dizinine çıkarıp `./mirmir` çalıştırın:
+If FUSE is unavailable, use the runtime's `--appimage-extract-and-run` option.
+The [Flatpak guide](FLATPAK.md) covers the separate direct-download bundle.
+
+For the portable archive, extract into a user-owned directory:
 
 ```bash
 mkdir -p Mirmir
-tar --zstd -xf Mirmir-*-linux-x86_64.tar.zst -C Mirmir
+tar --zstd -xf Mirmir-VERSION-linux-x86_64.tar.zst -C Mirmir
 cd Mirmir
 ./mirmir --diagnose
 ./mirmir
 ```
 
-`--diagnose` motoru başlatmadan Python/Qt, Vulkan/X11 kütüphaneleri ve Shipping
-dosyasını denetler. `./mirmir --stop` yalnız kendi etkin Mırmır örneğine normal
-kapanma isteği gönderir. Kayıtlar XDG kullanıcı veri dizininde, geçici kareler
-desteklenen sistemlerde özel tmpfs dizininde tutulur. Paket dizinine yazılmaz.
+`--diagnose` checks the private Python/Qt runtime, relevant Vulkan/X11 libraries
+and the cooked game file without starting the engine. `./mirmir --stop` requests
+normal shutdown of your owned running instance. Saves use the XDG user data
+directory; logs use the XDG state directory. Temporary frames use a private
+runtime tmpfs directory when available. User records are not written inside
+the installed bundle.
 
-Wayland'da Qt kabuğu kendi süreci için XWayland kullanır; oturum tipi veya KWin
-ayarı değiştirmez. GPU sürücüsü, ses sunucusu ve sistem tepsisi davranışı
-masaüstüne göre ayrıca sınanmalıdır.
+On Wayland, the Qt shell uses XWayland for its own process. It does not switch
+your session type or edit KWin settings. Graphics drivers, sound servers,
+tray integration and actual desktop visibility still require verification in
+the target desktop environment. A locked session can prevent window mapping
+while the engine continues to render; no lock-screen bypass is attempted.

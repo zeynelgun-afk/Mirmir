@@ -1,28 +1,35 @@
-# Windows kurulum sihirbazı
+# Windows installer
 
-Windows hedefi x64 Windows10/11'dir. Sihirbaz kullanıcı hesabına
-`%LOCALAPPDATA%\Programs\Mirmir` altına kurar; yönetici yetkisi, Engine SDK,
-Python veya Qt kurulumu istemez. Başlat menüsü ve isteğe bağlı masaüstü kısayolu
-oluşturur; kayıtları kaldırma sırasında silmez. Otomatik başlangıç eklemez.
+The Windows target is x64 Windows 10/11. The Inno Setup recipe installs per
+user under `%LOCALAPPDATA%\Programs\Mirmir`, creates Start menu shortcuts and
+an optional desktop shortcut, and preserves saves during removal. It does not
+request administrative privileges or enable autostart. A completed Windows
+bundle would include the game and Python/Qt runtime for the end user.
 
-**Şu an Linux üzerinde Windows UE Shipping derlemesi ve Windows kurulum EXE'si
-doğrulanmış değildir.** Inno Setup kaynağı ve derleme betikleri hazır bir Windows
-payload'u zorunlu tutar. Linux ikili dosyasını `.exe` olarak paketlemez.
-Bir Windows yükleyicisi yayımlanana kadar Windows hazır indirmesi var saymayın.
+**A Windows Unreal Shipping build and installer EXE have not been produced or
+validated on this Linux host.** The installer source and build scripts require
+a real cooked Win64 payload. Until an EXE appears in a verified release, there
+is no prebuilt Windows download to install.
 
-Derleyici makinede ayrı olarak lisanslanmış UE5.8.4 Windows kurulumu, uyumlu
-Visual Studio C++ araçları, Python3.12 ve Inno Setup6 bulunmalıdır:
+A Windows build machine needs a separately licensed Unreal Engine 5.8.4
+installation, compatible Visual Studio C++ tools, Python 3.12 and Inno Setup 6.
+From the repository root:
 
 ```powershell
 ./packaging/windows/build-all.ps1 -UnrealRoot 'C:\UnrealEngine-5.8.4'
 ```
 
-Betik önce gerçek Win64 C++/Shipping cook, ardından PyInstaller Qt kabuğu,
-donmuş kabuk öz sınaması ve Inno Setup derlemesi yapar. Herhangi bir adım
-başarısızsa yükleyici üretildi diye raporlamaz. Uygulama son kullanıcısının
-Unreal hesabı/SDK'si gerekmez; bunlar yalnız Windows derleyici makine içindir.
-Sürüm varsayılan olarak `packaging/VERSION` dosyasından okunur.
+The script builds the Win64 editor module and Shipping game, freezes the Qt
+shell with PyInstaller, runs the frozen shell's self-test, then invokes Inno
+Setup. A failed prerequisite or build step stops installer creation. The
+version comes from `packaging/VERSION` and must match the cooked project
+version. Engine credentials and the SDK are build-machine requirements;
+end users would not need them.
 
-İlk gerçek Windows koşusunda GPU/grafik backend'i, ses, saydam pencere, tıklama, normal
-kapanma/yükseltme ve kayıt geri yükleme ayrıca doğrulanmalıdır. İmzasız bir ilk
-EXE için Windows SmartScreen yayımlayıcı doğrulaması bulunmayabilir.
+The wizard source is [Mirmir.iss](../packaging/windows/Mirmir.iss). The
+[manual build workflow](../.github/workflows/windows-installer.yml) uses a
+trusted self-hosted Windows build runner.
+
+The first real Windows release still needs checks for the graphics backend,
+sound, transparent windows, input handling, normal shutdown, upgrades and save
+restoration. An unsigned EXE does not have a verified Windows publisher identity.
